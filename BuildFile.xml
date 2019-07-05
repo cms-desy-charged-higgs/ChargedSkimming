@@ -1,0 +1,15 @@
+<use name="root"/>
+<use name="rootrio"/>
+<use name="rootcore"/>
+<use name="rootphysics"/>
+<use name="rootgraphics"/>
+
+<use name="CondFormats/BTauObjects"/>
+<use name="CondTools/BTau"/>
+<use name="JetMETCorrections/Modules"/>
+
+<flags CXXFLAGS="-Wall -std=c++17"/>
+
+<export>
+    <lib name="1"/>
+</export>

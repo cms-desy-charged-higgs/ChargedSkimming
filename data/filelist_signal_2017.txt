@@ -1,0 +1,10 @@
+/store/user/dbrunner/signalMC/Hc+hTol4b_MHc150_Mh75/NANOAOD/Hc+hTol4b_MHc150_Mh75_NANOAOD.root
+/store/user/dbrunner/signalMC/Hc+hTol4b_MHc200_Mh100/NANOAOD/Hc+hTol4b_MHc200_Mh100_NANOAOD.root
+/store/user/dbrunner/signalMC/Hc+hTol4b_MHc250_Mh100/NANOAOD/Hc+hTol4b_MHc250_Mh100_NANOAOD.root
+/store/user/dbrunner/signalMC/Hc+hTol4b_MHc300_Mh100/NANOAOD/Hc+hTol4b_MHc300_Mh100_NANOAOD.root
+/store/user/dbrunner/signalMC/Hc+hTol4b_MHc350_Mh100/NANOAOD/Hc+hTol4b_MHc350_Mh100_NANOAOD.root
+/store/user/dbrunner/signalMC/Hc+hTol4b_MHc400_Mh100/NANOAOD/Hc+hTol4b_MHc400_Mh100_NANOAOD.root
+/store/user/dbrunner/signalMC/Hc+hTol4b_MHc450_Mh100/NANOAOD/Hc+hTol4b_MHc450_Mh100_NANOAOD.root
+/store/user/dbrunner/signalMC/Hc+hTol4b_MHc500_Mh100/NANOAOD/Hc+hTol4b_MHc500_Mh100_NANOAOD.root
+/store/user/dbrunner/signalMC/Hc+hTol4b_MHc550_Mh100/NANOAOD/Hc+hTol4b_MHc550_Mh100_NANOAOD.root
+/store/user/dbrunner/signalMC/Hc+hTol4b_MHc600_Mh100/NANOAOD/Hc+hTol4b_MHc600_Mh100_NANOAOD.root
