@@ -15,16 +15,18 @@ class WeightAnalyzer : public BaseAnalyzer {
         //Values for branch
         float lumi = 1.;
         float genWeight = 1.;
-        float puWeight = 1.;
         float eventNumber = 1.;
+        float nTrueInt = 1.;
 
         //Lumi information
         std::map<int, float> lumis;
 
-        //Information for pile Up reweighting
-        std::map<int, std::string> pileUpFiles;
-        TH1F* pileUpWeights; 
+        //Token for MINIAOD
+        puToken pileupToken;
+        genToken geninfoToken;
 
+        //Histograms
+        TH1F* puMC; 
         TH1F* nGenHist;
 
         //TTreeReader Values
@@ -35,8 +37,9 @@ class WeightAnalyzer : public BaseAnalyzer {
 
     public:
         WeightAnalyzer(const float era, const float xSec, TTreeReader &reader);
+        WeightAnalyzer(const float era, const float xSec, puToken &pileupToken, genToken &geninfoToken);
         void BeginJob(TTree *tree, bool &isData);
-        bool Analyze(std::pair<TH1F*, float> &cutflow);
+        bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event);
         void EndJob(TFile* file);
 };
 

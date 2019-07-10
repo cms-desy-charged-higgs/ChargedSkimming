@@ -3,8 +3,6 @@
 
 #include <ChargedHiggs/Skimming/interface/baseanalyzer.h>
 
-#include <DataFormats/PatCandidates/interface/Electron.h>
-
 //Electron class to be safed in tree
 struct Electron {
     TLorentzVector fourVec;
@@ -26,7 +24,7 @@ struct Electron {
 };
 
 
-class ElectronAnalyzer: public BaseAnalyzer{
+class ElectronAnalyzer: public BaseAnalyzer {
     private:
         //Bool for checking if data file
         bool isData;
@@ -47,8 +45,8 @@ class ElectronAnalyzer: public BaseAnalyzer{
         float etaCut;
         unsigned int minNEle;
 
-        //Pat vector for Mini AOD analysis
-        edm::Handle<std::vector<pat::Electron>> electrons;
+        //EDM Token for MINIAOD analysis
+        eToken eleToken;
 
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> elePt;
@@ -67,11 +65,11 @@ class ElectronAnalyzer: public BaseAnalyzer{
         void SetGenParticles(Electron &validElectron, const int &i);
 
     public:
+        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, edm::EDGetTokenT<std::vector<pat::Electron>>& eleToken);
         ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, TTreeReader& reader);
-        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, edm::Handle<std::vector<pat::Electron>>& electrons);
 
         void BeginJob(TTree* tree, bool &isData);
-        bool Analyze(std::pair<TH1F*, float> &cutflow);
+        bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event);
         void EndJob(TFile* file);
 };
 

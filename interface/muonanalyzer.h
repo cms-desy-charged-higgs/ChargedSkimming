@@ -56,8 +56,8 @@ class MuonAnalyzer: public BaseAnalyzer{
         float etaCut;
         unsigned int minNMuon;
 
-        //Pat vector for Mini AOD analysis
-        edm::Handle<std::vector<pat::Muon>> muons;
+        //EDM Token for MINIAOD analysis
+        muToken muonToken;
 
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> muonPt;
@@ -77,10 +77,10 @@ class MuonAnalyzer: public BaseAnalyzer{
 
     public:
         MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNMuon, TTreeReader& reader);
-        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNMuon, edm::Handle<std::vector<pat::Muon>> muons);
+        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNMuon, muToken &muonToken);
 
         void BeginJob(TTree* tree, bool &isData);
-        bool Analyze(std::pair<TH1F*, float> &cutflow);
+        bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event);
         void EndJob(TFile* file);
 };
 

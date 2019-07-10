@@ -15,7 +15,7 @@ void GenPartAnalyzer::BeginJob(TTree* tree, bool &isData){
 }
 
 
-bool GenPartAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow){
+bool GenPartAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event){
     if(!isData){
         //Fill 4 four vectors
         for(unsigned index = 0; index < genID->GetSize(); index++){

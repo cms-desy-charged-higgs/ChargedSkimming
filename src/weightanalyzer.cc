@@ -6,35 +6,30 @@ WeightAnalyzer::WeightAnalyzer(const float era, const float xSec, TTreeReader &r
     xSec(xSec)
     {}
 
+WeightAnalyzer::WeightAnalyzer(const float era, const float xSec, puToken &pileupToken, genToken &geninfoToken):
+    BaseAnalyzer(),
+    era(era),
+    xSec(xSec),
+    pileupToken(pileupToken),
+    geninfoToken(geninfoToken)
+    {}
+
+
 void WeightAnalyzer::BeginJob(TTree *tree, bool &isData){
     //Set lumi map
     lumis = {{2016, 35.92*1e3}, {2017, 41.53*1e3}};
-
-    pileUpFiles = {
-            {2017, filePath + "pileUp/data_pileUp2017.root"}, 
-    };
 
     //Set data bool
     this->isData = isData;
 
     if(!this->isData){
-        //Calculate pile up weights
-        TFile* puFile = TFile::Open(pileUpFiles[era].c_str());
-        TH1F* puData = (TH1F*)puFile->Get("pileup");
+        if(isNANO){
+            //Initiliaze TTreeReaderValues
+            genWeightValue = std::make_unique<TTreeReaderValue<float>>(*reader, "Generator_weight");
+            nPU = std::make_unique<TTreeReaderValue<float>>(*reader, "Pileup_nTrueInt");
+        }        
 
-        TH1F* puMC = new TH1F("puMC", "puMC", 100, 0, 100);
-        reader->GetTree()->Draw("Pileup_nTrueInt>>puMC");
-
-        puData->Scale(1./puData->Integral(), "width");
-        puMC->Scale(1./puMC->Integral(), "width");
-
-        pileUpWeights = new TH1F("pileUpWeights", "pileUpWeights", 100, 0, 100);
-        pileUpWeights->Divide(puData, puMC);
-
-        //Initiliaze TTreeReaderValues
-        genWeightValue = std::make_unique<TTreeReaderValue<float>>(*reader, "Generator_weight");
-        nPU = std::make_unique<TTreeReaderValue<float>>(*reader, "Pileup_nTrueInt");
-        
+        puMC = new TH1F("puMC", "puMC", 100, 0, 100);
         nGenHist = new TH1F("nGen", "nGen", 100, 0, 2);
     }
 
@@ -44,23 +39,32 @@ void WeightAnalyzer::BeginJob(TTree *tree, bool &isData){
     tree->Branch("lumi", &lumi);
     tree->Branch("xsec", &xSec);
     tree->Branch("genWeight", &genWeight);
-    tree->Branch("puWeight", &puWeight);
+    tree->Branch("nTrueInt", &nTrueInt);
     tree->Branch("eventNumber", &eventNumber);
 }
 
-bool WeightAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow){
+bool WeightAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event){
+    edm::Handle<std::vector<PileupSummaryInfo>> pileUp; 
+    edm::Handle<GenEventInfoProduct> genInfo;
+    
+    if(!isNANO){
+        event->getByToken(pileupToken, pileUp);
+        event->getByToken(geninfoToken, genInfo);
+    }
+
     //Set values if not data
     if(!this->isData){
         lumi = lumis[era];
-        puWeight = pileUpWeights->GetBinContent(pileUpWeights->FindBin(*nPU->Get())) != 0 ? pileUpWeights->GetBinContent(pileUpWeights->FindBin(*nPU->Get())) : 1.;
-        genWeight = *genWeightValue->Get();
+        nTrueInt = isNANO ? *nPU->Get() : pileUp->at(1).getTrueNumInteractions(); 
+        genWeight = isNANO ? *genWeightValue->Get() : genInfo->weight();
 
         nGenHist->Fill(1);
+        puMC->Fill(nTrueInt);
     }
 
-    eventNumber = *evtNumber->Get();
+    //eventNumber = *evtNumber->Get();
 
-    cutflow.second = xSec*lumi*puWeight;
+    cutflow.second = xSec*lumi;
 
     cutflow.first->Fill("No cuts", cutflow.second);
     return true;
@@ -70,6 +74,7 @@ void WeightAnalyzer::EndJob(TFile* file){
     if(!this->isData){
         if(!file->GetListOfKeys()->Contains("nGen")){
             nGenHist->Write();
+            puMC->Write();
         }
     }
 }

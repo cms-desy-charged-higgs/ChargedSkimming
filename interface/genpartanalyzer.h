@@ -23,7 +23,7 @@ class GenPartAnalyzer: public BaseAnalyzer{
     public:
         GenPartAnalyzer(TTreeReader &reader);
         void BeginJob(TTree* tree, bool &isData);
-        bool Analyze(std::pair<TH1F*, float> &cutflow);
+        bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event);
         void EndJob(TFile* file);
 };
 

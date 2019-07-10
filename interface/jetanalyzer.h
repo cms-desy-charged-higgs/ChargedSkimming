@@ -8,9 +8,13 @@
 #include <CondFormats/BTauObjects/interface/BTagCalibration.h>
 #include <CondTools/BTau/interface/BTagCalibrationReader.h>
 #include <JetMETCorrections/Modules/interface/JetResolution.h>
+#include <JetMETCorrections/Modules/interface/JetCorrectionProducer.h>
+#include <CondFormats/JetMETObjects/interface/JetCorrectorParameters.h>
+#include <CondFormats/JetMETObjects/interface/FactorizedJetCorrector.h>
+
 
 #include <DataFormats/PatCandidates/interface/Jet.h>
-#include "DataFormats/PatCandidates/interface/MET.h"
+#include <DataFormats/PatCandidates/interface/MET.h>
 
 //Jet class to be safed in tree
 struct Jet {
@@ -44,6 +48,7 @@ class JetAnalyzer: public BaseAnalyzer{
         bool isData;
 
         //Map for SF files
+        std::map<JetType, std::map<int, std::vector<std::string>>> JEC;
         std::map<JetType, std::map<int, std::string>> bTagSF;
         std::map<JetType, std::map<int, std::string>> JMESF;
         std::map<JetType, std::map<int, std::string>> JMEPtReso;
@@ -68,12 +73,11 @@ class JetAnalyzer: public BaseAnalyzer{
         float etaCut;
         std::vector<std::pair<unsigned int, unsigned int>> minNJet;
 
-        //Pat vector for Mini AOD analysis
-        edm::Handle<std::vector<pat::Jet>> jets;
-        edm::Handle<std::vector<pat::Jet>> fatjets;
-        edm::Handle<std::vector<pat::Jet>> genjets;
-        edm::Handle<std::vector<pat::Jet>> genfatjets;
-        edm::Handle<std::vector<pat::MET>> mets;
+        //EDM Token for MINIAOD analysis
+        std::vector<jToken> jetTokens;
+        std::vector<genjToken> genjetTokens;
+        mToken metToken;
+        edm::EDGetTokenT<double> rhoToken;
 
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> fatJetPt;
@@ -113,13 +117,16 @@ class JetAnalyzer: public BaseAnalyzer{
         //Valid jet collection
         std::vector<Jet> validJets;
         std::vector<Jet> subJets;
-        std::vector<FatJet> fatJets;
+        std::vector<FatJet> validFatJets;
 
         //met Lorentzvector
         TLorentzVector met;
 
+        //Get jet energy correction
+        float CorrectEnergy(TLorentzVector &jet, const float &rho, float &area, const JetType &type);
+
         //Get JER smear factor
-        float SmearEnergy(float &jetPt, float &jetPhi, float &jetEta, float &rho, const float &coneSize, const JetType &type);
+        float SmearEnergy(TLorentzVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJet = {});
 
         //Set Gen particle information
         std::vector<int> alreadyMatchedJet; 
@@ -127,10 +134,10 @@ class JetAnalyzer: public BaseAnalyzer{
 
     public:
         JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, const std::vector<std::pair<unsigned int, unsigned int>> minNJet, TTreeReader& reader);
-        JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, const std::vector<std::pair<unsigned int, unsigned int>> minNJet,         edm::Handle<std::vector<pat::Jet>> jets, edm::Handle<std::vector<pat::Jet>> fatjets, edm::Handle<std::vector<pat::Jet>> genjets, edm::Handle<std::vector<pat::Jet>> genfatjets, edm::Handle<std::vector<pat::MET>> mets);
+        JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, const std::vector<std::pair<unsigned int, unsigned int>> minNJet, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken);
 
         void BeginJob(TTree* tree, bool &isData);
-        bool Analyze(std::pair<TH1F*, float> &cutflow);
+        bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event);
         void EndJob(TFile* file);
 };
 
