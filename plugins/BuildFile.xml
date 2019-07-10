@@ -1,0 +1,17 @@
+<use name="FWCore/Framework"/>
+<use name="FWCore/PluginManager"/>
+<use name="FWCore/ParameterSet"/>
+<use name="FWCore/ServiceRegistry"/>
+
+<use name="DataFormats/PatCandidates"/>
+<use name="DataFormats/Common"/>
+<use name="PhysicsTools/UtilAlgos"/>
+
+<use name="SimDataFormats/PileupSummaryInfo"/>
+<use name="SimDataFormats/GeneratorProducts"/>
+
+<use name="ChargedHiggs/Skimming"/>
+
+<flags CXXFLAGS="-Wall -std=c++17"/>
+<flags EDM_PLUGIN="1"/>
+
