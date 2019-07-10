@@ -15,6 +15,17 @@
 #include <TTreeReaderValue.h>
 #include <TTreeReaderArray.h>
 
+#include <FWCore/Framework/interface/Event.h>
+
+#include <DataFormats/PatCandidates/interface/Electron.h>
+#include <DataFormats/PatCandidates/interface/Muon.h>
+#include <DataFormats/PatCandidates/interface/Jet.h>
+#include <DataFormats/PatCandidates/interface/MET.h>
+#include "FWCore/Common/interface/TriggerNames.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include <SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h>
+#include <SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h>
+
 //Struct for saving gen particle lorentz vectors
 struct GenParticles{
     TLorentzVector W;
@@ -23,13 +34,23 @@ struct GenParticles{
     TLorentzVector Hc;
 };
 
-class BaseAnalyzer{
+typedef edm::EDGetTokenT<std::vector<pat::Jet>> jToken;
+typedef edm::EDGetTokenT<std::vector<reco::GenJet>> genjToken;
+typedef edm::EDGetTokenT<std::vector<pat::Electron>> eToken;
+typedef edm::EDGetTokenT<std::vector<pat::Muon>> muToken;
+typedef edm::EDGetTokenT<edm::TriggerResults> trigToken;
+typedef edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puToken;
+typedef edm::EDGetTokenT<GenEventInfoProduct> genToken;
+typedef edm::EDGetTokenT<std::vector<pat::MET>> mToken;
+
+class BaseAnalyzer {
     protected:
         //File path for SF etc.
         std::string filePath = std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedHiggs/Skimming/data/";
 
         //Collection which are used in several analyzers if NANO AOD is analyzed
-        TTreeReader* reader;
+        TTreeReader* reader = NULL;
+        bool isNANO;
 
         std::unique_ptr<TTreeReaderArray<float>> trigObjPhi;
         std::unique_ptr<TTreeReaderArray<float>> trigObjEta;
@@ -55,7 +76,7 @@ class BaseAnalyzer{
         BaseAnalyzer();
         BaseAnalyzer(TTreeReader* reader);
         virtual void BeginJob(TTree *tree, bool &isData) = 0;
-        virtual bool Analyze(std::pair<TH1F*, float> &cutflow) = 0;
+        virtual bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event = NULL) = 0;
         virtual void EndJob(TFile* file) = 0;
 };
 
