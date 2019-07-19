@@ -21,10 +21,16 @@
 #include <DataFormats/PatCandidates/interface/Muon.h>
 #include <DataFormats/PatCandidates/interface/Jet.h>
 #include <DataFormats/PatCandidates/interface/MET.h>
-#include "FWCore/Common/interface/TriggerNames.h"
-#include "DataFormats/Common/interface/TriggerResults.h"
+#include <DataFormats/JetReco/interface/GenJet.h>
+#include <DataFormats/Common/interface/TriggerResults.h>
+#include "DataFormats/Candidate/interface/Candidate.h"
+#include <DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h>
+#include "DataFormats/Candidate/interface/Candidate.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include <SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h>
 #include <SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h>
+#include <DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h>
+#include <FWCore/Common/interface/TriggerNames.h>
 
 //Struct for saving gen particle lorentz vectors
 struct GenParticles{
@@ -42,6 +48,8 @@ typedef edm::EDGetTokenT<edm::TriggerResults> trigToken;
 typedef edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puToken;
 typedef edm::EDGetTokenT<GenEventInfoProduct> genToken;
 typedef edm::EDGetTokenT<std::vector<pat::MET>> mToken;
+typedef edm::EDGetTokenT<std::vector<pat::TriggerObjectStandAlone>> trigObjToken;
+typedef edm::EDGetTokenT<std::vector<reco::GenParticle>> genPartToken;
 
 class BaseAnalyzer {
     protected:
@@ -52,6 +60,7 @@ class BaseAnalyzer {
         TTreeReader* reader = NULL;
         bool isNANO;
 
+        std::unique_ptr<TTreeReaderArray<float>> trigObjPt;
         std::unique_ptr<TTreeReaderArray<float>> trigObjPhi;
         std::unique_ptr<TTreeReaderArray<float>> trigObjEta;
         std::unique_ptr<TTreeReaderArray<int>> trigObjID;
@@ -67,9 +76,13 @@ class BaseAnalyzer {
 
         //Set trihObj and Gen particle collection
         void SetCollection(bool &isData);
-        
+
+        //Check for gen particle if it is last copy
+        const reco::Candidate* LastCopy(const reco::GenParticle& part, const int& pdgID); //MINIAOD
+        int LastCopy(const int& index, const int& pdgID); //NANOAOD
+
         //Trigger matching
-        bool triggerMatching(const TLorentzVector &particle, const int &particleID);
+        bool triggerMatching(const TLorentzVector &particle, const std::vector<pat::TriggerObjectStandAlone> trigObj = {});
 
     public:
         virtual ~BaseAnalyzer(){};

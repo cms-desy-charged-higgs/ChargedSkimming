@@ -14,20 +14,47 @@ void BaseAnalyzer::SetCollection(bool &isData){
         genStatus = std::make_unique<TTreeReaderArray<int>>(*reader, "GenPart_statusFlags");
     }
 
+    trigObjPt = std::make_unique<TTreeReaderArray<float>>(*reader, "TrigObj_pt");
     trigObjEta = std::make_unique<TTreeReaderArray<float>>(*reader, "TrigObj_eta");
     trigObjPhi = std::make_unique<TTreeReaderArray<float>>(*reader, "TrigObj_phi");
     trigObjID = std::make_unique<TTreeReaderArray<int>>(*reader, "TrigObj_id");
     trigObjFilterBit = std::make_unique<TTreeReaderArray<int>>(*reader, "TrigObj_filterBits");
 }
 
-bool BaseAnalyzer::triggerMatching(const TLorentzVector &particle, const int &particleID){
-    for(unsigned int i=0; i < trigObjEta->GetSize(); i++){
-    //Check if trig obj is electron
-        if(trigObjID->At(i) == particleID){
-        //Check for matching with delta R
-            if(5e-2 > std::sqrt(std::pow(trigObjEta->At(i) - particle.Eta(), 2) + std::pow(trigObjPhi->At(i) - particle.Phi(), 2))){
-                return true;
-            }
+
+const reco::Candidate* BaseAnalyzer::LastCopy(const reco::GenParticle& part, const int& pdgID){
+    const reco::Candidate* cand = &part;
+
+    while(abs(cand->mother()->pdgId()) == pdgID){
+        cand = cand->mother();
+    }
+
+    return cand;
+}
+
+int BaseAnalyzer::LastCopy(const int& index, const int& pdgID){
+    int idx = genMotherIdx->At(index);
+
+    while(abs(genID->At(idx)) == pdgID){
+        idx = genMotherIdx->At(idx);
+    }
+
+    return idx; 
+}
+
+bool BaseAnalyzer::triggerMatching(const TLorentzVector &particle, const std::vector<pat::TriggerObjectStandAlone> trigObj){
+    int size = isNANO ? trigObjEta->GetSize() : trigObj.size();
+
+    for(int i=0; i < size; i++){
+        //Check if trig obj is electron
+        float pt, eta, phi;
+
+        pt = isNANO ? trigObjPt->At(i) : trigObj[i].pt();
+        eta = isNANO ? trigObjEta->At(i) : trigObj[i].eta();
+        phi = isNANO ? trigObjPhi->At(i) : trigObj[i].phi();
+
+        if(5e-2 > std::sqrt(std::pow(eta - particle.Eta(), 2) + std::pow(phi - particle.Phi(), 2)) and (particle.Pt()-pt)/particle.Pt() < 0.02){
+            return true;
         }
     }
 
