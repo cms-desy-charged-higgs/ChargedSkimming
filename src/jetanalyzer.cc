@@ -21,7 +21,7 @@ JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut
 
 
 //https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookJetEnergyCorrections#JetEnCorFWLite
-float JetAnalyzer::CorrectEnergy(TLorentzVector &jet, const float &rho, float &area, const JetType &type){
+float JetAnalyzer::CorrectEnergy(const TLorentzVector &jet, const float &rho, float &area, const JetType &type){
     std::vector<JetCorrectorParameters> corrVec;
 
     for(std::string fileName: JEC[type][era]){
@@ -41,7 +41,7 @@ float JetAnalyzer::CorrectEnergy(TLorentzVector &jet, const float &rho, float &a
 
 //https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetResolution#Smearing_procedures
 //https://github.com/cms-sw/cmssw/blob/CMSSW_8_0_25/PhysicsTools/PatUtils/interface/SmearedJetProducerT.h#L203-L263
-float JetAnalyzer::SmearEnergy(TLorentzVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJet){
+float JetAnalyzer::SmearEnergy(const TLorentzVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJet){
     //Configure jet SF reader
     jetParameter.setJetPt(jet.Pt()).setJetEta(jet.Eta()).setRho(rho);
 
@@ -228,6 +228,7 @@ void JetAnalyzer::BeginJob(TTree* tree, bool &isData){
         fatJetEta = std::make_unique<TTreeReaderArray<float>>(*reader, "FatJet_eta");
         fatJetPhi = std::make_unique<TTreeReaderArray<float>>(*reader, "FatJet_phi");
         fatJetMass = std::make_unique<TTreeReaderArray<float>>(*reader, "FatJet_mass");
+        fatJetArea = std::make_unique<TTreeReaderArray<float>>(*reader, "FatJet_area");
         fatJetCSV = std::make_unique<TTreeReaderArray<float>>(*reader, "FatJet_btagDeepB");
         fatJetTau1 = std::make_unique<TTreeReaderArray<float>>(*reader, "FatJet_tau1");
         fatJetTau2 = std::make_unique<TTreeReaderArray<float>>(*reader, "FatJet_tau2");
@@ -237,6 +238,7 @@ void JetAnalyzer::BeginJob(TTree* tree, bool &isData){
         jetEta = std::make_unique<TTreeReaderArray<float>>(*reader, "Jet_eta");
         jetPhi = std::make_unique<TTreeReaderArray<float>>(*reader, "Jet_phi");
         jetMass = std::make_unique<TTreeReaderArray<float>>(*reader, "Jet_mass");
+        jetArea = std::make_unique<TTreeReaderArray<float>>(*reader, "Jet_area");
         jetRho = std::make_unique<TTreeReaderValue<float>>(*reader, "fixedGridRhoFastjetAll");
         jetDeepBValue = std::make_unique<TTreeReaderArray<float>>(*reader, "Jet_btagDeepFlavB");
         valueHT = std::make_unique<TTreeReaderValue<float>>(*reader, "SoftActivityJetHT");
@@ -297,6 +299,7 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
     subJets.clear();
     validFatJets.clear();
     alreadyMatchedJet.clear();
+    HT=0;
 
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<pat::Jet>> jets;
@@ -313,13 +316,14 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
         event->getByToken(rhoToken, rho);
 
         if(!isData){
-            event->getByToken(genjetTokens[0], genJets);
-            event->getByToken(genjetTokens[1], genfatJets);
+            event->getByLabel(edm::InputTag("slimmedGenJets"), genJets);
+            event->getByLabel(edm::InputTag("slimmedGenJetsAK8"), genfatJets);
         }
     }
 
     //JER smearing
     float smearFac = 1.;
+    float corrFac = 1.;
 
     //MET values not correct for JER yet
     float metPx = isNANO ? *metPt->Get()*std::cos(*metPhi->Get()) : MET->at(0).uncorPx();
@@ -340,14 +344,28 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
     
         //Smear pt if not data
         if(!isData){
-            smearFac = isNANO ? SmearEnergy(fatJet.fourVec, *jetRho->Get(), 0.8, AK8) : SmearEnergy(fatJet.fourVec, *rho, 0.8, AK8, *genfatJets);
-            fatJet.fourVec *= smearFac;
+            corrFac = isNANO ? CorrectEnergy(fatJet.fourVec,  *jetRho->Get(), fatJetArea->At(i), AK8) : SmearEnergy(fatJet.fourVec, *rho, jets->at(i).jetArea(), AK8);
+            smearFac = isNANO ? SmearEnergy(fatJet.fourVec*corrFac, *jetRho->Get(), 0.8, AK8) : SmearEnergy(fatJet.fourVec, *rho, 0.8, AK8, *genfatJets);
+            fatJet.fourVec *= smearFac*corrFac;
         }
 
         if(fatJet.fourVec.M() > 50. and abs(fatJet.fourVec.Eta()) < etaCut){
             //Check for btag
-            fatJet.isLooseB = isNANO ? bTagCuts[AK8][era][0] < fatJetCSV->At(i) : bTagCuts[AK8][era][0] < fatJets->at(0).bDiscriminator("pfDeepCSVJetTags:probb + pfDeepCSVJetTags:probbb");
-            fatJet.isMediumB = isNANO ? bTagCuts[AK8][era][1] < fatJetCSV->At(i) : bTagCuts[AK8][era][0] < fatJets->at(0).bDiscriminator("pfDeepCSVJetTags:probb + pfDeepCSVJetTags:probbb");
+            float DeepCSV = 0;
+
+            if(isNANO){ 
+                DeepCSV = jetDeepBValue->At(i);
+            } 
+
+            else{
+                for(std::string disc: {"pfDeepCSVJetTags:probb", "pfDeepCSVJetTags:probbb"}){
+                    DeepCSV +=  jets->at(i).bDiscriminator(disc);
+                }
+            }
+
+            //Check for btag
+            fatJet.isLooseB = bTagCuts[AK8][era][0] < DeepCSV;
+            fatJet.isMediumB =  bTagCuts[AK8][era][1] < DeepCSV;
 
             //Nsubjettiness
             fatJet.oneSubJettiness = isNANO ? fatJetTau1->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau1");
@@ -376,27 +394,39 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
         Jet jetCand;
         jetCand.fourVec.SetPtEtaPhiM(pt, eta, phi, mass);
 
+        corrFac = isNANO ? CorrectEnergy(jetCand.fourVec,  *jetRho->Get(), jetArea->At(i), AK4) : SmearEnergy(jetCand.fourVec, *rho, jets->at(i).jetArea(), AK4);
+
         //Smear pt if not data
         if(!isData){
-            smearFac = isNANO ? SmearEnergy(jetCand.fourVec,  *jetRho->Get(), 0.4, AK4) : SmearEnergy(jetCand.fourVec, *rho, 0.4, AK4, *genJets);
-            jetCand.fourVec *= smearFac;
+            smearFac = isNANO ? SmearEnergy(jetCand.fourVec*corrFac,  *jetRho->Get(), jetArea->At(i), AK4) : SmearEnergy(jetCand.fourVec, *rho, 0.4, AK4, *genJets);
         }
 
-        if(!isData){
-            //Correct met
-            metPx+= std::cos(phi)*pt - std::cos(jetCand.fourVec.Phi())*jetCand.fourVec.Pt();
-            metPy+= std::sin(phi)*pt - std::sin(jetCand.fourVec.Phi())*jetCand.fourVec.Pt();
-        }
+        //Correct met
+        metPx+= jetCand.fourVec.Px()*(1-smearFac*corrFac);
+        metPy+= jetCand.fourVec.Py()*(1-smearFac*corrFac);
+
+        jetCand.fourVec *= smearFac*corrFac;
+
+        //Calculate HT for miniAOD
+        HT+=jetCand.fourVec.Pt();
 
         if(jetCand.fourVec.Pt() > ptCut and abs(jetCand.fourVec.Eta()) < etaCut){
             //bool for cleaning fatjets from AK4 jets
             bool isCleaned = true;
 
-            float DeepBValue = isNANO ? jetDeepBValue->At(i) : jets->at(i).bDiscriminator("      pfDeepFlavourJetTags:probb + pfDeepFlavourJetTags:probbb + pfDeepFlavourJetTags:problepb");
-
-            std::cout << DeepBValue << std::endl;
-
             //Check for btag
+            float DeepBValue = 0;
+
+            if(isNANO){ 
+                DeepBValue = jetDeepBValue->At(i);
+            } 
+
+            else{
+                for(std::string disc: {"pfDeepFlavourJetTags:probb", "pfDeepFlavourJetTags:probbb","pfDeepFlavourJetTags:problepb"}){
+                    DeepBValue +=  jets->at(i).bDiscriminator(disc);
+                }
+            }
+
             jetCand.isLooseB = bTagCuts[AK4][era][0] < DeepBValue;
             jetCand.isMediumB = bTagCuts[AK4][era][1] < DeepBValue;
             jetCand.isTightB = bTagCuts[AK4][era][2] < DeepBValue;
@@ -432,7 +462,9 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
 
 
     //Set HT
-    //HT = *valueHT->Get();
+    if(isNANO){
+        HT = *valueHT->Get();
+    }
 
     //Set met
     met.SetPxPyPzE(metPx, metPy, 0 , 0);
