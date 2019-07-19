@@ -84,6 +84,7 @@ class JetAnalyzer: public BaseAnalyzer{
         std::unique_ptr<TTreeReaderArray<float>> fatJetEta;
         std::unique_ptr<TTreeReaderArray<float>> fatJetPhi;
         std::unique_ptr<TTreeReaderArray<float>> fatJetMass;
+        std::unique_ptr<TTreeReaderArray<float>> fatJetArea;
         std::unique_ptr<TTreeReaderArray<float>> fatJetCSV;
         std::unique_ptr<TTreeReaderArray<float>> fatJetTau1;
         std::unique_ptr<TTreeReaderArray<float>> fatJetTau2;
@@ -93,6 +94,7 @@ class JetAnalyzer: public BaseAnalyzer{
         std::unique_ptr<TTreeReaderArray<float>> jetEta;
         std::unique_ptr<TTreeReaderArray<float>> jetPhi;
         std::unique_ptr<TTreeReaderArray<float>> jetMass;
+        std::unique_ptr<TTreeReaderArray<float>> jetArea;
         std::unique_ptr<TTreeReaderArray<int>> jetGenIdx;
         std::unique_ptr<TTreeReaderValue<float>> jetRho;
         std::unique_ptr<TTreeReaderArray<float>> jetDeepBValue;
@@ -123,10 +125,10 @@ class JetAnalyzer: public BaseAnalyzer{
         TLorentzVector met;
 
         //Get jet energy correction
-        float CorrectEnergy(TLorentzVector &jet, const float &rho, float &area, const JetType &type);
+        float CorrectEnergy(const TLorentzVector &jet, const float &rho, float &area, const JetType &type);
 
         //Get JER smear factor
-        float SmearEnergy(TLorentzVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJet = {});
+        float SmearEnergy(const TLorentzVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJet = {});
 
         //Set Gen particle information
         std::vector<int> alreadyMatchedJet; 
