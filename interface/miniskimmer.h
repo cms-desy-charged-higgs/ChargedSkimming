@@ -17,6 +17,7 @@
 #include <ChargedHiggs/Skimming/interface/triggeranalyzer.h>
 #include <ChargedHiggs/Skimming/interface/metfilteranalyzer.h>
 #include <ChargedHiggs/Skimming/interface/weightanalyzer.h>
+#include <ChargedHiggs/Skimming/interface/genpartanalyzer.h>
 
 #include <TFile.h>
 #include <TTree.h>
@@ -52,8 +53,10 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         eToken eleToken; 
         muToken muonToken;
         trigToken triggerToken; 
+        trigObjToken triggerObjToken;
         puToken pileupToken;
         genToken geninfoToken;
+        genPartToken genParticleToken;
         edm::EDGetTokenT<double> rhoToken;
 
         //Channel
