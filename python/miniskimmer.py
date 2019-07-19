@@ -45,13 +45,10 @@ process.GlobalTag = GlobalTag(process.GlobalTag, '94X_mc2017_realistic_v14', '')
 ##Input file
 process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring(["file:{}".format(f) for f in options.filename]))
 
-##https://twiki.cern.ch/twiki/bin/view/CMS/EgammaMiniAODV2#2017_MiniAOD_V2
-setupEgammaPostRecoSeq(process, era='2017-Nov17ReReco')
-
 ##Calculate deep flavour discriminator
 updateJetCollection(
     process,
-    labelName = "RAW",
+    postfix = "RAW",
     jetSource = cms.InputTag('slimmedJets'),
     pvSource = cms.InputTag('offlineSlimmedPrimaryVertices'),
     svSource = cms.InputTag('slimmedSecondaryVertices'),
@@ -63,8 +60,6 @@ updateJetCollection(
     ],
 )
 
-process.updatedPatJetsRAW.userData.userFloats.src = []
-
 updateJetCollection(
     process,
     postfix = 'AK8RAW',
@@ -72,9 +67,12 @@ updateJetCollection(
     jetCorrections = ('AK8PFchs', cms.vstring([]), 'None')
 )
 
+##https://twiki.cern.ch/twiki/bin/view/CMS/EgammaMiniAODV2#2017_MiniAOD_V2
+setupEgammaPostRecoSeq(process, era='2017-Nov17ReReco')
+
 ##Mini Skimmer class which does the skimming
 process.skimmer = cms.EDAnalyzer("MiniSkimmer", 
-                                jets = cms.InputTag("updatedPatJetsRAW"),
+                                jets = cms.InputTag("selectedUpdatedPatJetsRAW"),
                                 fatjets = cms.InputTag("updatedPatJetsAK8RAW"),
                                 genjets = cms.InputTag("slimmedGenJets"),
                                 genfatjets = cms.InputTag("slimmedGenJetsAK8"),
@@ -82,8 +80,10 @@ process.skimmer = cms.EDAnalyzer("MiniSkimmer",
                                 electrons = cms.InputTag("slimmedElectrons"), 
                                 muons = cms.InputTag("slimmedMuons"),
                                 trigger = cms.InputTag("TriggerResults","","HLT"),
+                                triggerObjects = cms.InputTag("slimmedPatTrigger"),
                                 pileUp = cms.InputTag("slimmedAddPileupInfo"),
                                 genInfo = cms.InputTag("generator"),
+                                genPart = cms.InputTag("prunedGenParticles"),
                                 rho = cms.InputTag("fixedGridRhoFastjetAll"),
                                 channels = cms.vstring(["e4j"]),
                                 xSec = cms.double(xSec),
@@ -92,8 +92,15 @@ process.skimmer = cms.EDAnalyzer("MiniSkimmer",
                 )
 
 ##Let it run baby
-process.p = cms.Path(process.egammaPostRecoSeq*
+process.p = cms.Path(
                      process.patJetCorrFactorsRAW*process.updatedPatJetsRAW*
+                     process.patJetCorrFactorsTransientCorrectedRAW*
+                     process.pfImpactParameterTagInfosRAW*
+                     process.pfInclusiveSecondaryVertexFinderTagInfosRAW*
+                     process.pfDeepCSVTagInfosRAW*process.pfDeepFlavourTagInfosRAW*
+                     process.pfDeepFlavourJetTagsRAW*
+                     process.updatedPatJetsTransientCorrectedRAW*process.selectedUpdatedPatJetsRAW*
                      process.patJetCorrFactorsAK8RAW*process.updatedPatJetsAK8RAW*
+                     process.egammaPostRecoSeq*
                      process.skimmer
             )
