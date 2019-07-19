@@ -1,5 +1,10 @@
 #include <ChargedHiggs/Skimming/interface/genpartanalyzer.h>
 
+GenPartAnalyzer::GenPartAnalyzer(genPartToken& genParticleToken):
+    BaseAnalyzer(),
+    genParticleToken(genParticleToken)
+    {}
+
 GenPartAnalyzer::GenPartAnalyzer(TTreeReader& reader):
     BaseAnalyzer(&reader){}
 
@@ -8,35 +13,86 @@ void GenPartAnalyzer::BeginJob(TTree* tree, bool &isData){
     this->isData = isData;
     
     //Set TTreeReader for genpart and trigger obj from baseanalyzer
-    SetCollection(this->isData);
+    if(isNANO) SetCollection(this->isData);
 
     //Set Branches of output tree
-    tree->Branch("genPart", &genParts);
+    tree->Branch("genPart", &genColl);
 }
 
 
 bool GenPartAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event){
+    //Get Event info is using MINIAOD
+    edm::Handle<std::vector<reco::GenParticle>> genParts;
+
+    if(!isNANO){
+        event->getByToken(genParticleToken, genParts);
+    }
+
     if(!isData){
+        int size = isNANO ? genID->GetSize() : genParts->size();
+
         //Fill 4 four vectors
-        for(unsigned index = 0; index < genID->GetSize(); index++){
-            if(genID->At(index) == 25){
-                if(abs(genID->At(genMotherIdx->At(index))) == 37){
-                    genParts.h1.SetPtEtaPhiM(genPt->At(index), genEta->At(index), genPhi->At(index), genMass->At(index));
+        for(int i = 0; i < size; i++){
+            int ID = isNANO ? abs(genID->At(i)) : abs(genParts->at(i).pdgId());  
+
+            if(ID == 25){
+                const reco::Candidate* part=NULL;
+                int index=0;
+            
+                if(isNANO) index = LastCopy(i, 25);
+                else part = LastCopy(genParts->at(i), 25);
+
+                int motherID = isNANO ? abs(genID->At(genMotherIdx->At(i))) : abs(part->mother()->pdgId()); 
+
+                float pt, eta, phi, m;
+                pt = isNANO ? genPt->At(index) : part->pt();
+                phi = isNANO ? genPhi->At(index) : part->phi();
+                eta = isNANO ? genEta->At(index) : part->eta();
+                m = isNANO ? genMass->At(index) : part->mass();
+
+                if(motherID == 37){
+                    genColl.h1.SetPtEtaPhiM(pt, eta, phi, m);
                 }
 
                 else{
-                    genParts.h2.SetPtEtaPhiM(genPt->At(index), genEta->At(index), genPhi->At(index), genMass->At(index));
+                    genColl.h2.SetPtEtaPhiM(pt, eta, phi, m);
                 }
             } 
 
-            if(abs(genID->At(index)) == 24){
-                if(abs(genID->At(genMotherIdx->At(index))) == 37){
-                    genParts.W.SetPtEtaPhiM(genPt->At(index), genEta->At(index), genPhi->At(index), genMass->At(index));
+            if(ID == 24){
+                const reco::Candidate* part=NULL;
+                int index=0;
+            
+                if(isNANO) index = LastCopy(i, 24);
+                else part = LastCopy(genParts->at(i), 24);
+
+                int motherID = isNANO ? abs(genID->At(genMotherIdx->At(i))) : abs(part->mother()->pdgId()); 
+
+                float pt, eta, phi, m;
+                pt = isNANO ? genPt->At(index) : part->pt();
+                phi = isNANO ? genPhi->At(index) : part->phi();
+                eta = isNANO ? genEta->At(index) : part->eta();
+                m = isNANO ? genMass->At(index) : part->mass();
+
+                if(motherID == 37){
+                    genColl.W.SetPtEtaPhiM(pt, eta, phi, m);
                 }
             }
 
-            if(abs(genID->At(index)) == 37){
-                genParts.Hc.SetPtEtaPhiM(genPt->At(index), genEta->At(index), genPhi->At(index), genMass->At(index));
+            if(ID == 37){
+                const reco::Candidate* part=NULL;
+                int index=0;
+            
+                if(isNANO) index = LastCopy(i, 37);
+                else part = LastCopy(genParts->at(i), 37);
+
+                float pt, eta, phi, m;
+                pt = isNANO ? genPt->At(index) : part->pt();
+                phi = isNANO ? genPhi->At(index) : part->phi();
+                eta = isNANO ? genEta->At(index) : part->eta();
+                m = isNANO ? genMass->At(index) : part->mass();
+
+                genColl.Hc.SetPtEtaPhiM(pt, eta, phi, m);
             }
         }
     }

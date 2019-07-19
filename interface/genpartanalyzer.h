@@ -18,9 +18,13 @@ class GenPartAnalyzer: public BaseAnalyzer{
         bool isData;
 
         //Gen particle vector
-        GenPart genParts;
+        GenPart genColl;
+
+        //EMD Token for MINIAOD
+        genPartToken genParticleToken;
 
     public:
+        GenPartAnalyzer(genPartToken& genParticleToken);
         GenPartAnalyzer(TTreeReader &reader);
         void BeginJob(TTree* tree, bool &isData);
         bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event);
