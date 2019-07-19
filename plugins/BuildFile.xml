@@ -4,6 +4,7 @@
 <use name="FWCore/ServiceRegistry"/>
 
 <use name="DataFormats/PatCandidates"/>
+<use name="DataFormats/JetReco"/>
 <use name="DataFormats/Common"/>
 <use name="PhysicsTools/UtilAlgos"/>
 
