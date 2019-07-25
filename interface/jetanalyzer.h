@@ -12,7 +12,6 @@
 #include <CondFormats/JetMETObjects/interface/JetCorrectorParameters.h>
 #include <CondFormats/JetMETObjects/interface/FactorizedJetCorrector.h>
 
-
 #include <DataFormats/PatCandidates/interface/Jet.h>
 #include <DataFormats/PatCandidates/interface/MET.h>
 
@@ -29,9 +28,10 @@ struct Jet {
 
     Int_t fatJetIdx = -1.;
 
-    TLorentzVector genVec;
-    Bool_t isFromh1 = false;
-    Bool_t isFromh2 = false;
+    TLorentzVector genJet;
+    std::vector<TLorentzVector> genPartons;
+    std::vector<Bool_t> isFromh1 = {};
+    std::vector<Bool_t> isFromh2 = {};
 };
 
 struct FatJet : public Jet {
@@ -78,6 +78,7 @@ class JetAnalyzer: public BaseAnalyzer{
         std::vector<genjToken> genjetTokens;
         mToken metToken;
         edm::EDGetTokenT<double> rhoToken;
+        genPartToken genParticleToken;
 
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> fatJetPt;
@@ -128,15 +129,15 @@ class JetAnalyzer: public BaseAnalyzer{
         float CorrectEnergy(const TLorentzVector &jet, const float &rho, float &area, const JetType &type);
 
         //Get JER smear factor
-        float SmearEnergy(const TLorentzVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJet = {});
+        float SmearEnergy(const TLorentzVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJets = {});
 
         //Set Gen particle information
-        std::vector<int> alreadyMatchedJet; 
-        void SetGenParticles(Jet &validJet, const int &i);
+        std::map<JetType, TLorentzVector> genJet; 
+        void SetGenParticles(Jet& validJet, const int &i, const int &pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle={});
 
     public:
         JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, const std::vector<std::pair<unsigned int, unsigned int>> minNJet, TTreeReader& reader);
-        JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, const std::vector<std::pair<unsigned int, unsigned int>> minNJet, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken);
+        JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, const std::vector<std::pair<unsigned int, unsigned int>> minNJet, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken, genPartToken& genParticleToken);
 
         void BeginJob(TTree* tree, bool &isData);
         bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event);

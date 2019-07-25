@@ -8,7 +8,7 @@ JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut
     minNJet(minNJet)
     {}
 
-JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, const std::vector<std::pair<unsigned int, unsigned int>> minNJet, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken):
+JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, const std::vector<std::pair<unsigned int, unsigned int>> minNJet, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken, genPartToken& genParticleToken):
     BaseAnalyzer(),    
     era(era),
     ptCut(ptCut),
@@ -16,7 +16,8 @@ JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut
     minNJet(minNJet),
     jetTokens(jetTokens),
     metToken(metToken),
-    rhoToken(rhoToken)
+    rhoToken(rhoToken),
+    genParticleToken(genParticleToken)
     {}
 
 
@@ -41,12 +42,11 @@ float JetAnalyzer::CorrectEnergy(const TLorentzVector &jet, const float &rho, fl
 
 //https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetResolution#Smearing_procedures
 //https://github.com/cms-sw/cmssw/blob/CMSSW_8_0_25/PhysicsTools/PatUtils/interface/SmearedJetProducerT.h#L203-L263
-float JetAnalyzer::SmearEnergy(const TLorentzVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJet){
+float JetAnalyzer::SmearEnergy(const TLorentzVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJets){
     //Configure jet SF reader
     jetParameter.setJetPt(jet.Pt()).setJetEta(jet.Eta()).setRho(rho);
 
     float dR;
-    TLorentzVector matchedGenJet;
     float reso = resolution[type].getResolution(jetParameter);
     float resoSF = resolution_sf[type].getScaleFactor(jetParameter);
     float smearFac = 1.; 
@@ -55,7 +55,7 @@ float JetAnalyzer::SmearEnergy(const TLorentzVector &jet, const float &rho, cons
     unsigned int size;
 
     if(isNANO) size = (type == AK4) ? genJetPt->GetSize(): genFatJetPt->GetSize();
-    else size = genJet.size();
+    else size = genJets.size();
 
     //Loop over all gen jets and find match
     for(unsigned int i = 0; i < size; i++){
@@ -67,24 +67,26 @@ float JetAnalyzer::SmearEnergy(const TLorentzVector &jet, const float &rho, cons
         }
 
         else{
-            genPt = genJet.at(i).pt();
-            genPhi = genJet.at(i).phi();
-            genEta = genJet.at(i).eta();
-            genMass = genJet.at(i).mass();
+            genPt = genJets.at(i).pt();
+            genPhi = genJets.at(i).phi();
+            genEta = genJets.at(i).eta();
+            genMass = genJets.at(i).mass();
         }
 
         dR = std::sqrt(std::pow(jet.Phi()-genPhi, 2) + std::pow(jet.Eta()-genEta, 2));
 
         //Check if jet and gen jet are matched
         if(dR < coneSize/2. and abs(jet.Pt() - genPt) < 3.*reso*jet.Pt()){
-            matchedGenJet.SetPtEtaPhiM(genPt, genEta, genPhi, genMass);
+            TLorentzVector gJet;
+            gJet.SetPtEtaPhiM(genPt, genEta, genPhi, genMass);
+            genJet[type] = gJet;
             break;
         }
     }  
 
     //If you found gen matched 
-    if(matchedGenJet != TLorentzVector()){
-        smearFac = 1.+(resoSF-1)*(jet.Pt() - matchedGenJet.Pt())/jet.Pt(); 
+    if(genJet[type] != TLorentzVector()){
+        smearFac = 1.+(resoSF-1)*(jet.Pt() - genJet[type].Pt())/jet.Pt(); 
     }
 
     //If no match, smear with gaussian pdf
@@ -104,61 +106,76 @@ float JetAnalyzer::SmearEnergy(const TLorentzVector &jet, const float &rho, cons
     return smearFac;
 }
 
-void JetAnalyzer::SetGenParticles(Jet &validJet, const int &i){
+void JetAnalyzer::SetGenParticles(Jet& validJet, const int &i, const int &pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle){
     //Check if gen matched particle exist
-    if(jetGenIdx->At(i) != -1){
-        int genPartIdx = -1;
+    if(genJet[type].Pt() != 0){
+        validJet.genJet = genJet[type];
         float dR;
         
         //Find Gen particle to gen Jet
-        for(unsigned int index=0; index < genPt->GetSize(); index++){
-            std::bitset<32> isFirstCopy(genStatus->At(index));
+        int size=isNANO ? genPt->GetSize() : genParticle.size();
 
-            if(!isFirstCopy[12]){
-                continue;
+        for(int i=0; i < size; i++){
+            const reco::Candidate* parton=NULL;
+            int index=0;
+
+            int ID = isNANO ? abs(genID->At(genMotherIdx->At(i))) : abs(genParticle.at(i).pdgId());
+    
+            if(ID == pdgID){
+                if(isNANO) index = LastCopy(i, pdgID);
+                else parton = LastCopy(genParticle.at(i), pdgID);
+            }
+    
+            else continue;
+
+            float pt, eta, phi, m;
+            pt = isNANO ? genPt->At(index) : parton->pt();
+            phi = isNANO ? genPhi->At(index) : parton->phi();
+            eta = isNANO ? genEta->At(index) : parton->eta();
+            m = isNANO ? genMass->At(index) : parton->mass();
+
+            dR = std::sqrt(std::pow(phi - genJet[type].Phi(), 2) + std::pow(eta-genJet[type].Eta(), 2));
+            float rMin = type == AK4 ? 0.3 : 0.4;
+
+            if(dR <  rMin){
+                TLorentzVector matchedParton;
+                matchedParton.SetPtEtaPhiM(pt, eta, phi, m);
+                validJet.genPartons.push_back(matchedParton);
+
+                int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(parton->mother()->pdgId());
+
+                if(motherID == 25){
+                    const reco::Candidate* hBoson=NULL;
+                    int index=0;
+                                
+                    if(isNANO) index = LastCopy(index, 25);
+                    else hBoson = LastCopy(parton->mother(), 25);
+
+                    int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(hBoson->mother()->pdgId());  
+
+                    if(motherID == 37){
+                        validJet.isFromh1.push_back(true);
+                        validJet.isFromh2.push_back(false);
+                    }
+
+                    else{
+                        validJet.isFromh1.push_back(false);
+                        validJet.isFromh2.push_back(true);
+                    }
+                }
             }
 
-            dR = std::sqrt(std::pow(genPhi->At(index) -genJetPhi->At(jetGenIdx->At(i)), 2) + std::pow(genEta->At(index)-genJetEta->At(jetGenIdx->At(i)), 2));
-
-            if(dR < 0.4 and abs(genID->At(index)) == 5){
-                bool alreadyMatched = std::find(alreadyMatchedJet.begin(), alreadyMatchedJet.end(), genPartIdx) != alreadyMatchedJet.end();
-
-                if(!alreadyMatched){
-                    genPartIdx = index;
-                    alreadyMatchedJet.push_back(index);
-                    break;
-                }
-            }
-        }
-
-        if(genPartIdx != -1){
-            int idxMotherB = genMotherIdx->At(genPartIdx);
-
-            while(abs(genID->At(idxMotherB)) == 5){
-                idxMotherB = genMotherIdx->At(idxMotherB);
+            if(validJet.genPartons.size()==1 and type==AK4){
+                break;
             }
 
-            //Check if gen jet from small higgs
-            if(abs(genID->At(idxMotherB)) == 25){
-                int idxMotherh = genMotherIdx->At(idxMotherB);
-
-                while(abs(genID->At(idxMotherh)) == 25){
-                    idxMotherh = genMotherIdx->At(idxMotherh);
-                }
-
-                if(abs(genID->At(idxMotherh)) == 37){
-                    validJet.isFromh1 = true;
-                    validJet.isFromh2 = false;
-                }
-
-                else{
-                    validJet.isFromh1 = false;
-                    validJet.isFromh2 = true;
-                }
+            if(validJet.genPartons.size()==2 and type==AK8){
+                break;
             }
         }
     }
 }
+
 
 void JetAnalyzer::BeginJob(TTree* tree, bool &isData){
     JEC = {
@@ -298,7 +315,6 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
     validJets.clear();
     subJets.clear();
     validFatJets.clear();
-    alreadyMatchedJet.clear();
     HT=0;
 
     //Get Event info is using MINIAOD
@@ -308,6 +324,7 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
     edm::Handle<std::vector<reco::GenJet>> genfatJets;
     edm::Handle<std::vector<pat::MET>> MET;
     edm::Handle<double> rho;
+    edm::Handle<std::vector<reco::GenParticle>> genParts;
 
     if(!isNANO){
         event->getByToken(jetTokens[0], jets);
@@ -347,6 +364,12 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
             corrFac = isNANO ? CorrectEnergy(fatJet.fourVec,  *jetRho->Get(), fatJetArea->At(i), AK8) : SmearEnergy(fatJet.fourVec, *rho, jets->at(i).jetArea(), AK8);
             smearFac = isNANO ? SmearEnergy(fatJet.fourVec*corrFac, *jetRho->Get(), 0.8, AK8) : SmearEnergy(fatJet.fourVec, *rho, 0.8, AK8, *genfatJets);
             fatJet.fourVec *= smearFac*corrFac;
+
+            if(isNANO) SetGenParticles(fatJet, i, 5, AK8);
+            else{
+                event->getByToken(genParticleToken, genParts);
+                SetGenParticles(fatJet, i, 5, AK8, *genParts);
+            }
         }
 
         if(fatJet.fourVec.M() > 50. and abs(fatJet.fourVec.Eta()) < etaCut){
@@ -438,8 +461,11 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
                 jetCand.tightbTagSF = tightReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(jetCand.fourVec.Eta()), jetCand.fourVec.Pt());
 
 
-                //Save gen particle information
-                //SetGenParticles(jetCand, i);
+                if(isNANO) SetGenParticles(jetCand, i, 5, AK4);
+                else{
+                    event->getByToken(genParticleToken, genParts);
+                    SetGenParticles(jetCand, i, 5, AK4, *genParts);
+                }
             }
 
             //Check overlap with AK4 valid jets
