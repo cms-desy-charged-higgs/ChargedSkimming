@@ -50,6 +50,7 @@ typedef edm::EDGetTokenT<GenEventInfoProduct> genToken;
 typedef edm::EDGetTokenT<std::vector<pat::MET>> mToken;
 typedef edm::EDGetTokenT<std::vector<pat::TriggerObjectStandAlone>> trigObjToken;
 typedef edm::EDGetTokenT<std::vector<reco::GenParticle>> genPartToken;
+typedef edm::EDGetTokenT<std::vector<reco::Vertex>> vtxToken;
 
 class BaseAnalyzer {
     protected:
@@ -73,13 +74,20 @@ class BaseAnalyzer {
         std::unique_ptr<TTreeReaderArray<int>> genID;
         std::unique_ptr<TTreeReaderArray<int>> genMotherIdx;
         std::unique_ptr<TTreeReaderArray<int>> genStatus;
+        std::unique_ptr<TTreeReaderArray<int>> eleGenIdx;
+        std::unique_ptr<TTreeReaderArray<int>> muonGenIdx;
 
         //Set trihObj and Gen particle collection
         void SetCollection(bool &isData);
 
         //Check for gen particle if it is last copy
-        const reco::Candidate* LastCopy(const reco::GenParticle& part, const int& pdgID); //MINIAOD
+        const reco::Candidate* LastCopy(const reco::GenParticle& part, const int& pdgID);
+        const reco::Candidate* LastCopy(const reco::Candidate* part, const int& pdgID); //MINIAOD
         int LastCopy(const int& index, const int& pdgID); //NANOAOD
+
+        //Match Reco to gen particles
+        template<typename Lepton>
+        void SetGenParticles(Lepton &lepton, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle={});
 
         //Trigger matching
         bool triggerMatching(const TLorentzVector &particle, const std::vector<pat::TriggerObjectStandAlone> trigObj = {});
@@ -92,5 +100,56 @@ class BaseAnalyzer {
         virtual bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event = NULL) = 0;
         virtual void EndJob(TFile* file) = 0;
 };
+
+
+template<typename Lepton>
+void BaseAnalyzer::SetGenParticles(Lepton &validLepton, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle){
+    const reco::GenParticle* matchedLep=NULL;
+
+    if(!isNANO){
+        for(const reco::GenParticle &part: genParticle){
+            if(part.isPromptFinalState()){
+                if(0.3 > std::sqrt(std::pow(part.eta() - validLepton.fourVec.Eta(), 2) + std::pow(part.phi() - validLepton.fourVec.Phi(), 2)) and abs(validLepton.fourVec.Pt()-part.pt())/validLepton.fourVec.Pt() < 0.05){
+                    matchedLep = &part;
+                }
+            }
+        }
+    }   
+
+    validLepton.isgenMatched = isNANO ? eleGenIdx->At(i) != -1 : matchedLep!=NULL;
+
+    //Check if gen matched particle exist
+    if(validLepton.isgenMatched){
+        const reco::Candidate* lepton=NULL;
+        int index=0;
+            
+        if(isNANO) index = LastCopy(pdgID == 11 ? eleGenIdx->At(i) : muonGenIdx->At(i), pdgID);
+        else lepton = LastCopy(*matchedLep, pdgID);
+
+        float pt, eta, phi, m;
+        pt = isNANO ? genPt->At(index) : lepton->pt();
+        phi = isNANO ? genPhi->At(index) : lepton->phi();
+        eta = isNANO ? genEta->At(index) : lepton->eta();
+        m = isNANO ? genMass->At(index) : lepton->mass();
+
+        validLepton.genVec.SetPtEtaPhiM(pt, eta, phi, m);
+
+        int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(lepton->mother()->pdgId()); 
+
+        if(motherID == 24){
+            const reco::Candidate* WBoson=NULL;
+            int index=0;
+                
+            if(isNANO) index = LastCopy(eleGenIdx->At(i), 24);
+            else WBoson = LastCopy(lepton->mother(), 24);
+
+            int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(WBoson->mother()->pdgId());     
+
+            if(motherID == 37){
+                validLepton.isFromHc = true;
+            }
+        }
+    }
+}
 
 #endif

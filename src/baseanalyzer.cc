@@ -12,6 +12,8 @@ void BaseAnalyzer::SetCollection(bool &isData){
         genID = std::make_unique<TTreeReaderArray<int>>(*reader, "GenPart_pdgId");
         genMotherIdx = std::make_unique<TTreeReaderArray<int>>(*reader, "GenPart_genPartIdxMother");
         genStatus = std::make_unique<TTreeReaderArray<int>>(*reader, "GenPart_statusFlags");
+        eleGenIdx = std::make_unique<TTreeReaderArray<int>>(*reader, "Electron_genPartIdx");
+        muonGenIdx = std::make_unique<TTreeReaderArray<int>>(*reader, "Muon_genPartIdx");
     }
 
     trigObjPt = std::make_unique<TTreeReaderArray<float>>(*reader, "TrigObj_pt");
@@ -24,6 +26,16 @@ void BaseAnalyzer::SetCollection(bool &isData){
 
 const reco::Candidate* BaseAnalyzer::LastCopy(const reco::GenParticle& part, const int& pdgID){
     const reco::Candidate* cand = &part;
+
+    while(abs(cand->mother()->pdgId()) == pdgID){
+        cand = cand->mother();
+    }
+
+    return cand;
+}
+
+const reco::Candidate* BaseAnalyzer::LastCopy(const reco::Candidate* part, const int& pdgID){
+    const reco::Candidate* cand = part;
 
     while(abs(cand->mother()->pdgId()) == pdgID){
         cand = cand->mother();
@@ -53,7 +65,7 @@ bool BaseAnalyzer::triggerMatching(const TLorentzVector &particle, const std::ve
         eta = isNANO ? trigObjEta->At(i) : trigObj[i].eta();
         phi = isNANO ? trigObjPhi->At(i) : trigObj[i].phi();
 
-        if(5e-2 > std::sqrt(std::pow(eta - particle.Eta(), 2) + std::pow(phi - particle.Phi(), 2)) and (particle.Pt()-pt)/particle.Pt() < 0.02){
+        if(5e-2 > std::sqrt(std::pow(eta - particle.Eta(), 2) + std::pow(phi - particle.Phi(), 2)) and abs(particle.Pt()-pt)/particle.Pt() < 0.02){
             return true;
         }
     }
