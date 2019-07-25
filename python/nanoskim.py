@@ -18,7 +18,7 @@ class NanoSkim(Task):
         self["CMSSW_DIR"] = os.environ["CMSSW_BASE"] + "/src/"
         
     def __write_condor(self):
-        self["condor"]["executable"] = self["CMSSW_DIR"] + "ChargedHiggs/nano_skimming/batch/produceSkim.sh"
+        self["condor"]["executable"] = self["CMSSW_DIR"] + "ChargedHiggs/Skimming/batch/produceSkim.sh"
         self["condor"]["arguments"] = " ".join([self["input_file"], self["name"] + ".root"] + self["channel"])
         self["condor"]["universe"] = "vanilla"
 
