@@ -58,6 +58,7 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         genToken geninfoToken;
         genPartToken genParticleToken;
         edm::EDGetTokenT<double> rhoToken;
+        vtxToken vertexToken;
 
         //Channel
         std::vector<std::string> channels;

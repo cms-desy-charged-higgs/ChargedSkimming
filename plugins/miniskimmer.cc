@@ -15,6 +15,7 @@ MiniSkimmer::MiniSkimmer(const edm::ParameterSet& iConfig):
       geninfoToken(consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("genInfo"))),
       genParticleToken(consumes<std::vector<reco::GenParticle>>(iConfig.getParameter<edm::InputTag>("genPart"))),
       rhoToken(consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))),
+      vertexToken(consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("vtx"))),
 
       //Other stuff
       channels(iConfig.getParameter<std::vector<std::string>>("channels")),
@@ -46,9 +47,69 @@ void MiniSkimmer::beginJob(){
                     std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
                     std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
                     std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
-                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{4,0}}, jetTokens, genjetTokens, metToken, rhoToken)),
-                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 25., 2.4, 1, eleToken, triggerObjToken)),
-                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 20., 2.4, 0, muonToken)),
+                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{4,0}}, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken)),
+                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 25., 2.4, 1, eleToken, triggerObjToken, genParticleToken)),
+                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 20., 2.4, 0, muonToken, triggerObjToken, genParticleToken, vertexToken)),
+                    std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
+                }
+        },
+
+        {"mu4j", 
+                {
+                    std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
+                    std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, triggerToken)),
+                    std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
+                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{4,0}}, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken)),
+                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 25., 2.4, 1, muonToken, triggerObjToken, genParticleToken, vertexToken)),
+                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, 0, eleToken, triggerObjToken, genParticleToken)),
+                    std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
+                }
+        },
+
+        {"e2j1f", 
+                {
+                    std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
+                    std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
+                    std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
+                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{2,1}}, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken)),
+                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 25., 2.4, 1, eleToken, triggerObjToken, genParticleToken)),
+                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 20., 2.4, 0, muonToken, triggerObjToken, genParticleToken, vertexToken)),
+                    std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
+                }
+        },
+
+        {"mu2j1f", 
+                {
+                    std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
+                    std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, triggerToken)),
+                    std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
+                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{2,1}}, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken)),
+                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 25., 2.4, 1, muonToken, triggerObjToken, genParticleToken, vertexToken)),
+                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, 0, eleToken, triggerObjToken, genParticleToken)),
+                    std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
+                }
+        },
+
+        {"e2f", 
+                {
+                    std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
+                    std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
+                    std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
+                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{0,2}}, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken)),
+                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 25., 2.4, 1, eleToken, triggerObjToken, genParticleToken)),
+                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 20., 2.4, 0, muonToken, triggerObjToken, genParticleToken, vertexToken)),
+                    std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
+                }
+        },
+
+        {"mu2f", 
+                {
+                    std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
+                    std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, triggerToken)),
+                    std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
+                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{0,2}}, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken)),
+                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 25., 2.4, 1, muonToken, triggerObjToken, genParticleToken, vertexToken)),
+                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, 0, eleToken, triggerObjToken, genParticleToken)),
                     std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
                 }
         },
@@ -96,6 +157,8 @@ void MiniSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
         if(eventPassed){
             outputTrees[i]->Fill();
         }
+
+        eventPassed = true;
     }
 }
 
