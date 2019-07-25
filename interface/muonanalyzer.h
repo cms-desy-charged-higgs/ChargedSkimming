@@ -58,6 +58,9 @@ class MuonAnalyzer: public BaseAnalyzer{
 
         //EDM Token for MINIAOD analysis
         muToken muonToken;
+        trigObjToken triggerObjToken; 
+        genPartToken genParticleToken;
+        vtxToken vertexToken;
 
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> muonPt;
@@ -72,12 +75,9 @@ class MuonAnalyzer: public BaseAnalyzer{
         //Valid electron collection
         std::vector<Muon> validMuons;
 
-        //Set Gen particle information
-        void SetGenParticles(Muon &validMuon, const int &i);
-
     public:
         MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNMuon, TTreeReader& reader);
-        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNMuon, muToken &muonToken);
+        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNMuon, muToken &muonToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, vtxToken& vertexToken);
 
         void BeginJob(TTree* tree, bool &isData);
         bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event);

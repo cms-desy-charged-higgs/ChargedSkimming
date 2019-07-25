@@ -1,12 +1,14 @@
 #include <ChargedHiggs/Skimming/interface/electronanalyzer.h>
 
-ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, eToken& eleToken):
+ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken):
     BaseAnalyzer(),    
     era(era),
     ptCut(ptCut),
     etaCut(etaCut),
     minNEle(minNEle),
-    eleToken(eleToken)
+    eleToken(eleToken),
+    triggerObjToken(triggerObjToken),
+    genParticleToken(genParticleToken)
     {}
 
 ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, TTreeReader& reader):
@@ -16,32 +18,6 @@ ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const flo
     etaCut(etaCut),
     minNEle(minNEle)
     {}
-
-void ElectronAnalyzer::SetGenParticles(Electron &validElectron, const int &i){
-    //Check if gen matched particle exist
-    if(eleGenIdx->At(i) != -1){
-        validElectron.isgenMatched = true;
-        int idxMotherEle = genMotherIdx->At(eleGenIdx->At(i));
-
-        while(abs(genID->At(idxMotherEle)) == 11){
-            idxMotherEle = genMotherIdx->At(idxMotherEle);
-        }
-
-        validElectron.genVec.SetPtEtaPhiM(genPt->At(eleGenIdx->At(i)), genEta->At(eleGenIdx->At(i)), genPhi->At(eleGenIdx->At(i)), genMass->At(eleGenIdx->At(i)));
-
-        if(abs(genID->At(idxMotherEle)) == 24){
-            float idxMotherW = genMotherIdx->At(idxMotherEle);
-
-            while(abs(genID->At(idxMotherW)) == 24){
-                idxMotherW = genMotherIdx->At(idxMotherW);
-            }
-
-            if(abs(genID->At(idxMotherW)) == 37){
-                validElectron.isFromHc = true;
-            }
-        }
-    }
-}
 
 void ElectronAnalyzer::BeginJob(TTree* tree, bool &isData){
     //SF files
@@ -90,10 +66,6 @@ void ElectronAnalyzer::BeginJob(TTree* tree, bool &isData){
             eleTightMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17Iso_WP80");
         }
 
-        if(!this->isData){
-            eleGenIdx = std::make_unique<TTreeReaderArray<int>>(*reader, "Electron_genPartIdx");
-        }
-
         //Set TTreeReader for genpart and trigger obj from baseanalyzer    
         SetCollection(this->isData);
     }
@@ -108,13 +80,16 @@ bool ElectronAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Even
 
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<pat::Electron>> electrons;
+    edm::Handle<std::vector<pat::TriggerObjectStandAlone>> trigObjects;
+    edm::Handle<std::vector<reco::GenParticle>> genParts;
 
     if(!isNANO){
         event->getByToken(eleToken, electrons);
+        event->getByToken(triggerObjToken, trigObjects);
     }
 
     float eleSize = isNANO ? elePt->GetSize() : electrons->size();
-
+    
     //Loop over all electrons
     for(unsigned int i = 0; i < eleSize; i++){
         float pt = isNANO ? elePt->At(i) : electrons->at(i).pt();
@@ -124,23 +99,32 @@ bool ElectronAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Even
         if(pt > ptCut && abs(eta) < etaCut){
             Electron validElectron;
 
+            float iso;
+
+            if(!isNANO){
+                iso = (electrons->at(i).pfIsolationVariables().sumChargedHadronPt + std::max(electrons->at(i).pfIsolationVariables().sumNeutralHadronEt + electrons->at(i).pfIsolationVariables().sumPhotonEt - 0.5 * electrons->at(i).pfIsolationVariables().sumPUPt, 0.0)) / electrons->at(i).pt();
+            }
+
             //Set electron information
             validElectron.fourVec.SetPtEtaPhiM(pt, eta, phi, 0.510*1e-3);
-            //validElectron.isolation = isNANO ? eleIso->At(i) : electrons->at(i).miniPFIsolation();
+            validElectron.isolation = isNANO ? eleIso->At(i) : iso;
             validElectron.isMedium = isNANO ? eleMediumMVA->At(i) : electrons->at(i).electronID("mvaEleID-Fall17-iso-V2-wp80");
             validElectron.isTight = isNANO ? eleMediumMVA->At(i) : electrons->at(i).electronID("mvaEleID-Fall17-iso-V2-wp90");
             validElectron.charge = isNANO ? eleCharge->At(i) : electrons->at(i).charge();
-           // validElectron.isTriggerMatched = triggerMatching(validElectron.fourVec, 11);
+            validElectron.isTriggerMatched = triggerMatching(validElectron.fourVec, *trigObjects);
 
             if(!isData){
                //Fill scale factors
-               validElectron.recoSF = recoSFhist->GetBinContent(recoSFhist->FindBin(eta, pt));
-               validElectron.mediumMvaSF = mediumSFhist->GetBinContent(mediumSFhist->FindBin(eta, pt));
-               validElectron.tightMvaSF = tightSFhist->GetBinContent(tightSFhist->FindBin(eta, pt));
+                validElectron.recoSF = recoSFhist->GetBinContent(recoSFhist->FindBin(eta, pt));
+                validElectron.mediumMvaSF = mediumSFhist->GetBinContent(mediumSFhist->FindBin(eta, pt));
+                validElectron.tightMvaSF = tightSFhist->GetBinContent(tightSFhist->FindBin(eta, pt));
 
-               //Save gen particle information
-               //SetGenParticles(validElectron, i);
-                    
+                //Save gen particle information
+                if(isNANO) SetGenParticles<Electron>(validElectron, i, 11);
+                else{
+                    event->getByToken(genParticleToken, genParts);
+                    SetGenParticles<Electron>(validElectron, i, 11, *genParts);
+                }
             }
 
             //Fill electron in collection

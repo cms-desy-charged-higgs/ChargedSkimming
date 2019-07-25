@@ -8,41 +8,17 @@ MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaC
     minNMuon(minNMuon)
     {}
 
-MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNMuon, muToken& muonToken):
+MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNMuon, muToken& muonToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, vtxToken& vertexToken):
     BaseAnalyzer(), 
     era(era),
     ptCut(ptCut),
     etaCut(etaCut),
     minNMuon(minNMuon),
-    muonToken(muonToken)
+    muonToken(muonToken),
+    triggerObjToken(triggerObjToken),
+    genParticleToken(genParticleToken),
+    vertexToken(vertexToken)
     {}
-
-
-void MuonAnalyzer::SetGenParticles(Muon &validMuon, const int &i){
-    //Check if gen matched particle exist
-    if(muonGenIdx->At(i) != -1){
-        validMuon.isgenMatched = true;        
-        int idxMotherMu = genMotherIdx->At(muonGenIdx->At(i));
-
-        while(abs(genID->At(idxMotherMu)) == 13){
-            idxMotherMu = genMotherIdx->At(idxMotherMu);
-        }
-
-        validMuon.genVec.SetPtEtaPhiM(genPt->At(muonGenIdx->At(i)), genEta->At(muonGenIdx->At(i)), genPhi->At(muonGenIdx->At(i)), genMass->At(muonGenIdx->At(i)));
-
-        if(abs(genID->At(idxMotherMu)) == 24){
-            float idxMotherW = genMotherIdx->At(idxMotherMu);
-
-            while(abs(genID->At(idxMotherW)) == 24){
-                idxMotherW = genMotherIdx->At(idxMotherW);
-            }
-
-            if(abs(genID->At(idxMotherW)) == 37){
-                validMuon.isFromHc = true;
-            }
-        }
-    }
-}
 
 void MuonAnalyzer::BeginJob(TTree* tree, bool &isData){
     isoSFfiles = {
@@ -103,9 +79,14 @@ bool MuonAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* e
 
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<pat::Muon>> muons;
+    edm::Handle<std::vector<pat::TriggerObjectStandAlone>> trigObjects;
+    edm::Handle<std::vector<reco::GenParticle>> genParts;
+    edm::Handle<std::vector<reco::Vertex>> vertex;
 
     if(!isNANO){
         event->getByToken(muonToken, muons);
+        event->getByToken(triggerObjToken, trigObjects);
+        event->getByToken(vertexToken, vertex);
     }
 
     float muSize = isNANO ? muonPt->GetSize() : muons->size();
@@ -123,11 +104,11 @@ bool MuonAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* e
             validMuon.fourVec.SetPtEtaPhiM(pt, eta, phi, 105.658*1e-3);
 
             validMuon.isMedium = isNANO ? muonMediumID->At(i) : muons->at(i).isMediumMuon();
-            //validMuon.isTight = isNANO ? muonTightID->At(i) : muons->at(i).isTightMuon();
+            validMuon.isTight = isNANO ? muonTightID->At(i) : muons->at(i).isTightMuon(vertex->at(0));
             validMuon.isLooseIso = isNANO ? muonIso->At(i) < 0.25 : muons->at(i).PFIsoLoose;
             validMuon.isTightIso = isNANO ? muonIso->At(i) < 0.15 : muons->at(i).PFIsoTight;
             validMuon.charge = isNANO ? muonCharge->At(i) : muons->at(i).charge();
-            //validMuon.isTriggerMatched = triggerMatching(validMuon.fourVec, 13);
+            validMuon.isTriggerMatched =  triggerMatching(validMuon.fourVec, *trigObjects);
             
             if(!isData){
                 validMuon.triggerSF = triggerSFhist->GetBinContent(triggerSFhist->FindBin(pt, abs(eta))) != 0 ? triggerSFhist->GetBinContent(triggerSFhist->FindBin(pt, abs(eta)))  : 1.;
@@ -139,7 +120,11 @@ bool MuonAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* e
                 validMuon.tightIsoTightSF = tightIsoTightSFhist->GetBinContent(tightIsoTightSFhist->FindBin(pt, abs(eta))) != 0 ? tightIsoTightSFhist->GetBinContent(tightIsoTightSFhist->FindBin(pt, abs(eta))) : 1.;
 
                 //Save gen particle information
-                //SetGenParticles(validMuon, i);
+                if(isNANO) SetGenParticles<Muon>(validMuon, i, 13);
+                else{
+                    event->getByToken(genParticleToken, genParts);
+                    SetGenParticles<Muon>(validMuon, i, 13, *genParts);
+                }
              }
 
             //Fill electron in collection

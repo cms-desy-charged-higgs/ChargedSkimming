@@ -47,6 +47,8 @@ class ElectronAnalyzer: public BaseAnalyzer {
 
         //EDM Token for MINIAOD analysis
         eToken eleToken;
+        trigObjToken triggerObjToken;
+        genPartToken genParticleToken;
 
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> elePt;
@@ -56,16 +58,12 @@ class ElectronAnalyzer: public BaseAnalyzer {
         std::unique_ptr<TTreeReaderArray<int>> eleCharge;
         std::unique_ptr<TTreeReaderArray<bool>> eleMediumMVA;
         std::unique_ptr<TTreeReaderArray<bool>> eleTightMVA;
-        std::unique_ptr<TTreeReaderArray<int>> eleGenIdx;
 
         //Valid electron collection
         std::vector<Electron> validElectrons;
 
-        //Set Gen particle information
-        void SetGenParticles(Electron &validElectron, const int &i);
-
     public:
-        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, edm::EDGetTokenT<std::vector<pat::Electron>>& eleToken);
+        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken);
         ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, TTreeReader& reader);
 
         void BeginJob(TTree* tree, bool &isData);
