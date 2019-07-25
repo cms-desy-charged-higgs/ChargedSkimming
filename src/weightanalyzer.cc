@@ -62,7 +62,7 @@ bool WeightAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event*
         puMC->Fill(nTrueInt);
     }
 
-    //eventNumber = *evtNumber->Get();
+    eventNumber = isNANO ? *evtNumber->Get() : event->eventAuxiliary().id().event();
 
     cutflow.second = xSec*lumi;
 
