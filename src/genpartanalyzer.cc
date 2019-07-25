@@ -24,11 +24,11 @@ bool GenPartAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<reco::GenParticle>> genParts;
 
-    if(!isNANO){
-        event->getByToken(genParticleToken, genParts);
-    }
-
     if(!isData){
+        if(!isNANO){
+            event->getByToken(genParticleToken, genParts);
+        }
+
         int size = isNANO ? genID->GetSize() : genParts->size();
 
         //Fill 4 four vectors
@@ -42,7 +42,7 @@ bool GenPartAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event
                 if(isNANO) index = LastCopy(i, 25);
                 else part = LastCopy(genParts->at(i), 25);
 
-                int motherID = isNANO ? abs(genID->At(genMotherIdx->At(i))) : abs(part->mother()->pdgId()); 
+                int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId()); 
 
                 float pt, eta, phi, m;
                 pt = isNANO ? genPt->At(index) : part->pt();
