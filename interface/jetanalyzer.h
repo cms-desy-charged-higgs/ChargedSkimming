@@ -48,7 +48,8 @@ class JetAnalyzer: public BaseAnalyzer{
         bool isData;
 
         //Map for SF files
-        std::map<JetType, std::map<int, std::vector<std::string>>> JEC;
+        std::map<JetType, std::map<int, std::vector<std::string>>> JECMC;
+        std::map<JetType, std::map<int, std::vector<std::string>>> JECDATA;
         std::map<JetType, std::map<int, std::string>> bTagSF;
         std::map<JetType, std::map<int, std::string>> JMESF;
         std::map<JetType, std::map<int, std::string>> JMEPtReso;
@@ -126,7 +127,7 @@ class JetAnalyzer: public BaseAnalyzer{
         TLorentzVector met;
 
         //Get jet energy correction
-        float CorrectEnergy(const TLorentzVector &jet, const float &rho, float &area, const JetType &type);
+        float CorrectEnergy(const TLorentzVector &jet, const float &rho, const float &area, const JetType &type, const int& runNumber);
 
         //Get JER smear factor
         float SmearEnergy(const TLorentzVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJets = {});

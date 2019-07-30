@@ -22,10 +22,18 @@ JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut
 
 
 //https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookJetEnergyCorrections#JetEnCorFWLite
-float JetAnalyzer::CorrectEnergy(const TLorentzVector &jet, const float &rho, float &area, const JetType &type){
+float JetAnalyzer::CorrectEnergy(const TLorentzVector &jet, const float &rho, const float &area, const JetType &type, const int& runNumber){
     std::vector<JetCorrectorParameters> corrVec;
 
-    for(std::string fileName: JEC[type][era]){
+    for(std::string fileName: isData? JECDATA[type][era] : JECMC[type][era]){
+        if(fileName.find("@") != std::string::npos){
+            for(std::pair<std::string, std::pair<int, int>> eraNames: runEras[era]){
+                if(eraNames.second.first <= runNumber and runNumber <= eraNames.second.second){
+                    fileName.replace(fileName.find("@"), 1, eraNames.first);
+                }
+            }
+        }
+
         corrVec.push_back(JetCorrectorParameters(fileName));
     }
 
@@ -178,13 +186,38 @@ void JetAnalyzer::SetGenParticles(Jet& validJet, const int &i, const int &pdgID,
 
 
 void JetAnalyzer::BeginJob(TTree* tree, bool &isData){
-    JEC = {
+    JECMC = {
             {AK4, {
-                {2017, {filePath + "/JEC/YYYY_L1FastJet_AK5PF.txt",   
-                        filePath + "/JEC/YYYY_L1FastJet_AK5PF.txt"}
-                }
-            },                
-        },
+                {2017, {filePath + "/JEC/Fall17_17Nov2017_V32_MC_L1FastJet_AK4PFchs.txt", 
+                        filePath + "/JEC/Fall17_17Nov2017_V32_MC_L2Relative_AK4PFchs.txt",
+                        filePath + "/JEC/Fall17_17Nov2017_V32_MC_L3Absolute_AK4PFchs.txt"}}
+                },
+            },  
+
+            {AK8, {
+                {2017, {filePath + "/JEC/Fall17_17Nov2017_V32_MC_L1FastJet_AK8PFchs.txt", 
+                        filePath + "/JEC/Fall17_17Nov2017_V32_MC_L2Relative_AK8PFchs.txt",
+                        filePath + "/JEC/Fall17_17Nov2017_V32_MC_L3Absolute_AK8PFchs.txt"}}
+                },
+            },               
+    };
+
+    JECDATA = {
+            {AK4, {
+                {2017, {filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L1FastJet_AK4PFchs.txt", 
+                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L2Relative_AK4PFchs.txt",
+                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L3Absolute_AK4PFchs.txt",
+                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L2L3Residual_AK4PFchs.txt"}}
+                },
+            }, 
+
+            {AK8, {
+                {2017, {filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L1FastJet_AK8PFchs.txt", 
+                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L2Relative_AK8PFchs.txt",
+                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L3Absolute_AK8PFchs.txt",
+                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L2L3Residual_AK8PFchs.txt"}}
+                },
+            },               
     };
 
     bTagSF = {
@@ -316,6 +349,7 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
     subJets.clear();
     validFatJets.clear();
     HT=0;
+    int runNumber = isNANO ? *run->Get() : event->eventAuxiliary().id().run(); 
 
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<pat::Jet>> jets;
@@ -359,10 +393,11 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
         FatJet fatJet;
         fatJet.fourVec.SetPtEtaPhiM(fatPt, fatEta, fatPhi, fatMass);
     
+        corrFac = isNANO ? CorrectEnergy(fatJet.fourVec,  *jetRho->Get(), fatJetArea->At(i), AK8, runNumber) : CorrectEnergy(fatJet.fourVec, *rho, jets->at(i).jetArea(), AK8, runNumber);
+
         //Smear pt if not data
         if(!isData){
-            corrFac = isNANO ? CorrectEnergy(fatJet.fourVec,  *jetRho->Get(), fatJetArea->At(i), AK8) : SmearEnergy(fatJet.fourVec, *rho, jets->at(i).jetArea(), AK8);
-            smearFac = isNANO ? SmearEnergy(fatJet.fourVec*corrFac, *jetRho->Get(), 0.8, AK8) : SmearEnergy(fatJet.fourVec, *rho, 0.8, AK8, *genfatJets);
+            smearFac = isNANO ? SmearEnergy(fatJet.fourVec*corrFac, *jetRho->Get(), 0.8, AK8) : SmearEnergy(fatJet.fourVec*corrFac, *rho, 0.8, AK8, *genfatJets);
             fatJet.fourVec *= smearFac*corrFac;
 
             if(isNANO) SetGenParticles(fatJet, i, 5, AK8);
@@ -371,6 +406,8 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
                 SetGenParticles(fatJet, i, 5, AK8, *genParts);
             }
         }
+
+        else fatJet.fourVec *= corrFac;
 
         if(fatJet.fourVec.M() > 50. and abs(fatJet.fourVec.Eta()) < etaCut){
             //Check for btag
@@ -417,12 +454,16 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
         Jet jetCand;
         jetCand.fourVec.SetPtEtaPhiM(pt, eta, phi, mass);
 
-        corrFac = isNANO ? CorrectEnergy(jetCand.fourVec,  *jetRho->Get(), jetArea->At(i), AK4) : SmearEnergy(jetCand.fourVec, *rho, jets->at(i).jetArea(), AK4);
+        corrFac = isNANO ? CorrectEnergy(jetCand.fourVec,  *jetRho->Get(), jetArea->At(i), AK4, runNumber) : CorrectEnergy(jetCand.fourVec, *rho, jets->at(i).jetArea(), AK4, runNumber);
 
         //Smear pt if not data
         if(!isData){
             smearFac = isNANO ? SmearEnergy(jetCand.fourVec*corrFac,  *jetRho->Get(), jetArea->At(i), AK4) : SmearEnergy(jetCand.fourVec, *rho, 0.4, AK4, *genJets);
+
+            jetCand.fourVec*=smearFac*corrFac;
         }
+
+        else jetCand.fourVec*=corrFac;
 
         //Correct met
         metPx+= jetCand.fourVec.Px()*(1-smearFac*corrFac);
