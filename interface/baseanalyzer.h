@@ -61,6 +61,19 @@ class BaseAnalyzer {
         TTreeReader* reader = NULL;
         bool isNANO;
 
+        std::map<int, std::map<std::string, std::pair<int, int>>> runEras = {
+              {2017, {
+                        {"B", {297046, 299329}}, 
+                        {"C", {299368, 302029}}, 
+                        {"D", {302030, 303434}}, 
+                        {"E", {303824, 304797}}, 
+                        {"F", {305040, 306462}}, 
+                     }
+              },
+        };
+
+        std::unique_ptr<TTreeReaderValue<int>> run;
+
         std::unique_ptr<TTreeReaderArray<float>> trigObjPt;
         std::unique_ptr<TTreeReaderArray<float>> trigObjPhi;
         std::unique_ptr<TTreeReaderArray<float>> trigObjEta;
