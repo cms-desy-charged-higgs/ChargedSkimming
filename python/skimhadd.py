@@ -20,10 +20,24 @@ class SkimHadd(Task):
                 self["status"] = "FINISHED"
 
     def run(self):
-        os.system("hadd -j 16 {} {}".format(self["output"], " ".join(self["dependent_files"])))
+        os.system("hadd -f -j 16 {} {}".format(self["output"], " ".join(self["dependent_files"])))
 
     def output(self):
         self["output"] = "{}/{}.root".format(self["dir"], self["name"])
 
+    @staticmethod
+    def configure(skimTasks, isNANO):
+        tasks = []
 
+        if not isNANO:
+            for skim in skimTasks:
+                config = {
+                        "name": "{}".format(skim["name"]),
+                        "display-name": "Hadd: {}".format(skim["name"].split("_")[1]),
+                        "dir": " {}/merged".format(skim["dir"]),
+                        "dependencies": [skim["name"]],
+                }
 
+                tasks.append(SkimHadd(config))
+
+        return tasks
