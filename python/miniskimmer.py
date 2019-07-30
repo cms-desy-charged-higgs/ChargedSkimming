@@ -40,7 +40,8 @@ process.load("Configuration.StandardSequences.MagneticField_cff")
 process.load("Geometry.CaloEventSetup.CaloTopology_cfi")
 
 ##Global tag
-process.GlobalTag = GlobalTag(process.GlobalTag, '94X_mc2017_realistic_v14', '')
+tag = "94X_dataRun2_v11" if isData else "94X_mc2017_realistic_v17"
+process.GlobalTag = GlobalTag(process.GlobalTag, tag, '')
 
 ##Input file
 process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring(["file:{}".format(f) for f in options.filename]))
