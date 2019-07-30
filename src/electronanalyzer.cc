@@ -92,9 +92,9 @@ bool ElectronAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Even
     
     //Loop over all electrons
     for(unsigned int i = 0; i < eleSize; i++){
-        float pt = isNANO ? elePt->At(i) : electrons->at(i).pt();
-        float eta = isNANO ? eleEta->At(i) : electrons->at(i).eta();
-        float phi = isNANO ? elePhi->At(i) : electrons->at(i).phi();
+        float pt = isNANO ? elePt->At(i) : (electrons->at(i).p4()/electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Pt();
+        float eta = isNANO ? eleEta->At(i) : (electrons->at(i).p4()/electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Eta();
+        float phi = isNANO ? elePhi->At(i) : (electrons->at(i).p4()/electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Phi();
 
         if(pt > ptCut && abs(eta) < etaCut){
             Electron validElectron;
