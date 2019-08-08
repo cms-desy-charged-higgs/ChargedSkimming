@@ -59,7 +59,6 @@ class MuonAnalyzer: public BaseAnalyzer{
         muToken muonToken;
         trigObjToken triggerObjToken; 
         genPartToken genParticleToken;
-        vtxToken vertexToken;
 
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> muonPt;
@@ -76,7 +75,7 @@ class MuonAnalyzer: public BaseAnalyzer{
 
     public:
         MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
-        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, muToken &muonToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, vtxToken& vertexToken);
+        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, muToken &muonToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken);
 
         void BeginJob(std::vector<TTree*>& trees, bool &isData);
         void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);

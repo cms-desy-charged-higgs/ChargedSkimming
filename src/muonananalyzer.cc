@@ -7,15 +7,14 @@ MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaC
     etaCut(etaCut)
     {}
 
-MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, muToken& muonToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, vtxToken& vertexToken):
+MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, muToken& muonToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken):
     BaseAnalyzer(), 
     era(era),
     ptCut(ptCut),
     etaCut(etaCut),
     muonToken(muonToken),
     triggerObjToken(triggerObjToken),
-    genParticleToken(genParticleToken),
-    vertexToken(vertexToken)
+    genParticleToken(genParticleToken)
     {}
 
 void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
@@ -81,12 +80,10 @@ void MuonAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* eve
     edm::Handle<std::vector<pat::Muon>> muons;
     edm::Handle<std::vector<pat::TriggerObjectStandAlone>> trigObjects;
     edm::Handle<std::vector<reco::GenParticle>> genParts;
-    edm::Handle<std::vector<reco::Vertex>> vertex;
 
     if(!isNANO){
         event->getByToken(muonToken, muons);
         event->getByToken(triggerObjToken, trigObjects);
-        event->getByToken(vertexToken, vertex);
     }
 
     float muSize = isNANO ? muonPt->GetSize() : muons->size();
