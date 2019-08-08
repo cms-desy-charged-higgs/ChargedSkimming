@@ -11,8 +11,10 @@ namespace{
         Electron electron;
         Muon muon;
         GenPart genPart;
+        Particle particle;
 
         std::vector<Jet> jets;
+        std::vector<Particle> Particles;
         std::vector<FatJet> fatjets;
         std::vector<Electron> electrons;
         std::vector<Muon> muons;
