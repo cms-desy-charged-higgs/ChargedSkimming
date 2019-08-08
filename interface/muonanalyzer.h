@@ -54,7 +54,6 @@ class MuonAnalyzer: public BaseAnalyzer{
         int era;
         float ptCut;
         float etaCut;
-        unsigned int minNMuon;
 
         //EDM Token for MINIAOD analysis
         muToken muonToken;
@@ -76,11 +75,11 @@ class MuonAnalyzer: public BaseAnalyzer{
         std::vector<Muon> validMuons;
 
     public:
-        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNMuon, TTreeReader& reader);
-        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNMuon, muToken &muonToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, vtxToken& vertexToken);
+        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
+        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, muToken &muonToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, vtxToken& vertexToken);
 
-        void BeginJob(TTree* tree, bool &isData);
-        bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event);
+        void BeginJob(std::vector<TTree*>& trees, bool &isData);
+        void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };
 

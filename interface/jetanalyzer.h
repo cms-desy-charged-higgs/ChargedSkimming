@@ -12,9 +12,6 @@
 #include <CondFormats/JetMETObjects/interface/JetCorrectorParameters.h>
 #include <CondFormats/JetMETObjects/interface/FactorizedJetCorrector.h>
 
-#include <DataFormats/PatCandidates/interface/Jet.h>
-#include <DataFormats/PatCandidates/interface/MET.h>
-
 //Jet class to be safed in tree
 struct Jet {
     TLorentzVector fourVec;
@@ -38,6 +35,14 @@ struct FatJet : public Jet {
     Float_t oneSubJettiness = 1.;
     Float_t twoSubJettiness = 1.;
     Float_t threeSubJettiness = 1.;
+};
+
+struct Particle {
+    TLorentzVector fourVec;
+    Float_t charge;
+    TVector3 vertex;
+
+    Int_t fatJetIdx = -1.;
 };
 
 class JetAnalyzer: public BaseAnalyzer{
@@ -72,7 +77,6 @@ class JetAnalyzer: public BaseAnalyzer{
         int era;
         float ptCut;
         float etaCut;
-        std::vector<std::pair<unsigned int, unsigned int>> minNJet;
 
         //EDM Token for MINIAOD analysis
         std::vector<jToken> jetTokens;
@@ -80,6 +84,7 @@ class JetAnalyzer: public BaseAnalyzer{
         mToken metToken;
         edm::EDGetTokenT<double> rhoToken;
         genPartToken genParticleToken;
+        secvtxToken vertexToken;
 
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> fatJetPt;
@@ -117,17 +122,22 @@ class JetAnalyzer: public BaseAnalyzer{
 
         //Parameter for HT
         float HT;
+        int runNumber;
 
         //Valid jet collection
         std::vector<Jet> validJets;
         std::vector<Jet> subJets;
         std::vector<FatJet> validFatJets;
+        std::vector<Particle> jetParticles;
+        std::vector<Particle> vertices;
 
         //met Lorentzvector
         TLorentzVector met;
 
         //Get jet energy correction
-        float CorrectEnergy(const TLorentzVector &jet, const float &rho, const float &area, const JetType &type, const int& runNumber);
+        std::map<JetType, FactorizedJetCorrector*> jetCorrector;
+        void SetCorrector(const JetType &type, const int& runNumber);
+        float CorrectEnergy(const TLorentzVector &jet, const float &rho, const float &area, const JetType &type);
 
         //Get JER smear factor
         float SmearEnergy(const TLorentzVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJets = {});
@@ -137,11 +147,11 @@ class JetAnalyzer: public BaseAnalyzer{
         void SetGenParticles(Jet& validJet, const int &i, const int &pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle={});
 
     public:
-        JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, const std::vector<std::pair<unsigned int, unsigned int>> minNJet, TTreeReader& reader);
-        JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, const std::vector<std::pair<unsigned int, unsigned int>> minNJet, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken, genPartToken& genParticleToken);
+        JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
+        JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken, genPartToken& genParticleToken, secvtxToken& vertexToken);
 
-        void BeginJob(TTree* tree, bool &isData);
-        bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event);
+        void BeginJob(std::vector<TTree*>& trees, bool &isData);
+        void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };
 

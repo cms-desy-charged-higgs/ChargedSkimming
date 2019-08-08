@@ -43,7 +43,6 @@ class ElectronAnalyzer: public BaseAnalyzer {
         int era;
         float ptCut;
         float etaCut;
-        unsigned int minNEle;
 
         //EDM Token for MINIAOD analysis
         eToken eleToken;
@@ -63,11 +62,11 @@ class ElectronAnalyzer: public BaseAnalyzer {
         std::vector<Electron> validElectrons;
 
     public:
-        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken);
-        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, TTreeReader& reader);
+        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken);
+        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
 
-        void BeginJob(TTree* tree, bool &isData);
-        bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event);
+        void BeginJob(std::vector<TTree*>& trees, bool &isData);
+        void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };
 

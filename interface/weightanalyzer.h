@@ -38,8 +38,8 @@ class WeightAnalyzer : public BaseAnalyzer {
     public:
         WeightAnalyzer(const float era, const float xSec, TTreeReader &reader);
         WeightAnalyzer(const float era, const float xSec, puToken &pileupToken, genToken &geninfoToken);
-        void BeginJob(TTree *tree, bool &isData);
-        bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event);
+        void BeginJob(std::vector<TTree*>& trees, bool &isData);
+        void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };
 
