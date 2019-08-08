@@ -18,18 +18,15 @@ class NanoSkimmer{
         //Input
         std::string inFile;
         bool isData;
-
-        //Map with vector with analyzers
-        std::map<std::string, std::vector<std::shared_ptr<BaseAnalyzer>>> analyzerMap;
-
         //Vector with wished analyzers
-        std::vector<std::vector<std::shared_ptr<BaseAnalyzer>>> analyzers;
+        std::vector<std::shared_ptr<BaseAnalyzer>> analyzers;
         
         //Vector of trees for each analysis
-        std::vector<TTree*> trees;
+        std::vector<TTree*> outputTrees;
 
         //Vector of cutflow histograms for each analysis
-        std::vector<std::pair<TH1F*, float>> cutflows; 
+        std::vector<CutFlow> cutflows; 
+        std::map<std::string, std::vector<unsigned int>> nMin;
 
         //Progress bar function
         void ProgressBar(const int &progress);

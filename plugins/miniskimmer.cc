@@ -16,6 +16,7 @@ MiniSkimmer::MiniSkimmer(const edm::ParameterSet& iConfig):
       genParticleToken(consumes<std::vector<reco::GenParticle>>(iConfig.getParameter<edm::InputTag>("genPart"))),
       rhoToken(consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))),
       vertexToken(consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("vtx"))),
+      secVertexToken(consumes<std::vector<reco::VertexCompositePtrCandidate>>(iConfig.getParameter<edm::InputTag>("svtx"))),
 
       //Other stuff
       channels(iConfig.getParameter<std::vector<std::string>>("channels")),
@@ -41,79 +42,14 @@ void MiniSkimmer::beginJob(){
     std::vector<jToken> jetTokens = {jetToken, fatjetToken};
     std::vector<genjToken> genjetTokens = {genjetToken, genfatjetToken};
 
-    analyzerMap = {
-        {"e4j", 
-                {
-                    std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
-                    std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
-                    std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
-                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{4,0}}, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken)),
-                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 25., 2.4, 1, eleToken, triggerObjToken, genParticleToken)),
-                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 20., 2.4, 0, muonToken, triggerObjToken, genParticleToken, vertexToken)),
-                    std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
-                }
-        },
-
-        {"mu4j", 
-                {
-                    std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
-                    std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, triggerToken)),
-                    std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
-                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{4,0}}, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken)),
-                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 25., 2.4, 1, muonToken, triggerObjToken, genParticleToken, vertexToken)),
-                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, 0, eleToken, triggerObjToken, genParticleToken)),
-                    std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
-                }
-        },
-
-        {"e2j1f", 
-                {
-                    std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
-                    std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
-                    std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
-                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{2,1}}, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken)),
-                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 25., 2.4, 1, eleToken, triggerObjToken, genParticleToken)),
-                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 20., 2.4, 0, muonToken, triggerObjToken, genParticleToken, vertexToken)),
-                    std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
-                }
-        },
-
-        {"mu2j1f", 
-                {
-                    std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
-                    std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, triggerToken)),
-                    std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
-                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{2,1}}, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken)),
-                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 25., 2.4, 1, muonToken, triggerObjToken, genParticleToken, vertexToken)),
-                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, 0, eleToken, triggerObjToken, genParticleToken)),
-                    std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
-                }
-        },
-
-        {"e2f", 
-                {
-                    std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
-                    std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
-                    std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
-                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{0,2}}, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken)),
-                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 25., 2.4, 1, eleToken, triggerObjToken, genParticleToken)),
-                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 20., 2.4, 0, muonToken, triggerObjToken, genParticleToken, vertexToken)),
-                    std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
-                }
-        },
-
-        {"mu2f", 
-                {
-                    std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
-                    std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, triggerToken)),
-                    std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
-                    std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, {{0,2}}, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken)),
-                    std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 25., 2.4, 1, muonToken, triggerObjToken, genParticleToken, vertexToken)),
-                    std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, 0, eleToken, triggerObjToken, genParticleToken)),
-                    std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
-                }
-        },
-    }; 
+    nMin = {
+            {"mu4j", {1, 0, 4, 0}},
+            {"e4j", {0, 1, 4, 0}},
+            {"mu2j1f", {1, 0, 2, 1}},
+            {"e2j1f", {0, 1, 2, 1}},
+            {"mu2f", {1, 0, 0, 2}},
+            {"e2f", {0, 1, 0, 2}},
+    };
 
     for(const std::string &channel: channels){
         //Create output trees
@@ -122,43 +58,65 @@ void MiniSkimmer::beginJob(){
         outputTrees.push_back(tree);
 
         //Create cutflow histograms
-        TH1F* cutflow = new TH1F();
-        cutflow->SetName(("cutflow_" + channel).c_str());
-        cutflow->SetName(("cutflow_" + channel).c_str());
-        cutflow->GetYaxis()->SetName("Events");
-        cutflows.push_back(std::make_pair(cutflow, 1.)); 
+        CutFlow cutflow;
 
-        //Push back analyzers for each final state 
-        analyzers.push_back(analyzerMap[channel]);
+        cutflow.hist = new TH1F();
+        cutflow.hist->SetName(("cutflow_" + channel).c_str());
+        cutflow.hist->SetName(("cutflow_" + channel).c_str());
+        cutflow.hist->GetYaxis()->SetName("Events");
+
+        cutflow.nMinMu=nMin[channel][0];
+        cutflow.nMinEle=nMin[channel][1];
+        cutflow.nMinJet=nMin[channel][2];
+        cutflow.nMinFatjet=nMin[channel][3];
+        
+        cutflow.weight = 1;    
+
+        cutflows.push_back(cutflow); 
     }
 
+    analyzers = {
+        std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
+        std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, {"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
+        std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
+        std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken)),
+        std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 25., 2.4, muonToken, triggerObjToken, genParticleToken)),
+        std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, eleToken, triggerObjToken, genParticleToken)),
+        std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken))
+    };
+
     //Begin jobs for all analyzers
-    for(unsigned int i = 0; i < analyzers.size(); i++){
-        for(std::shared_ptr<BaseAnalyzer> analyzer: analyzers[i]){
-            analyzer->BeginJob(outputTrees[i], isData);
-        }
+    for(std::shared_ptr<BaseAnalyzer> analyzer: analyzers){
+        analyzer->BeginJob(outputTrees, isData);
     }
 }
 
 void MiniSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
     nEvents++;
-    bool eventPassed = true;
+    unsigned int nFailed = 0;
 
+    //Call each analyzer
     for(unsigned int i = 0; i < analyzers.size(); i++){
-        //Call each analyzer and break if one analyzer reject the event
-        for(std::shared_ptr<BaseAnalyzer> analyzer: analyzers[i]){
-            if(!analyzer->Analyze(cutflows[i], &iEvent)){
-                eventPassed = false;
-                break;
-            }
+        nFailed = 0;
+        analyzers[i]->Analyze(cutflows, &iEvent);
+
+        for(CutFlow &cutflow: cutflows){
+            if(!cutflow.passed) nFailed++;
         }
-            
-        //Fill trees is event passed all analyzers
-        if(eventPassed){
+
+        //If for all channels one analyzer failes, reject event
+        if(nFailed == cutflows.size()){
+            break;
+        }        
+    }
+
+    //Check individual for each channel, if event should be filled
+    for(unsigned int i = 0; i < outputTrees.size(); i++){
+        if(cutflows[i].passed){
             outputTrees[i]->Fill();
         }
 
-        eventPassed = true;
+        cutflows[i].passed = true;
     }
 }
 
@@ -171,11 +129,12 @@ void MiniSkimmer::endJob(){
 
     //End jobs for all analyzers
     for(unsigned int i = 0; i < analyzers.size(); i++){
-        for(std::shared_ptr<BaseAnalyzer> analyzer: analyzers[i]){
-            analyzer->EndJob(file);
-        }
+        analyzers[i]->EndJob(file);
+    }
 
-        cutflows[i].first->Write();
+    for(CutFlow& cutflow: cutflows){
+        cutflow.hist->Write();
+        delete cutflow.hist;
     }
 
     file->Write();

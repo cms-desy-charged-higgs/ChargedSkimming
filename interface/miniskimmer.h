@@ -36,13 +36,10 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         //Output file
         TFile* outputFile;
         std::vector<TTree*> outputTrees;
-        std::vector<std::pair<TH1F*, float>> cutflows; 
-
-        //Map with vector with analyzers
-        std::map<std::string, std::vector<std::shared_ptr<BaseAnalyzer>>> analyzerMap;
+        std::vector<CutFlow> cutflows; 
 
         //Vector with wished analyzers
-        std::vector<std::vector<std::shared_ptr<BaseAnalyzer>>> analyzers;
+        std::vector<std::shared_ptr<BaseAnalyzer>> analyzers;
 
         //EDM tokens
         jToken jetToken; 
@@ -59,12 +56,15 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         genPartToken genParticleToken;
         edm::EDGetTokenT<double> rhoToken;
         vtxToken vertexToken;
+        secvtxToken secVertexToken;
 
         //Channel
         std::vector<std::string> channels;
         float xSec;
         std::string outFile;
-        bool isData;            
+        bool isData;           
+
+        std::map<std::string, std::vector<unsigned int>> nMin;
 
         //Number of analyzed events
         int nEvents=0;
