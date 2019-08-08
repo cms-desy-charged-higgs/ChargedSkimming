@@ -27,6 +27,7 @@
 #include <DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h>
 #include "DataFormats/Candidate/interface/Candidate.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "DataFormats/VertexReco/interface/Vertex.h"
 #include <SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h>
 #include <SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h>
 #include <DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h>
@@ -40,6 +41,20 @@ struct GenParticles{
     TLorentzVector Hc;
 };
 
+//Struct for cutflow
+struct CutFlow {
+    TH1F* hist;
+    Float_t weight = 1.;
+
+    unsigned int nMinEle=0;
+    unsigned int nMinMu=0;
+    unsigned int nMinJet=0;
+    unsigned int nMinFatjet=0;
+    
+    bool passed = true;
+
+};
+
 typedef edm::EDGetTokenT<std::vector<pat::Jet>> jToken;
 typedef edm::EDGetTokenT<std::vector<reco::GenJet>> genjToken;
 typedef edm::EDGetTokenT<std::vector<pat::Electron>> eToken;
@@ -51,6 +66,7 @@ typedef edm::EDGetTokenT<std::vector<pat::MET>> mToken;
 typedef edm::EDGetTokenT<std::vector<pat::TriggerObjectStandAlone>> trigObjToken;
 typedef edm::EDGetTokenT<std::vector<reco::GenParticle>> genPartToken;
 typedef edm::EDGetTokenT<std::vector<reco::Vertex>> vtxToken;
+typedef edm::EDGetTokenT<std::vector<reco::VertexCompositePtrCandidate>> secvtxToken;
 
 class BaseAnalyzer {
     protected:
@@ -65,14 +81,13 @@ class BaseAnalyzer {
               {2017, {
                         {"B", {297046, 299329}}, 
                         {"C", {299368, 302029}}, 
-                        {"D", {302030, 303434}}, 
-                        {"E", {303824, 304797}}, 
+                        {"DE", {302030, 304797}},
                         {"F", {305040, 306462}}, 
                      }
               },
         };
 
-        std::unique_ptr<TTreeReaderValue<int>> run;
+        std::unique_ptr<TTreeReaderValue<unsigned int>> run;
 
         std::unique_ptr<TTreeReaderArray<float>> trigObjPt;
         std::unique_ptr<TTreeReaderArray<float>> trigObjPhi;
@@ -105,12 +120,13 @@ class BaseAnalyzer {
         //Trigger matching
         bool triggerMatching(const TLorentzVector &particle, const std::vector<pat::TriggerObjectStandAlone> trigObj = {});
 
+
     public:
         virtual ~BaseAnalyzer(){};
         BaseAnalyzer();
         BaseAnalyzer(TTreeReader* reader);
-        virtual void BeginJob(TTree *tree, bool &isData) = 0;
-        virtual bool Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event = NULL) = 0;
+        virtual void BeginJob(std::vector<TTree*>& trees, bool &isData) = 0;
+        virtual void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event = NULL) = 0;
         virtual void EndJob(TFile* file) = 0;
 };
 
