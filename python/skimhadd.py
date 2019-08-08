@@ -23,7 +23,7 @@ class SkimHadd(Task):
         os.system("hadd -f -j 16 {} {}".format(self["output"], " ".join(self["dependent_files"])))
 
     def output(self):
-        self["output"] = "{}/{}.root".format(self["dir"], self["name"])
+        self["output"] = "{}/{}.root".format(self["dir"], self["name"][5:])
 
     @staticmethod
     def configure(skimTasks, isNANO):
@@ -32,7 +32,7 @@ class SkimHadd(Task):
         if not isNANO:
             for skim in skimTasks:
                 config = {
-                        "name": "{}".format(skim["name"]),
+                        "name": "{}".format(skim["name"].replace("MiniSkim", "Hadd")),
                         "display-name": "Hadd: {}".format(skim["name"].split("_")[1]),
                         "dir": " {}/merged".format(skim["dir"]),
                         "dependencies": [skim["name"]],
