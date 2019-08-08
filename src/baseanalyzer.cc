@@ -16,7 +16,7 @@ void BaseAnalyzer::SetCollection(bool &isData){
         muonGenIdx = std::make_unique<TTreeReaderArray<int>>(*reader, "Muon_genPartIdx");
     }
 
-    run = std::make_unique<TTreeReaderValue<int>>(*reader, "run");
+    run = std::make_unique<TTreeReaderValue<unsigned int>>(*reader, "run");
 
     trigObjPt = std::make_unique<TTreeReaderArray<float>>(*reader, "TrigObj_pt");
     trigObjEta = std::make_unique<TTreeReaderArray<float>>(*reader, "TrigObj_eta");

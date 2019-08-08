@@ -8,7 +8,7 @@ GenPartAnalyzer::GenPartAnalyzer(genPartToken& genParticleToken):
 GenPartAnalyzer::GenPartAnalyzer(TTreeReader& reader):
     BaseAnalyzer(&reader){}
 
-void GenPartAnalyzer::BeginJob(TTree* tree, bool &isData){
+void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     //Set data bool
     this->isData = isData;
     
@@ -16,11 +16,13 @@ void GenPartAnalyzer::BeginJob(TTree* tree, bool &isData){
     if(isNANO) SetCollection(this->isData);
 
     //Set Branches of output tree
-    tree->Branch("genPart", &genColl);
+    for(TTree* tree: trees){
+        tree->Branch("genPart", &genColl);
+    }
 }
 
 
-bool GenPartAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event){
+void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<reco::GenParticle>> genParts;
 
@@ -96,8 +98,6 @@ bool GenPartAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event
             }
         }
     }
-    
-    return true;
 }
 
 

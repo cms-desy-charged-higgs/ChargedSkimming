@@ -1,26 +1,24 @@
 #include <ChargedHiggs/Skimming/interface/muonanalyzer.h>
 
-MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNMuon, TTreeReader &reader):
+MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader &reader):
     BaseAnalyzer(&reader),    
     era(era),
     ptCut(ptCut),
-    etaCut(etaCut),
-    minNMuon(minNMuon)
+    etaCut(etaCut)
     {}
 
-MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNMuon, muToken& muonToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, vtxToken& vertexToken):
+MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, muToken& muonToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, vtxToken& vertexToken):
     BaseAnalyzer(), 
     era(era),
     ptCut(ptCut),
     etaCut(etaCut),
-    minNMuon(minNMuon),
     muonToken(muonToken),
     triggerObjToken(triggerObjToken),
     genParticleToken(genParticleToken),
     vertexToken(vertexToken)
     {}
 
-void MuonAnalyzer::BeginJob(TTree* tree, bool &isData){
+void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     isoSFfiles = {
         {2017, filePath + "/muonSF/RunBCDEF_SF_ISO.root"},
     };
@@ -69,11 +67,13 @@ void MuonAnalyzer::BeginJob(TTree* tree, bool &isData){
         SetCollection(this->isData);
     }
 
-    //Set Branches of output tree
-    tree->Branch("muon", &validMuons);
+    for(TTree* tree: trees){
+        //Set Branches of output tree
+        tree->Branch("muon", &validMuons);
+    }
 }
 
-bool MuonAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event){
+void MuonAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
     //Clear electron vector3
     validMuons.clear();
 
@@ -103,12 +103,12 @@ bool MuonAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* e
             //Set muon information
             validMuon.fourVec.SetPtEtaPhiM(pt, eta, phi, 105.658*1e-3);
 
-            validMuon.isMedium = isNANO ? muonMediumID->At(i) : muons->at(i).isMediumMuon();
-            validMuon.isTight = isNANO ? muonTightID->At(i) : muons->at(i).isTightMuon(vertex->at(0));
+            validMuon.isMedium = isNANO ? muonMediumID->At(i) : muons->at(i).CutBasedIdMedium;
+            validMuon.isTight = isNANO ? muonTightID->At(i) : muons->at(i).CutBasedIdTight;
             validMuon.isLooseIso = isNANO ? muonIso->At(i) < 0.25 : muons->at(i).PFIsoLoose;
             validMuon.isTightIso = isNANO ? muonIso->At(i) < 0.15 : muons->at(i).PFIsoTight;
             validMuon.charge = isNANO ? muonCharge->At(i) : muons->at(i).charge();
-            validMuon.isTriggerMatched =  triggerMatching(validMuon.fourVec, *trigObjects);
+            validMuon.isTriggerMatched =  isNANO ? triggerMatching(validMuon.fourVec) : triggerMatching(validMuon.fourVec, *trigObjects);
             
             if(!isData){
                 validMuon.triggerSF = triggerSFhist->GetBinContent(triggerSFhist->FindBin(pt, abs(eta))) != 0 ? triggerSFhist->GetBinContent(triggerSFhist->FindBin(pt, abs(eta)))  : 1.;
@@ -133,15 +133,18 @@ bool MuonAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* e
     }
     
     //Check if event has enough electrons
-    if(validMuons.size() < minNMuon){
-        return false;
-    }
+    for(CutFlow &cutflow: cutflows){
+        if(cutflow.nMinMu >= validMuons.size()){
+            if(cutflow.nMinMu!=0 and cutflow.passed){
+                std::string cutName("N_{#mu} >= " + std::to_string(cutflow.nMinMu) + " (no iso/ID req)");
+                cutflow.hist->Fill(cutName.c_str(), cutflow.weight);
+            }
+        }
 
-    if(minNMuon != 0){
-        std::string cutName("N_{#mu} >= " + std::to_string(minNMuon) + " (no iso/ID req.)");
-        cutflow.first->Fill(cutName.c_str(), cutflow.second);
+        else{
+            cutflow.passed = false;
+        }
     }
-    return true;
 }
 
 void MuonAnalyzer::EndJob(TFile* file){

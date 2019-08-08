@@ -10,7 +10,7 @@ MetFilterAnalyzer::MetFilterAnalyzer(const int &era, trigToken& triggerToken):
     triggerToken(triggerToken)
     {}
 
-void MetFilterAnalyzer::BeginJob(TTree *tree, bool &isData){
+void MetFilterAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     //Set Filter names for each era
     filterNames = {
                 {2017, {"Flag_goodVertices",
@@ -32,7 +32,7 @@ void MetFilterAnalyzer::BeginJob(TTree *tree, bool &isData){
     }
 }
 
-bool MetFilterAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event){
+void MetFilterAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
     bool passedFilter = true;
 
     //Get Event info is using MINIAOD
@@ -66,11 +66,18 @@ bool MetFilterAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Eve
     }
 
     if(passedFilter){
-        cutflow.first->Fill("Met filter", cutflow.second);
-       return true;
+        for(CutFlow& cutflow: cutflows){
+            if(cutflow.passed){
+                cutflow.hist->Fill("Met filter", cutflow.weight);        
+            }
+        }
     }
 
-    return false;
+    else{
+        for(CutFlow& cutflow: cutflows){     
+            cutflow.passed = false;
+        }
+    }
 }
 
 void MetFilterAnalyzer::EndJob(TFile* file){}

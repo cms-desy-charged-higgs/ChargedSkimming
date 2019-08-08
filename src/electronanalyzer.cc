@@ -1,25 +1,23 @@
 #include <ChargedHiggs/Skimming/interface/electronanalyzer.h>
 
-ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken):
+ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken):
     BaseAnalyzer(),    
     era(era),
     ptCut(ptCut),
     etaCut(etaCut),
-    minNEle(minNEle),
     eleToken(eleToken),
     triggerObjToken(triggerObjToken),
     genParticleToken(genParticleToken)
     {}
 
-ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, const int &minNEle, TTreeReader& reader):
+ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader):
     BaseAnalyzer(&reader),    
     era(era),
     ptCut(ptCut),
-    etaCut(etaCut),
-    minNEle(minNEle)
+    etaCut(etaCut)
     {}
 
-void ElectronAnalyzer::BeginJob(TTree* tree, bool &isData){
+void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     //SF files
     mediumSFfiles = {
                     {2017, filePath + "eleSF/gammaEffi.txt_EGM2D_runBCDEF_passingMVA94Xwp80iso.root"},
@@ -70,11 +68,13 @@ void ElectronAnalyzer::BeginJob(TTree* tree, bool &isData){
         SetCollection(this->isData);
     }
 
-    //Set Branches of output tree
-    tree->Branch("electron", &validElectrons);
+    for(TTree* tree: trees){
+        //Set Branches of output tree
+        tree->Branch("electron", &validElectrons);
+    }
 }
 
-bool ElectronAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event){
+void ElectronAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
     //Clear electron vector
     validElectrons.clear();
 
@@ -92,9 +92,10 @@ bool ElectronAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Even
     
     //Loop over all electrons
     for(unsigned int i = 0; i < eleSize; i++){
-        float pt = isNANO ? elePt->At(i) : (electrons->at(i).p4()/electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Pt();
-        float eta = isNANO ? eleEta->At(i) : (electrons->at(i).p4()/electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Eta();
-        float phi = isNANO ? elePhi->At(i) : (electrons->at(i).p4()/electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Phi();
+        float pt = isNANO ? elePt->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Pt();
+        float eta = isNANO ? eleEta->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Eta();
+        float phi = isNANO ? elePhi->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Phi();
+
 
         if(pt > ptCut && abs(eta) < etaCut){
             Electron validElectron;
@@ -111,7 +112,7 @@ bool ElectronAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Even
             validElectron.isMedium = isNANO ? eleMediumMVA->At(i) : electrons->at(i).electronID("mvaEleID-Fall17-iso-V2-wp80");
             validElectron.isTight = isNANO ? eleMediumMVA->At(i) : electrons->at(i).electronID("mvaEleID-Fall17-iso-V2-wp90");
             validElectron.charge = isNANO ? eleCharge->At(i) : electrons->at(i).charge();
-            validElectron.isTriggerMatched = triggerMatching(validElectron.fourVec, *trigObjects);
+            validElectron.isTriggerMatched = isNANO ? triggerMatching(validElectron.fourVec) : triggerMatching(validElectron.fourVec, *trigObjects);
 
             if(!isData){
                //Fill scale factors
@@ -133,17 +134,18 @@ bool ElectronAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Even
 
     }
     
-    //Check if event has enough electrons
-    if(validElectrons.size() < minNEle){
-        return false;
-    }
+    for(CutFlow &cutflow: cutflows){
+        if(cutflow.nMinEle >= validElectrons.size()){
+            if(cutflow.nMinEle!=0 and cutflow.passed){
+                std::string cutName("N_{e} >= " + std::to_string(cutflow.nMinEle) + " (no iso/ID req)");
+                cutflow.hist->Fill(cutName.c_str(), cutflow.weight);
+            }
+        }
 
-    if(minNEle != 0){
-        std::string cutName("N_{e} >= " + std::to_string(minNEle) + " (no iso/ID req)");
-        cutflow.first->Fill(cutName.c_str(), cutflow.second);
+        else{
+            cutflow.passed = false;
+        }
     }
-
-    return true;
 }
 
 

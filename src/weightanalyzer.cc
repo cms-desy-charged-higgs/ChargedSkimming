@@ -15,7 +15,7 @@ WeightAnalyzer::WeightAnalyzer(const float era, const float xSec, puToken &pileu
     {}
 
 
-void WeightAnalyzer::BeginJob(TTree *tree, bool &isData){
+void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     //Set lumi map
     lumis = {{2016, 35.92*1e3}, {2017, 41.53*1e3}};
 
@@ -36,14 +36,16 @@ void WeightAnalyzer::BeginJob(TTree *tree, bool &isData){
     evtNumber = std::make_unique<TTreeReaderValue<ULong64_t>>(*reader, "event");
 
     //Branches for output tree
-    tree->Branch("lumi", &lumi);
-    tree->Branch("xsec", &xSec);
-    tree->Branch("genWeight", &genWeight);
-    tree->Branch("nTrueInt", &nTrueInt);
-    tree->Branch("eventNumber", &eventNumber);
+    for(TTree* tree: trees){
+        tree->Branch("lumi", &lumi);
+        tree->Branch("xsec", &xSec);
+        tree->Branch("genWeight", &genWeight);
+        tree->Branch("nTrueInt", &nTrueInt);
+        tree->Branch("eventNumber", &eventNumber);
+    }
 }
 
-bool WeightAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event){
+void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
     edm::Handle<std::vector<PileupSummaryInfo>> pileUp; 
     edm::Handle<GenEventInfoProduct> genInfo;
     
@@ -64,17 +66,19 @@ bool WeightAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event*
 
     eventNumber = isNANO ? *evtNumber->Get() : event->eventAuxiliary().id().event();
 
-    cutflow.second = xSec*lumi;
-
-    cutflow.first->Fill("No cuts", cutflow.second);
-    return true;
+    for(CutFlow& cutflow: cutflows){
+        cutflow.weight = xSec*lumi;
+        cutflow.hist->Fill("No cuts", cutflow.weight);
+        cutflow.passed *= true;
+    }
 }
 
 void WeightAnalyzer::EndJob(TFile* file){
     if(!this->isData){
-        if(!file->GetListOfKeys()->Contains("nGen")){
-            nGenHist->Write();
-            puMC->Write();
-        }
+        nGenHist->Write();
+        puMC->Write();
     }
+
+    delete puMC;
+    delete nGenHist;
 }

@@ -1,28 +1,26 @@
 #include <ChargedHiggs/Skimming/interface/jetanalyzer.h>
 
-JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, const std::vector<std::pair<unsigned int, unsigned int>> minNJet, TTreeReader &reader):
+JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader &reader):
     BaseAnalyzer(&reader),    
     era(era),
     ptCut(ptCut),
-    etaCut(etaCut),
-    minNJet(minNJet)
+    etaCut(etaCut)
     {}
 
-JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, const std::vector<std::pair<unsigned int, unsigned int>> minNJet, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken, genPartToken& genParticleToken):
+JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken, genPartToken& genParticleToken, secvtxToken& vertexToken):
     BaseAnalyzer(),    
     era(era),
     ptCut(ptCut),
     etaCut(etaCut),
-    minNJet(minNJet),
     jetTokens(jetTokens),
     metToken(metToken),
     rhoToken(rhoToken),
-    genParticleToken(genParticleToken)
+    genParticleToken(genParticleToken),
+    vertexToken(vertexToken)
     {}
 
 
-//https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookJetEnergyCorrections#JetEnCorFWLite
-float JetAnalyzer::CorrectEnergy(const TLorentzVector &jet, const float &rho, const float &area, const JetType &type, const int& runNumber){
+void JetAnalyzer::SetCorrector(const JetType &type, const int& runNumber){
     std::vector<JetCorrectorParameters> corrVec;
 
     for(std::string fileName: isData? JECDATA[type][era] : JECMC[type][era]){
@@ -37,13 +35,17 @@ float JetAnalyzer::CorrectEnergy(const TLorentzVector &jet, const float &rho, co
         corrVec.push_back(JetCorrectorParameters(fileName));
     }
 
-    FactorizedJetCorrector jetCorrector(corrVec);
-    jetCorrector.setJetPt(jet.Pt());
-    jetCorrector.setJetEta(jet.Eta());
-    jetCorrector.setRho(rho);
-    jetCorrector.setJetA(area);
+    jetCorrector[type] = new FactorizedJetCorrector(corrVec);
+}
 
-    double correction = jetCorrector.getCorrection();
+//https://twiki.cern.ch/twiki/bin/view/CMSPublic/WorkBookJetEnergyCorrections#JetEnCorFWLite
+float JetAnalyzer::CorrectEnergy(const TLorentzVector &jet, const float &rho, const float &area, const JetType &type){
+    jetCorrector[type]->setJetPt(jet.Pt());
+    jetCorrector[type]->setJetEta(jet.Eta());
+    jetCorrector[type]->setRho(rho);
+    jetCorrector[type]->setJetA(area);
+
+    double correction = jetCorrector[type]->getCorrection();
     
     return correction;
 }
@@ -185,7 +187,7 @@ void JetAnalyzer::SetGenParticles(Jet& validJet, const int &i, const int &pdgID,
 }
 
 
-void JetAnalyzer::BeginJob(TTree* tree, bool &isData){
+void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     JECMC = {
             {AK4, {
                 {2017, {filePath + "/JEC/Fall17_17Nov2017_V32_MC_L1FastJet_AK4PFchs.txt", 
@@ -334,22 +336,34 @@ void JetAnalyzer::BeginJob(TTree* tree, bool &isData){
         resolution_sf[type] = JME::JetResolutionScaleFactor(JMESF[type][era]);
     }
 
-    //Set Branches of output tree
-    tree->Branch("jet", &validJets);
-    tree->Branch("subjet", &subJets);
-    tree->Branch("fatjet", &validFatJets);
-    tree->Branch("met", &met);
-    tree->Branch("HT", &HT);
+    for(TTree* tree: trees){
+        //Set Branches of output tree
+        tree->Branch("jet", &validJets);
+        tree->Branch("subjet", &subJets);
+        tree->Branch("fatjet", &validFatJets);
+        tree->Branch("jetparticle", &jetParticles);
+        tree->Branch("secvertex", &vertices);
+        tree->Branch("met", &met);
+        tree->Branch("HT", &HT);
+    }
 }
 
 
-bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* event){
+void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
     //Clear jet vector
     validJets.clear();
     subJets.clear();
     validFatJets.clear();
+    jetParticles.clear();
+    vertices.clear();
     HT=0;
-    int runNumber = isNANO ? *run->Get() : event->eventAuxiliary().id().run(); 
+    runNumber = isNANO ? *run->Get() : event->eventAuxiliary().id().run(); 
+
+    if(jetCorrector.empty()){
+        for(const JetType& type: {AK4, AK8}){
+            SetCorrector(type, runNumber);
+        }
+    }
 
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<pat::Jet>> jets;
@@ -359,12 +373,14 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
     edm::Handle<std::vector<pat::MET>> MET;
     edm::Handle<double> rho;
     edm::Handle<std::vector<reco::GenParticle>> genParts;
+    edm::Handle<std::vector<reco::VertexCompositePtrCandidate>> secVtx;
 
     if(!isNANO){
         event->getByToken(jetTokens[0], jets);
         event->getByToken(jetTokens[1], fatJets);
         event->getByToken(metToken, MET);
         event->getByToken(rhoToken, rho);
+        event->getByToken(vertexToken, secVtx);
 
         if(!isData){
             event->getByLabel(edm::InputTag("slimmedGenJets"), genJets);
@@ -381,7 +397,20 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
     float metPy = isNANO ? *metPt->Get()*std::sin(*metPhi->Get()) : MET->at(0).uncorPy();
     
     float fatJetSize = isNANO ? fatJetPt->GetSize() : fatJets->size();
+    float jetSize = isNANO ? jetPt->GetSize() : jets->size();
 
+    //Check if initial jet collection has enough jets
+    unsigned int nMin = 0;
+
+    for(CutFlow& cutflow: cutflows){
+        if(jetSize < cutflow.nMinJet){
+            nMin++;
+            cutflow.passed = false;
+        }
+    }
+
+    if(nMin == cutflows.size()) return;
+        
     //Loop over all fat jets
     for(unsigned int i = 0; i < fatJetSize; i++){
         float fatPt = isNANO ? fatJetPt->At(i) : fatJets->at(i).pt();
@@ -393,7 +422,7 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
         FatJet fatJet;
         fatJet.fourVec.SetPtEtaPhiM(fatPt, fatEta, fatPhi, fatMass);
     
-        corrFac = isNANO ? CorrectEnergy(fatJet.fourVec,  *jetRho->Get(), fatJetArea->At(i), AK8, runNumber) : CorrectEnergy(fatJet.fourVec, *rho, jets->at(i).jetArea(), AK8, runNumber);
+        corrFac = isNANO ? CorrectEnergy(fatJet.fourVec,  *jetRho->Get(), fatJetArea->At(i), AK8) : CorrectEnergy(fatJet.fourVec, *rho, jets->at(i).jetArea(), AK8);
 
         //Smear pt if not data
         if(!isData){
@@ -437,11 +466,56 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
                 fatJet.mediumbTagSF = mediumReader[AK8].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(fatJet.fourVec.Eta()), fatJet.fourVec.Pt());
             }
 
+            //Fill in particle flow candidates
+            if(!isNANO){
+                for(const pat::Jet& fatJet: *fatJets){
+                    for(unsigned int j = 0; j < fatJet.numberOfDaughters(); j++){
+                        reco::Candidate const * cand = fatJet.daughter(j);
+
+                        if(cand->numberOfDaughters() == 0){
+                            Particle particle;
+                            particle.fourVec.SetPtEtaPhiM(cand->pt(), cand->eta(), cand->phi(), cand->mass());
+                            particle.vertex.SetXYZ(cand->vx(), cand->vy(), cand->vz());
+                            particle.charge = cand->charge();
+                            particle.fatJetIdx = validFatJets.size();
+
+                            jetParticles.push_back(particle);
+                        }
+                            
+                        else{
+                            for(unsigned int k = 0; k < cand->numberOfDaughters(); k++) {
+                                reco::Candidate const * cand2 = cand->daughter(k);
+                                Particle particle;
+                                particle.fourVec.SetPtEtaPhiM(cand2->pt(), cand2->eta(), cand2->phi(), cand2->mass());
+                                particle.vertex.SetXYZ(cand2->vx(), cand2->vy(), cand2->vz());
+                                particle.charge = cand2->charge();
+                                particle.fatJetIdx = validFatJets.size();
+
+                                jetParticles.push_back(particle);
+                            }
+                        }
+                    } 
+                }
+
+                for(const reco::VertexCompositePtrCandidate &vtx: *secVtx){
+                    TLorentzVector vtxP4;
+                    vtxP4.SetPtEtaPhiM(vtx.p4().Pt(), vtx.p4().Eta(), vtx.p4().Phi(), vtx.p4().M());
+
+                    if(fatJet.fourVec.DeltaR(vtxP4) < 0.8){
+                        Particle secvtx;
+                        secvtx.fourVec = vtxP4;
+                        secvtx.vertex.SetXYZ(vtx.vx(), vtx.vy(), vtx.vz());
+                        secvtx.charge = vtx.charge();
+                        secvtx.fatJetIdx = validFatJets.size();
+                        
+                        vertices.push_back(secvtx);
+                    }
+                }
+            }
+
             validFatJets.push_back(fatJet);
         }
     }
-
-    float jetSize = isNANO ? jetPt->GetSize() : jets->size();
 
     //Loop over all jets
     for(unsigned int i = 0; i < jetSize; i++){
@@ -454,7 +528,7 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
         Jet jetCand;
         jetCand.fourVec.SetPtEtaPhiM(pt, eta, phi, mass);
 
-        corrFac = isNANO ? CorrectEnergy(jetCand.fourVec,  *jetRho->Get(), jetArea->At(i), AK4, runNumber) : CorrectEnergy(jetCand.fourVec, *rho, jets->at(i).jetArea(), AK4, runNumber);
+        corrFac = isNANO ? CorrectEnergy(jetCand.fourVec,  *jetRho->Get(), jetArea->At(i), AK4) : CorrectEnergy(jetCand.fourVec, *rho, jets->at(i).jetArea(), AK4);
 
         //Smear pt if not data
         if(!isData){
@@ -536,20 +610,25 @@ bool JetAnalyzer::Analyze(std::pair<TH1F*, float> &cutflow, const edm::Event* ev
     //Set met
     met.SetPxPyPzE(metPx, metPy, 0 , 0);
 
-    //Check if one combination of jet and fatjet number is fullfilled
+    for(CutFlow& cutflow: cutflows){
+        //Check if one combination of jet and fatjet number is fullfilled
+        if(validJets.size() >= cutflow.nMinJet and validFatJets.size() == cutflow.nMinFatjet){
+            if(cutflow.passed){
+                std::string cutName("N^{AK4}_{jet} >= " + std::to_string(cutflow.nMinJet) + " && N^{AK8}_{jet} == " + std::to_string(cutflow.nMinFatjet));
 
-    for(std::pair<unsigned int, unsigned int> minN: minNJet){
-        if(validJets.size() >= minN.first && validFatJets.size() == minN.second){
-            std::string cutName("N^{AK4}_{jet} >= " + std::to_string(minN.first) + " && N^{AK8}_{jet} == " + std::to_string(minN.second));
+                cutflow.hist->Fill(cutName.c_str(), cutflow.weight);
+            }
+        }
 
-            cutflow.first->Fill(cutName.c_str(), cutflow.second);
-            return true;
+        else{
+            cutflow.passed = false;
         }
     }
-    
-    return false;
 }
 
 
 void JetAnalyzer::EndJob(TFile* file){
+    for(const JetType& type: {AK4, AK8}){
+        delete jetCorrector[type];
+    }
 }
