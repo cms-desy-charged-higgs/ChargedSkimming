@@ -2,6 +2,8 @@ from ChargedHiggs.Workflow.task import Task
 
 import os
 import sys
+import time
+
 sys.path.append("/usr/lib64/python2.6/site-packages/")
 import htcondor
 import numpy as np
@@ -31,14 +33,12 @@ class MiniSkim(Task):
         self.crabConf.JobType.psetName = "ChargedHiggs/Skimming/python/miniskimmer.py"
         self.crabConf.JobType.pyCfgParams = ["outname={}.root".format(self["datasetName"])]
         self.crabConf.JobType.outputFiles = ["{}.root".format(self["datasetName"])]
-        #self.crabConf.JobType.maxJobRuntimeMin = 1000
 
         self.crabConf.Data.inputDataset = self["dataset"] 
         self.crabConf.Data.inputDBS = "global"
-        self.crabConf.Data.splitting = "FileBased"
-        self.crabConf.Data.unitsPerJob = 1
+        self.crabConf.Data.splitting = "EventAwareLumiBased"
+        self.crabConf.Data.unitsPerJob = 400000
         self.crabConf.Data.outLFNDirBase = "/store/user/dbrunner/skim"
-
         self.crabConf.Site.storageSite = "T2_DE_DESY"
 
     def status(self):
@@ -67,15 +67,18 @@ class MiniSkim(Task):
             ##If one jobs failed, resubmit and leave loop
             if status in self.badStatus and (crabStatus["dbStatus"] == "SUBMITTED" or crabStatus["dbStatus"] == "RESUBMITFAILED"):
                 if crabStatus["jobsPerStatus"][status] != 0:
-                    crabCommand("resubmit", dir=self["crab-dir"])
+                    ##Check if you have to increase memory/run time
+                    exitCode = [crabStatus["jobs"][key]["Error"][0] for key in crabStatus["jobs"] if "Error" in crabStatus["jobs"][key]]
+
+                    runTime = "1315" if not 50664 in exitCode else "1600"
+                    memory = "2000" if not 50660 in exitCode else "2500"
+
+                    crabCommand("resubmit", dir=self["crab-dir"], maxmemory=memory, maxjobruntime=runTime)
                     break
 
         if "finished" in crabStatus["jobsPerStatus"]:
             if crabStatus["jobsPerStatus"]["finished"] == len(crabStatus["jobs"].keys()):
                 jobsNrs = crabStatus["jobs"].keys()
-
-                print(len(jobsNrs))
-                print(len(os.listdir("{}/results/".format(self["crab-dir"]))))
 
                 ##Skip if output already retrieved
                 if(len(os.listdir("{}/results/".format(self["crab-dir"]))) == len(jobsNrs)):
@@ -93,6 +96,8 @@ class MiniSkim(Task):
      
                 ##If all jobs finished, retrieve output
                 self["status"] = "FINISHED"
+            
+        time.sleep(60)
 
     def run(self):
         self.__crabConfig()
