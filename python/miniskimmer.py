@@ -32,6 +32,10 @@ for key in xSecFile.keys():
 isData = True in [name in options.outname for name in ["Electron", "Muon", "MET"]]
 
 process = cms.Process("MiniSkimming")
+
+process.load("FWCore.MessageService.MessageLogger_cfi")
+process.MessageLogger.cerr.FwkReport.reportEvery = 100
+
 ##Load necessary modules
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 process.load('Configuration.StandardSequences.Services_cff')
@@ -87,6 +91,7 @@ process.skimmer = cms.EDAnalyzer("MiniSkimmer",
                                 genPart = cms.InputTag("prunedGenParticles"),
                                 rho = cms.InputTag("fixedGridRhoFastjetAll"),
                                 vtx = cms.InputTag("offlineSlimmedPrimaryVertices"),
+                                svtx = cms.InputTag("slimmedSecondaryVertices"),
                                 channels = cms.vstring(options.channel[0]),
                                 xSec = cms.double(xSec),
                                 outFile = cms.string(options.outname),
