@@ -74,3 +74,50 @@ bool BaseAnalyzer::triggerMatching(const TLorentzVector &particle, const std::ve
 
     return false;
 }
+
+bool BaseAnalyzer::SetGenParticles(TLorentzVector &validLepton, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle){
+    const reco::GenParticle* matchedLep=NULL;
+
+    if(!isNANO){
+        for(const reco::GenParticle &part: genParticle){
+            if(part.isPromptFinalState()){
+                if(0.3 > std::sqrt(std::pow(part.eta() - validLepton.Eta(), 2) + std::pow(part.phi() - validLepton.Phi(), 2)) and abs(validLepton.Pt()-part.pt())/validLepton.Pt() < 0.05){
+                    matchedLep = &part;
+                }
+            }
+        }
+    }   
+
+    bool isgenMatched = isNANO ? eleGenIdx->At(i) != -1 : matchedLep!=NULL;
+
+    //Check if gen matched particle exist
+    if(isgenMatched){
+        const reco::Candidate* lepton=NULL;
+        int index=0;
+            
+        if(isNANO) index = LastCopy(pdgID == 11 ? eleGenIdx->At(i) : muonGenIdx->At(i), pdgID);
+        else lepton = LastCopy(*matchedLep, pdgID);
+
+        int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(lepton->mother()->pdgId()); 
+
+        if(motherID == 24){
+            const reco::Candidate* WBoson=NULL;
+            int index=0;
+                
+            if(isNANO) index = LastCopy(eleGenIdx->At(i), 24);
+            else WBoson = LastCopy(lepton->mother(), 24);
+
+            int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(WBoson->mother()->pdgId());     
+
+            if(motherID == 37){
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+    return false;
+}
