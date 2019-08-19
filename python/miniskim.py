@@ -37,7 +37,7 @@ class MiniSkim(Task):
         self.crabConf.Data.inputDataset = self["dataset"] 
         self.crabConf.Data.inputDBS = "global"
         self.crabConf.Data.splitting = "EventAwareLumiBased"
-        self.crabConf.Data.unitsPerJob = 400000
+        self.crabConf.Data.unitsPerJob = 250000
         self.crabConf.Data.outLFNDirBase = "/store/user/dbrunner/skim"
         self.crabConf.Site.storageSite = "T2_DE_DESY"
 
@@ -70,8 +70,8 @@ class MiniSkim(Task):
                     ##Check if you have to increase memory/run time
                     exitCode = [crabStatus["jobs"][key]["Error"][0] for key in crabStatus["jobs"] if "Error" in crabStatus["jobs"][key]]
 
-                    runTime = "1315" if not 50664 in exitCode else "1600"
-                    memory = "2000" if not 50660 in exitCode else "2500"
+                    runTime = "1500" if not 50664 in exitCode else "1700"
+                    memory = "2500" if not 50660 in exitCode else "3000"
 
                     crabCommand("resubmit", dir=self["crab-dir"], maxmemory=memory, maxjobruntime=runTime)
                     break
