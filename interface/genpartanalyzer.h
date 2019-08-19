@@ -23,6 +23,12 @@ class GenPartAnalyzer: public BaseAnalyzer{
         //EMD Token for MINIAOD
         genPartToken genParticleToken;
 
+        //Set output names
+        std::vector<std::string> floatNames;
+        std::vector<std::vector<float>> leptonVariables;
+        std::vector<std::vector<float>> h1Variables;
+        std::vector<std::vector<float>> h2Variables;
+
     public:
         GenPartAnalyzer(genPartToken& genParticleToken);
         GenPartAnalyzer(TTreeReader &reader);

@@ -46,37 +46,46 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
 
     //Initiliaze TTreeReaderValues then using NANO AOD
     if(isNANO){
-        TTree* eventTree = reader->GetTree();
-
         elePt = std::make_unique<TTreeReaderArray<float>>(*reader, "Electron_pt");
         eleEta = std::make_unique<TTreeReaderArray<float>>(*reader, "Electron_eta");
         elePhi = std::make_unique<TTreeReaderArray<float>>(*reader, "Electron_phi");
         eleCharge = std::make_unique<TTreeReaderArray<int>>(*reader, "Electron_charge");
         eleIso = std::make_unique<TTreeReaderArray<float>>(*reader, "Electron_pfRelIso03_all");
-
-        if(eventTree->GetBranchStatus("Electron_mvaFall17V1Iso_WP80")){
-            eleMediumMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17V1Iso_WP80");
-            eleTightMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17V1Iso_WP80");
-        }
-
-        else{
-            eleMediumMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17Iso_WP80");
-            eleTightMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17Iso_WP80");
-        }
+        eleMediumMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17Iso_WP80");
+        eleTightMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17Iso_WP80");
 
         //Set TTreeReader for genpart and trigger obj from baseanalyzer    
         SetCollection(this->isData);
     }
 
+    //Set output names
+    floatNames = {"E", "Px", "Py", "Pz", "Isolation", "Charge", "mediumSF", "tightSF", "recoSF"};
+    boolNames = { "isMedium", "isTight", "isTriggerMatched", "isFromHc"};
+
+    floatVariables = std::vector<std::vector<float>>(floatNames.size(), std::vector<float>());
+    boolVariables = std::vector<std::vector<bool>>(boolNames.size(), std::vector<bool>());
+
+    //Set Branches of output tree
     for(TTree* tree: trees){
-        //Set Branches of output tree
-        tree->Branch("electron", &validElectrons);
+        for(unsigned int i=0; i<floatVariables.size(); i++){
+            tree->Branch(("Electron_" + floatNames[i]).c_str(), &floatVariables[i]);
+        }
+
+        for(unsigned int i=0; i<boolVariables.size(); i++){
+            tree->Branch(("Electron_" + boolNames[i]).c_str(), &boolVariables[i]);
+        }
     }
 }
 
 void ElectronAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
-    //Clear electron vector
-    validElectrons.clear();
+    //Clear variables vector
+    for(std::vector<float>& variable: floatVariables){
+        variable.clear();
+    }
+
+    for(std::vector<bool>& variable: boolVariables){
+        variable.clear();
+    }
 
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<pat::Electron>> electrons;
@@ -96,46 +105,51 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event*
         float eta = isNANO ? eleEta->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Eta();
         float phi = isNANO ? elePhi->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Phi();
 
-
         if(pt > ptCut && abs(eta) < etaCut){
-            Electron validElectron;
+            TLorentzVector lVec;
+            lVec.SetPtEtaPhiM(pt, eta, phi, 0.510*1e-3);
 
+            //Electron four momentum components
+            floatVariables[0].push_back(lVec.E());   //Energy
+            floatVariables[1].push_back(lVec.Px());  //Px
+            floatVariables[2].push_back(lVec.Py());  //Py
+            floatVariables[3].push_back(lVec.Pz());  //Pz
+
+            //PF isolation
             float iso;
 
             if(!isNANO){
                 iso = (electrons->at(i).pfIsolationVariables().sumChargedHadronPt + std::max(electrons->at(i).pfIsolationVariables().sumNeutralHadronEt + electrons->at(i).pfIsolationVariables().sumPhotonEt - 0.5 * electrons->at(i).pfIsolationVariables().sumPUPt, 0.0)) / electrons->at(i).pt();
             }
 
-            //Set electron information
-            validElectron.fourVec.SetPtEtaPhiM(pt, eta, phi, 0.510*1e-3);
-            validElectron.isolation = isNANO ? eleIso->At(i) : iso;
-            validElectron.isMedium = isNANO ? eleMediumMVA->At(i) : electrons->at(i).electronID("mvaEleID-Fall17-iso-V2-wp80");
-            validElectron.isTight = isNANO ? eleMediumMVA->At(i) : electrons->at(i).electronID("mvaEleID-Fall17-iso-V2-wp90");
-            validElectron.charge = isNANO ? eleCharge->At(i) : electrons->at(i).charge();
-            validElectron.isTriggerMatched = isNANO ? triggerMatching(validElectron.fourVec) : triggerMatching(validElectron.fourVec, *trigObjects);
+            floatVariables[4].push_back(isNANO ? eleIso->At(i) : iso); //PF isolation
+            floatVariables[5].push_back(isNANO ? eleCharge->At(i) : electrons->at(i).charge());  //charge
+
+            //Electron ID
+            boolVariables[0].push_back(isNANO ? eleMediumMVA->At(i) : electrons->at(i).electronID("mvaEleID-Fall17-iso-V2-wp80"));  //Medium MVA ID
+            boolVariables[1].push_back(isNANO ? eleMediumMVA->At(i) : electrons->at(i).electronID("mvaEleID-Fall17-iso-V2-wp90"));  //Tight MVA ID
+            boolVariables[2].push_back(isNANO ? triggerMatching(lVec) : triggerMatching(lVec, *trigObjects)); //Trigger matching
 
             if(!isData){
                //Fill scale factors
-                validElectron.recoSF = recoSFhist->GetBinContent(recoSFhist->FindBin(eta, pt));
-                validElectron.mediumMvaSF = mediumSFhist->GetBinContent(mediumSFhist->FindBin(eta, pt));
-                validElectron.tightMvaSF = tightSFhist->GetBinContent(tightSFhist->FindBin(eta, pt));
+                floatVariables[6].push_back(recoSFhist->GetBinContent(recoSFhist->FindBin(eta, pt)));
+                floatVariables[7].push_back(mediumSFhist->GetBinContent(mediumSFhist->FindBin(eta, pt)));
+                floatVariables[8].push_back(tightSFhist->GetBinContent(tightSFhist->FindBin(eta, pt)));
 
                 //Save gen particle information
-                if(isNANO) SetGenParticles<Electron>(validElectron, i, 11);
+                if(isNANO) boolVariables[3].push_back(SetGenParticles(lVec, i, 11));
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    SetGenParticles<Electron>(validElectron, i, 11, *genParts);
+                    boolVariables[3].push_back(SetGenParticles(lVec, i, 11, *genParts));
                 }
             }
 
             //Fill electron in collection
-            validElectrons.push_back(validElectron);
         } 
-
     }
-    
+
     for(CutFlow &cutflow: cutflows){
-        if(cutflow.nMinEle >= validElectrons.size()){
+        if(cutflow.nMinEle <= floatVariables[0].size()){
             if(cutflow.nMinEle!=0 and cutflow.passed){
                 std::string cutName("N_{e} >= " + std::to_string(cutflow.nMinEle) + " (no iso/ID req)");
                 cutflow.hist->Fill(cutName.c_str(), cutflow.weight);

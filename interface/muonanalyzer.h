@@ -31,7 +31,7 @@ struct Muon {
 
 class MuonAnalyzer: public BaseAnalyzer{
     private:
-        //Bool for checking if data file
+        //Check if data
         bool isData;
 
         //Map for SF files
@@ -50,10 +50,17 @@ class MuonAnalyzer: public BaseAnalyzer{
         TH2F* mediumIDHist;
         TH2F* tightIDHist;
 
-        //Input for selecting muon
+        //Kinematic cut criteria
         int era;
         float ptCut;
         float etaCut;
+
+        //Vector with output varirables of the output tree
+        std::vector<std::string> floatNames;
+        std::vector<std::string> boolNames;
+
+        std::vector<std::vector<float>> floatVariables;
+        std::vector<std::vector<bool>> boolVariables;
 
         //EDM Token for MINIAOD analysis
         muToken muonToken;
@@ -69,9 +76,6 @@ class MuonAnalyzer: public BaseAnalyzer{
         std::unique_ptr<TTreeReaderArray<bool>> muonMediumID;
         std::unique_ptr<TTreeReaderArray<bool>> muonTightID;
         std::unique_ptr<TTreeReaderArray<int>> muonGenIdx;
-
-        //Valid electron collection
-        std::vector<Muon> validMuons;
 
     public:
         MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);

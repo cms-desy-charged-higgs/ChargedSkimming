@@ -26,7 +26,7 @@ struct Electron {
 
 class ElectronAnalyzer: public BaseAnalyzer {
     private:
-        //Bool for checking if data file
+        //Check if data
         bool isData;
 
         //Map for SF files
@@ -39,7 +39,7 @@ class ElectronAnalyzer: public BaseAnalyzer {
         TH2F* tightSFhist;
         TH2F* recoSFhist;
 
-        //Input for selecting electrons
+        //Kinematic cut criteria
         int era;
         float ptCut;
         float etaCut;
@@ -49,6 +49,13 @@ class ElectronAnalyzer: public BaseAnalyzer {
         trigObjToken triggerObjToken;
         genPartToken genParticleToken;
 
+        //Vector with output varirables of the output tree
+        std::vector<std::string> floatNames;
+        std::vector<std::string> boolNames;
+
+        std::vector<std::vector<float>> floatVariables;
+        std::vector<std::vector<bool>> boolVariables;
+
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> elePt;
         std::unique_ptr<TTreeReaderArray<float>> eleEta;
@@ -57,9 +64,6 @@ class ElectronAnalyzer: public BaseAnalyzer {
         std::unique_ptr<TTreeReaderArray<int>> eleCharge;
         std::unique_ptr<TTreeReaderArray<bool>> eleMediumMVA;
         std::unique_ptr<TTreeReaderArray<bool>> eleTightMVA;
-
-        //Valid electron collection
-        std::vector<Electron> validElectrons;
 
     public:
         ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken);

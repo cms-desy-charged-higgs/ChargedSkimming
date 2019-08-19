@@ -37,11 +37,11 @@ void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
 
     //Branches for output tree
     for(TTree* tree: trees){
-        tree->Branch("lumi", &lumi);
-        tree->Branch("xsec", &xSec);
-        tree->Branch("genWeight", &genWeight);
-        tree->Branch("nTrueInt", &nTrueInt);
-        tree->Branch("eventNumber", &eventNumber);
+        tree->Branch("Weight_lumi", &lumi);
+        tree->Branch("Weight_xsec", &xSec);
+        tree->Branch("Weight_genWeight", &genWeight);
+        tree->Branch("Misc_TrueInteraction", &nTrueInt);
+        tree->Branch("Misc_eventNumber", &eventNumber);
     }
 }
 

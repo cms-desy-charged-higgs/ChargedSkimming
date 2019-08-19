@@ -122,17 +122,23 @@ class JetAnalyzer: public BaseAnalyzer{
 
         //Parameter for HT
         float HT;
+        float metPx;
+        float metPy;
         int runNumber;
 
-        //Valid jet collection
-        std::vector<Jet> validJets;
-        std::vector<Jet> subJets;
-        std::vector<FatJet> validFatJets;
-        std::vector<Particle> jetParticles;
-        std::vector<Particle> vertices;
+        //Vector with output varirables of the output tree
+        std::vector<std::string> JetfloatNames;
+        std::vector<std::string> FatJetfloatNames;
+        std::vector<std::string> JetParticlefloatNames;
+        std::vector<std::string> boolNames;
 
-        //met Lorentzvector
-        TLorentzVector met;
+        std::vector<std::vector<float>> JetfloatVariables;
+        std::vector<std::vector<float>> FatJetfloatVariables;
+        std::vector<std::vector<float>> JetParticlefloatVariables;
+        std::vector<std::vector<float>> VertexfloatVariables;
+
+        std::vector<std::vector<bool>> JetboolVariables;
+        std::vector<std::vector<bool>> FatJetboolVariables;
 
         //Get jet energy correction
         std::map<JetType, FactorizedJetCorrector*> jetCorrector;
@@ -144,7 +150,7 @@ class JetAnalyzer: public BaseAnalyzer{
 
         //Set Gen particle information
         std::map<JetType, TLorentzVector> genJet; 
-        void SetGenParticles(Jet& validJet, const int &i, const int &pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle={});
+        int SetGenParticles(TLorentzVector& validJet, const int &i, const int &pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle={});
 
     public:
         JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
