@@ -1,7 +1,7 @@
 #ifndef GENPARTANALYZER_H
 #define GENPARTANALYZER_H
 
-#include <ChargedHiggs/Skimming/interface/baseanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/baseanalyzer.h>
 
 //Jet class to be safed in tree
 struct GenPart {

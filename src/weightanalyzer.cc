@@ -1,4 +1,4 @@
-#include <ChargedHiggs/Skimming/interface/weightanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/weightanalyzer.h>
 
 WeightAnalyzer::WeightAnalyzer(const float era, const float xSec, TTreeReader &reader):
     BaseAnalyzer(&reader),

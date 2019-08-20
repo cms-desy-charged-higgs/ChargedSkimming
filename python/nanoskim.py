@@ -1,8 +1,7 @@
-from ChargedHiggs.Workflow.task import Task
+from ChargedAnalysis.Workflow.task import Task
 
 import os
 import sys
-sys.path.append("/usr/lib64/python2.6/site-packages/")
 import htcondor
 
 from ROOT import TFile
@@ -18,12 +17,12 @@ class NanoSkim(Task):
         self["CMSSW_DIR"] = os.environ["CMSSW_BASE"] + "/src/"
         
     def __write_condor(self):
-        self["condor"]["executable"] = self["CMSSW_DIR"] + "ChargedHiggs/Skimming/batch/produceSkim.sh"
+        self["condor"]["executable"] = self["CMSSW_DIR"] + "ChargedAnalysis/Skimming/batch/produceSkim.sh"
         self["condor"]["arguments"] = " ".join([self["input_file"], self["name"] + ".root"] + self["channel"])
         self["condor"]["universe"] = "vanilla"
 
         self["condor"]["should_transfer_files"] ="YES"
-        self["condor"]["transfer_input_files"] = ",".join([self["CMSSW_DIR"] + "ChargedHiggs", self["CMSSW_DIR"] + "x509"])
+        self["condor"]["transfer_input_files"] = ",".join([self["CMSSW_DIR"] + "ChargedAnalysis", self["CMSSW_DIR"] + "x509"])
 
         self["condor"]["on_exit_hold"] = "(ExitBySignal == True) || (ExitCode != 0)"  
         self["condor"]["periodic_release"] = "(NumJobStarts < 100) && ((CurrentTime - EnteredCurrentStatus) > 60)"

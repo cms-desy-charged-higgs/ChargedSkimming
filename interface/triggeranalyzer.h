@@ -1,7 +1,7 @@
 #ifndef TRIGGERANALYZER_H
 #define TRIGGERANALYZER_H
 
-#include <ChargedHiggs/Skimming/interface/baseanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/baseanalyzer.h>
 
 #include <numeric>
 

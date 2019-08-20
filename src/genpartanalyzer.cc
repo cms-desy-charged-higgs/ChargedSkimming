@@ -1,4 +1,4 @@
-#include <ChargedHiggs/Skimming/interface/genpartanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/genpartanalyzer.h>
 
 GenPartAnalyzer::GenPartAnalyzer(genPartToken& genParticleToken):
     BaseAnalyzer(),

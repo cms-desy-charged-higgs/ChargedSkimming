@@ -1,4 +1,4 @@
-#include <ChargedHiggs/Skimming/interface/baseanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/baseanalyzer.h>
 
 BaseAnalyzer::BaseAnalyzer(): isNANO(false){}
 BaseAnalyzer::BaseAnalyzer(TTreeReader* reader): reader(reader), isNANO(true){}

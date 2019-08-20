@@ -1,4 +1,4 @@
-#include <ChargedHiggs/Skimming/interface/baseanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/baseanalyzer.h>
 
 #include <vector>
 #include <string>

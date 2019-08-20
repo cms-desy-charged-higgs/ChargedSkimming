@@ -20,7 +20,7 @@ options.register("outdir", "{}/src".format(os.environ["CMSSW_BASE"]), VarParsing
 options.parseArguments()
 
 ##Get xSec
-xSecFile = yaml.load(file("{}/src/ChargedHiggs/Skimming/data/xsec.yaml".format(os.environ["CMSSW_BASE"]), "r"))
+xSecFile = yaml.load(file("{}/src/ChargedAnalysis/Skimming/data/xsec.yaml".format(os.environ["CMSSW_BASE"]), "r"))
 
 xSec = 1.
 

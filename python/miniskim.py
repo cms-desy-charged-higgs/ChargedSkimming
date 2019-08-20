@@ -1,10 +1,9 @@
-from ChargedHiggs.Workflow.task import Task
+from ChargedAnalysis.Workflow.task import Task
 
 import os
 import sys
 import time
 
-sys.path.append("/usr/lib64/python2.6/site-packages/")
 import htcondor
 import numpy as np
 
@@ -30,7 +29,7 @@ class MiniSkim(Task):
         self.crabConf.General.transferLogs = False
 
         self.crabConf.JobType.pluginName = "Analysis"
-        self.crabConf.JobType.psetName = "ChargedHiggs/Skimming/python/miniskimmer.py"
+        self.crabConf.JobType.psetName = "ChargedAnalysis/Skimming/python/miniskimmer.py"
         self.crabConf.JobType.pyCfgParams = ["outname={}.root".format(self["datasetName"])]
         self.crabConf.JobType.outputFiles = ["{}.root".format(self["datasetName"])]
 
@@ -128,7 +127,7 @@ class MiniSkim(Task):
             config = {
                         "name": "MiniSkim_{}".format(name),
                         "display-name": "MINI Skim: {}".format(name.split("_")[0]),
-                        "dir": "{}/Skimdir/masterSkim/{}".format(os.environ["HOME2"], name),
+                        "dir": "{}/Skimdir/masterSkim/{}".format(os.environ["CHDIR"], name),
                         "crab-dir": "{}/Skimdir/masterSkim/{}/crab_MiniSkim_{}".format(os.environ["HOME2"], name, name),
                         "dataset": dataset,                        
                         "datasetName": name, 

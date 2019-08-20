@@ -1,4 +1,4 @@
-#include <ChargedHiggs/Skimming/interface/jetanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/jetanalyzer.h>
 
 JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader &reader):
     BaseAnalyzer(&reader),    

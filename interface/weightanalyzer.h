@@ -1,7 +1,7 @@
 #ifndef WEIGHTANALYZER_H
 #define WEIGHTANALYZER_H
 
-#include <ChargedHiggs/Skimming/interface/baseanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/baseanalyzer.h>
 
 class WeightAnalyzer : public BaseAnalyzer {
     private:

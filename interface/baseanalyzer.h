@@ -71,7 +71,7 @@ typedef edm::EDGetTokenT<std::vector<reco::VertexCompositePtrCandidate>> secvtxT
 class BaseAnalyzer {
     protected:
         //File path for SF etc.
-        std::string filePath = std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedHiggs/Skimming/data/";
+        std::string filePath = std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedAnalysis/Skimming/data/";
 
         std::map<int, std::map<std::string, std::pair<int, int>>> runEras = {
               {2017, {

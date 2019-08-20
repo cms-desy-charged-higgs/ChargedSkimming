@@ -1,4 +1,4 @@
-from ChargedHiggs.Workflow.task import Task
+from ChargedAnalysis.Workflow.task import Task
 
 import os
 import sys

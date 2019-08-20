@@ -1,3 +1,6 @@
+#ifndef MINISKIMMER_H
+#define MINISKIMMER_H
+
 #include <memory>
 #include <vector>
 #include <string>
@@ -10,14 +13,14 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 
-#include <ChargedHiggs/Skimming/interface/baseanalyzer.h>
-#include <ChargedHiggs/Skimming/interface/jetanalyzer.h>
-#include <ChargedHiggs/Skimming/interface/electronanalyzer.h>
-#include <ChargedHiggs/Skimming/interface/muonanalyzer.h>
-#include <ChargedHiggs/Skimming/interface/triggeranalyzer.h>
-#include <ChargedHiggs/Skimming/interface/metfilteranalyzer.h>
-#include <ChargedHiggs/Skimming/interface/weightanalyzer.h>
-#include <ChargedHiggs/Skimming/interface/genpartanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/baseanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/jetanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/electronanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/muonanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/triggeranalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/metfilteranalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/weightanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/genpartanalyzer.h>
 
 #include <TFile.h>
 #include <TTree.h>
@@ -73,3 +76,5 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
         virtual void endJob() override;
 };
+
+#endif

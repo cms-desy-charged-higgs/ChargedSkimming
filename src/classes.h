@@ -1,8 +1,8 @@
-#include <ChargedHiggs/Skimming/interface/nanoskimmer.h>
-#include <ChargedHiggs/Skimming/interface/jetanalyzer.h>
-#include <ChargedHiggs/Skimming/interface/electronanalyzer.h>
-#include <ChargedHiggs/Skimming/interface/muonanalyzer.h>
-#include <ChargedHiggs/Skimming/interface/genpartanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/nanoskimmer.h>
+#include <ChargedAnalysis/Skimming/interface/jetanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/electronanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/muonanalyzer.h>
+#include <ChargedAnalysis/Skimming/interface/genpartanalyzer.h>
 
 namespace{
     namespace{
