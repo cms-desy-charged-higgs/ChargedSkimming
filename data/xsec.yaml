@@ -102,32 +102,32 @@ QCD_HT1500to2000_TuneCP5_13TeV-madgraph-pythia8:
 QCD_HT2000toInf_TuneCP5_13TeV-madgraph-pythia8:
     xsec: 20.23
 
-Hc+hTol4b_MHc150_Mh75:
+HPlusAndH_ToWHH_ToL4B_150_75:
     xsec: 0.39704
 
-Hc+hTol4b_MHc200_Mh100:
+HPlusAndH_ToWHH_ToL4B_200_100:
     xsec: 0.03208
 
-Hc+hTol4b_MHc250_Mh100:
+HPlusAndH_ToWHH_ToL4B_250_100:
     xsec: 0.0178
 
-Hc+hTol4b_MHc300_Mh100:
+HPlusAndH_ToWHH_ToL4B_300_100:
     xsec: 0.01062
 
-Hc+hTol4b_MHc350_Mh100:
+HPlusAndH_ToWHH_ToL4B_350_100:
     xsec: 0.006656
 
-Hc+hTol4b_MHc400_Mh100:
+HPlusAndH_ToWHH_ToL4B_400_100:
     xsec: 0.004334
 
-Hc+hTol4b_MHc450_Mh100:
+HPlusAndH_ToWHH_ToL4B_450_100:
     xsec: 0.002918
 
-Hc+hTol4b_MHc500_Mh100:
+HPlusAndH_ToWHH_ToL4B_500_100:
     xsec: 0.002019
 
-Hc+hTol4b_MHc550_Mh100:
+HPlusAndH_ToWHH_ToL4B_550_100:
     xsec: 0.001431
 
-Hc+hTol4b_MHc600_Mh100:
+HPlusAndH_ToWHH_ToL4B_600_100:
     xsec:  0.001063
