@@ -34,7 +34,7 @@ class MiniSkim(Task):
         self.crabConf.JobType.outputFiles = ["{}.root".format(self["datasetName"])]
 
         self.crabConf.Data.inputDataset = self["dataset"] 
-        self.crabConf.Data.inputDBS = "global"
+        self.crabConf.Data.inputDBS = "global" if not "HPlus" in self["datasetName"] else "phys03"
         self.crabConf.Data.splitting = "EventAwareLumiBased"
         self.crabConf.Data.unitsPerJob = 250000
         self.crabConf.Data.outLFNDirBase = "/store/user/dbrunner/skim"
@@ -70,7 +70,7 @@ class MiniSkim(Task):
                     exitCode = [crabStatus["jobs"][key]["Error"][0] for key in crabStatus["jobs"] if "Error" in crabStatus["jobs"][key]]
 
                     runTime = "1500" if not 50664 in exitCode else "1700"
-                    memory = "2500" if not 50660 in exitCode else "3000"
+                    memory = "3000" if not 50660 in exitCode else "3200"
 
                     crabCommand("resubmit", dir=self["crab-dir"], maxmemory=memory, maxjobruntime=runTime)
                     break
@@ -115,7 +115,7 @@ class MiniSkim(Task):
             datasets = [dataset for dataset in f.read().splitlines() if dataset != ""]
 
         for dataset in datasets:
-            if "SIM" in dataset:
+            if "SIM" in dataset or "HPlus" in dataset:
                 if "ext" in dataset:
                     name = dataset.split("/")[1] + "_ext"
                 else: 
@@ -127,8 +127,8 @@ class MiniSkim(Task):
             config = {
                         "name": "MiniSkim_{}".format(name),
                         "display-name": "MINI Skim: {}".format(name.split("_")[0]),
-                        "dir": "{}/Skimdir/masterSkim/{}".format(os.environ["CHDIR"], name),
-                        "crab-dir": "{}/Skimdir/masterSkim/{}/crab_MiniSkim_{}".format(os.environ["HOME2"], name, name),
+                        "dir": "{}/Skim/{}".format(os.environ["CHDIR"], name),
+                        "crab-dir": "{}/Skim/{}/crab_MiniSkim_{}".format(os.environ["CHDIR"], name, name),
                         "dataset": dataset,                        
                         "datasetName": name, 
             }
