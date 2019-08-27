@@ -20,6 +20,8 @@ class MiniSkim(Task):
         self.badStatus = ["failed"]
 
     def __crabConfig(self):
+        isSignal = "HPlus" in self["datasetName"]
+
         ##Crab config
         self.crabConf = config()
 
@@ -32,13 +34,17 @@ class MiniSkim(Task):
         self.crabConf.JobType.psetName = "ChargedAnalysis/Skimming/python/miniskimmer.py"
         self.crabConf.JobType.pyCfgParams = ["outname={}.root".format(self["datasetName"])]
         self.crabConf.JobType.outputFiles = ["{}.root".format(self["datasetName"])]
+        self.crabConf.JobType.maxMemoryMB = 2500
+        self.crabConf.JobType.maxJobRuntimeMin = 1440
 
         self.crabConf.Data.inputDataset = self["dataset"] 
-        self.crabConf.Data.inputDBS = "global" if not "HPlus" in self["datasetName"] else "phys03"
-        self.crabConf.Data.splitting = "EventAwareLumiBased"
-        self.crabConf.Data.unitsPerJob = 250000
+        self.crabConf.Data.inputDBS = "global" if not isSignal else "phys03"
+        self.crabConf.Data.splitting = "EventAwareLumiBased" if not isSignal else "FileBased"
+        self.crabConf.Data.unitsPerJob = 250000 if not isSignal else 1
         self.crabConf.Data.outLFNDirBase = "/store/user/dbrunner/skim"
+
         self.crabConf.Site.storageSite = "T2_DE_DESY"
+        self.crabConf.User.voGroup = "dcms"
 
     def status(self):
         ##If no job submitted yet, no status will be checked
@@ -69,8 +75,8 @@ class MiniSkim(Task):
                     ##Check if you have to increase memory/run time
                     exitCode = [crabStatus["jobs"][key]["Error"][0] for key in crabStatus["jobs"] if "Error" in crabStatus["jobs"][key]]
 
-                    runTime = "1500" if not 50664 in exitCode else "1700"
-                    memory = "3000" if not 50660 in exitCode else "3200"
+                    runTime = "1440" if not 50664 in exitCode else "1700"
+                    memory = "2500" if not 50660 in exitCode else "3000"
 
                     crabCommand("resubmit", dir=self["crab-dir"], maxmemory=memory, maxjobruntime=runTime)
                     break
