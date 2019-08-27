@@ -49,6 +49,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, tag, '')
 
 ##Input file
 process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring(["file:{}".format(f) for f in options.filename]))
+process.source.duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
 
 ##Calculate deep flavour discriminator
 updateJetCollection(
