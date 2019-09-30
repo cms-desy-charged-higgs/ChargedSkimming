@@ -100,30 +100,6 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                         leptonVariables[3][ID%2==0 ? 0 : 1] = lVec.Pz();  //Pz
                     }
                 }
-
-                if(ID == 25){
-                    const reco::Candidate* part=NULL;
-                    int index=0;
-                
-                    if(isNANO) index = LastCopy(i, 25);
-                    else part = LastCopy(genParts->at(i), 25);
-
-                    int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId()); 
-
-                    float pt, eta, phi, m;
-                    pt = isNANO ? genPt->At(index) : part->pt();
-                    phi = isNANO ? genPhi->At(index) : part->phi();
-                    eta = isNANO ? genEta->At(index) : part->eta();
-                    m = isNANO ? genMass->At(index) : part->mass();
-
-                    if(motherID == 37){
-                        genColl.h1.SetPtEtaPhiM(pt, eta, phi, m);
-                    }
-
-                    else{
-                        genColl.h2.SetPtEtaPhiM(pt, eta, phi, m);
-                    }
-                }
             } 
 
             if(ID == 5){
