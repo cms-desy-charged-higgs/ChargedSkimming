@@ -4,31 +4,6 @@
 #include <ChargedAnalysis/Skimming/interface/baseanalyzer.h>
 #include <DataFormats/PatCandidates/interface/Muon.h>
 
-//Muon class to be safed in tree
-struct Muon {
-    TLorentzVector fourVec;
-    Bool_t isMedium;
-    Bool_t isTight;
-    Bool_t isLooseIso;
-    Bool_t isTightIso;
-
-    Float_t looseIsoMediumSF = 1.;
-    Float_t tightIsoMediumSF = 1.;
-    Float_t looseIsoTightSF = 1.;
-    Float_t tightIsoTightSF = 1.;
-    Float_t mediumSF = 1.;
-    Float_t tightSF = 1.;
-    Float_t triggerSF = 1.;
-
-    Bool_t isTriggerMatched;
-
-    TLorentzVector genVec;
-    Bool_t isgenMatched = false;
-    Bool_t isFromHc = false;
-
-    Float_t charge;
-};
-
 class MuonAnalyzer: public BaseAnalyzer{
     private:
         //Check if data

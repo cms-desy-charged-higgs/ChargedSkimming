@@ -33,14 +33,6 @@
 #include <DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h>
 #include <FWCore/Common/interface/TriggerNames.h>
 
-//Struct for saving gen particle lorentz vectors
-struct GenParticles{
-    TLorentzVector W;
-    TLorentzVector h1;
-    TLorentzVector h2;
-    TLorentzVector Hc;
-};
-
 //Struct for cutflow
 struct CutFlow {
     TH1F* hist;

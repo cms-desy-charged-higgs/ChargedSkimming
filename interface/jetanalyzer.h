@@ -12,39 +12,6 @@
 #include <CondFormats/JetMETObjects/interface/JetCorrectorParameters.h>
 #include <CondFormats/JetMETObjects/interface/FactorizedJetCorrector.h>
 
-//Jet class to be safed in tree
-struct Jet {
-    TLorentzVector fourVec;
-    Bool_t isLooseB = false;
-    Bool_t isMediumB = false;
-    Bool_t isTightB = false;
-
-    Float_t loosebTagSF = 1.;
-    Float_t mediumbTagSF = 1.;
-    Float_t tightbTagSF = 1.;
-
-    Int_t fatJetIdx = -1.;
-
-    TLorentzVector genJet;
-    std::vector<TLorentzVector> genPartons;
-    std::vector<Bool_t> isFromh1 = {};
-    std::vector<Bool_t> isFromh2 = {};
-};
-
-struct FatJet : public Jet {
-    Float_t oneSubJettiness = 1.;
-    Float_t twoSubJettiness = 1.;
-    Float_t threeSubJettiness = 1.;
-};
-
-struct Particle {
-    TLorentzVector fourVec;
-    Float_t charge;
-    TVector3 vertex;
-
-    Int_t fatJetIdx = -1.;
-};
-
 class JetAnalyzer: public BaseAnalyzer{
     enum JetType {AK4, AK8};
 

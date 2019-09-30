@@ -3,27 +3,6 @@
 
 #include <ChargedAnalysis/Skimming/interface/baseanalyzer.h>
 
-//Electron class to be safed in tree
-struct Electron {
-    TLorentzVector fourVec;
-    Bool_t isMedium;
-    Bool_t isTight;
-
-    Bool_t isTriggerMatched;
-
-    Float_t recoSF = 1.;
-    Float_t mediumMvaSF = 1.;
-    Float_t tightMvaSF = 1.;
-
-    Float_t charge;
-    Float_t isolation; 
-
-    TLorentzVector genVec;
-    Bool_t isgenMatched = false;
-    Bool_t isFromHc = false;
-};
-
-
 class ElectronAnalyzer: public BaseAnalyzer {
     private:
         //Check if data
