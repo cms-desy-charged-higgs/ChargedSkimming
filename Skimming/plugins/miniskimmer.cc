@@ -1,4 +1,4 @@
-#include <ChargedAnalysis/Skimming/interface/miniskimmer.h>
+#include <ChargedSkimming/Skimming/interface/miniskimmer.h>
 
 MiniSkimmer::MiniSkimmer(const edm::ParameterSet& iConfig):
       //Tokens

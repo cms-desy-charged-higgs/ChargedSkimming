@@ -11,7 +11,7 @@
 <use name="SimDataFormats/PileupSummaryInfo"/>
 <use name="SimDataFormats/GeneratorProducts"/>
 
-<use name="ChargedAnalysis/Skimming"/>
+<use name="ChargedSkimming/Skimming"/>
 
 <flags CXXFLAGS="-Wall -std=c++17"/>
 <flags EDM_PLUGIN="1"/>
