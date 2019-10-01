@@ -1,4 +1,4 @@
-#include <ChargedAnalysis/Skimming/interface/triggeranalyzer.h>
+#include <ChargedSkimming/Skimming/interface/triggeranalyzer.h>
 
 TriggerAnalyzer::TriggerAnalyzer(const std::vector<std::string> &muPaths, const std::vector<std::string> &elePaths, TTreeReader& reader):
     BaseAnalyzer(&reader),

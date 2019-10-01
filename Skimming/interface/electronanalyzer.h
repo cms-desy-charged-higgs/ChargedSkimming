@@ -1,7 +1,7 @@
 #ifndef ELECTRONANALYZER_H
 #define ELECTRONANALYZER_H
 
-#include <ChargedAnalysis/Skimming/interface/baseanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
 
 class ElectronAnalyzer: public BaseAnalyzer {
     private:

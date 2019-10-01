@@ -1,4 +1,4 @@
-#include <ChargedAnalysis/Skimming/interface/nanoskimmer.h>
+#include <ChargedSkimming/Skimming/interface/nanoskimmer.h>
 
 namespace{
     namespace{

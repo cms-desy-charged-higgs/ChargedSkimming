@@ -1,12 +1,12 @@
-#include <ChargedAnalysis/Skimming/interface/nanoskimmer.h>
+#include <ChargedSkimming/Skimming/interface/nanoskimmer.h>
 
-#include <ChargedAnalysis/Skimming/interface/triggeranalyzer.h>
-#include <ChargedAnalysis/Skimming/interface/metfilteranalyzer.h>
-#include <ChargedAnalysis/Skimming/interface/electronanalyzer.h>
-#include <ChargedAnalysis/Skimming/interface/muonanalyzer.h>
-#include <ChargedAnalysis/Skimming/interface/jetanalyzer.h>
-#include <ChargedAnalysis/Skimming/interface/genpartanalyzer.h>
-#include <ChargedAnalysis/Skimming/interface/weightanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/triggeranalyzer.h>
+#include <ChargedSkimming/Skimming/interface/metfilteranalyzer.h>
+#include <ChargedSkimming/Skimming/interface/electronanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/muonanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/jetanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/genpartanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/weightanalyzer.h>
 
 NanoSkimmer::NanoSkimmer(){}
 

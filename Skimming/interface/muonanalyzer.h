@@ -1,7 +1,7 @@
 #ifndef MUONANALYZER_H
 #define MUONANALYZER_H
 
-#include <ChargedAnalysis/Skimming/interface/baseanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
 #include <DataFormats/PatCandidates/interface/Muon.h>
 
 class MuonAnalyzer: public BaseAnalyzer{

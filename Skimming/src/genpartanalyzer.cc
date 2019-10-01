@@ -1,4 +1,4 @@
-#include <ChargedAnalysis/Skimming/interface/genpartanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/genpartanalyzer.h>
 
 GenPartAnalyzer::GenPartAnalyzer(genPartToken& genParticleToken):
     BaseAnalyzer(),

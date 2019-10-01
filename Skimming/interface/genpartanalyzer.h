@@ -1,7 +1,7 @@
 #ifndef GENPARTANALYZER_H
 #define GENPARTANALYZER_H
 
-#include <ChargedAnalysis/Skimming/interface/baseanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
 
 class GenPartAnalyzer: public BaseAnalyzer{
     private:
