@@ -72,7 +72,7 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                 if(isNANO) index = LastCopy(i, ID);
                 else part = LastCopy(genParts->at(i), ID);
 
-                int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId()); 
+                int motherID = isNANO ? abs(genID->At(index)) : abs(part->mother()->pdgId()); 
 
                 float pt, eta, phi, m;
                 pt = isNANO ? genPt->At(index) : part->pt();
@@ -90,7 +90,7 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                     if(isNANO) index = LastCopy(i, 24);
                     else part = LastCopy(genParts->at(i), 24);
 
-                    int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId()); 
+                    int motherID = isNANO ? abs(genID->At(index)) : abs(part->mother()->pdgId()); 
 
                     if(motherID == 37){
                         //Lepton four momentum components
@@ -109,7 +109,7 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                 if(isNANO) index = LastCopy(i, ID);
                 else part = LastCopy(genParts->at(i), ID);
 
-                int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId()); 
+                int motherID = isNANO ? abs(genID->At(index)) : abs(part->mother()->pdgId()); 
 
                 float pt, eta, phi, m;
                 pt = isNANO ? genPt->At(index) : part->pt();
@@ -127,7 +127,7 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                     if(isNANO) index = LastCopy(i, 25);
                     else part = LastCopy(genParts->at(i), 25);
 
-                    int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId()); 
+                    int motherID = isNANO ? abs(genID->At(index)) : abs(part->mother()->pdgId()); 
 
                     if(motherID == 37 and h1Variables[0].size() < 2){
                         //Quark four momentum components
