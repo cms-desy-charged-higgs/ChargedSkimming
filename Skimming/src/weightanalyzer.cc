@@ -31,6 +31,7 @@ void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
 
         puMC = new TH1F("puMC", "puMC", 100, 0, 100);
         nGenHist = new TH1F("nGen", "nGen", 100, 0, 2);
+        nGenWeightedHist = new TH1F("nGenWeighted", "nGenWeighted", 100, -1e7, 1e7);
     }
 
     evtNumber = std::make_unique<TTreeReaderValue<ULong64_t>>(*reader, "event");
@@ -57,10 +58,11 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* e
     //Set values if not data
     if(!this->isData){
         lumi = lumis[era];
-        nTrueInt = isNANO ? *nPU->Get() : pileUp->at(1).getTrueNumInteractions(); 
+        nTrueInt = isNANO ? *nPU->Get() : pileUp->at(0).getTrueNumInteractions(); 
         genWeight = isNANO ? *genWeightValue->Get() : genInfo->weight();
 
         nGenHist->Fill(1);
+        nGenWeightedHist->Fill(genWeight);
         puMC->Fill(nTrueInt);
     }
 
@@ -76,9 +78,11 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* e
 void WeightAnalyzer::EndJob(TFile* file){
     if(!this->isData){
         nGenHist->Write();
+        nGenWeightedHist->Write();
         puMC->Write();
     }
 
     delete puMC;
     delete nGenHist;
+    delete nGenWeightedHist;
 }

@@ -28,6 +28,7 @@ class WeightAnalyzer : public BaseAnalyzer {
         //Histograms
         TH1F* puMC; 
         TH1F* nGenHist;
+        TH1F* nGenWeightedHist;
 
         //TTreeReader Values
         std::unique_ptr<TTreeReaderValue<float>> nPU;
