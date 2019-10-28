@@ -38,14 +38,12 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     triggerSFhist = (TH2F*)triggerSFfile->Get("IsoMu27_PtEtaBins/pt_abseta_ratio");
 
     TFile* isoSFfile = TFile::Open(isoSFfiles[era].c_str());
-    looseIsoMediumSFhist = (TH2F*)isoSFfile->Get("NUM_LooseRelIso_DEN_MediumID_pt_abseta");
-    tightIsoMediumSFhist = (TH2F*)isoSFfile->Get("NUM_TightRelIso_DEN_MediumID_pt_abseta");
-    looseIsoTightSFhist = (TH2F*)isoSFfile->Get("NUM_LooseRelIso_DEN_TightIDandIPCut_pt_abseta");
-    tightIsoTightSFhist = (TH2F*)isoSFfile->Get("NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta");
+    IsoHist.push_back((TH2F*)isoSFfile->Get("NUM_LooseRelIso_DEN_LooseID_pt_abseta"));
+    IsoHist.push_back((TH2F*)isoSFfile->Get("NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta"));
 
     TFile* IDSFfile = TFile::Open(IDSFfiles[era].c_str());
-    mediumIDHist = (TH2F*)IDSFfile->Get("NUM_MediumID_DEN_genTracks_pt_abseta");
-    tightIDHist = (TH2F*)IDSFfile->Get("NUM_TightID_DEN_genTracks_pt_abseta");
+    IDHist.push_back((TH2F*)IDSFfile->Get("NUM_LooseID_DEN_genTracks_pt_abseta"));
+    IDHist.push_back((TH2F*)IDSFfile->Get("NUM_TightID_DEN_genTracks_pt_abseta"));
 
     if(isNANO){
         //Initiliaze TTreeReaderValues
@@ -54,7 +52,7 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
         muonPhi = std::make_unique<TTreeReaderArray<float>>(*reader, "Muon_phi");
         muonCharge = std::make_unique<TTreeReaderArray<int>>(*reader, "Muon_charge");
         muonIso = std::make_unique<TTreeReaderArray<float>>(*reader, "Muon_miniPFRelIso_all");
-        muonMediumID = std::make_unique<TTreeReaderArray<bool>>(*reader, "Muon_mediumId");
+        muonLooseID = std::make_unique<TTreeReaderArray<bool>>(*reader, "Muon_looseId");
         muonTightID = std::make_unique<TTreeReaderArray<bool>>(*reader, "Muon_tightId");
 
         if(!this->isData){
@@ -67,8 +65,8 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     }
 
     //Set output names
-    floatNames = {"E", "Px", "Py", "Pz", "Charge", "looseIsoMediumSF", "tightIsoMediumSF", "looseIsoTightSF", "tightIsoTightSF", "mediumSF", "tightSF", "triggerSF"};
-    boolNames = {"isMediumIso", "isTightIso", "isMedium", "isTight", "isTriggerMatched", "isFromHc"};
+    floatNames = {"E", "Px", "Py", "Pz", "Charge", "looseIsoLooseSF", "tightIsoTightSF", "looseSF", "tightSF", "triggerSF"};
+    boolNames = {"isLooseIso", "isTightIso", "isLoose", "isTight", "isTriggerMatched", "isFromHc"};
 
     floatVariables = std::vector<std::vector<float>>(floatNames.size(), std::vector<float>());
     boolVariables = std::vector<std::vector<bool>>(boolNames.size(), std::vector<bool>());
@@ -126,21 +124,23 @@ void MuonAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* eve
             floatVariables[4].push_back(isNANO ? muonCharge->At(i) : muons->at(i).charge());
 
             //Isolation and ID
-            boolVariables[0].push_back(isNANO ? muonIso->At(i) < 0.25 : muons->at(i).PFIsoLoose);
-            boolVariables[1].push_back(isNANO ? muonIso->At(i) < 0.15 : muons->at(i).PFIsoTight);
-            boolVariables[2].push_back(isNANO ? muonMediumID->At(i) : muons->at(i).CutBasedIdMedium);
-            boolVariables[3].push_back(isNANO ? muonTightID->At(i) : muons->at(i).CutBasedIdTight);
+            boolVariables[0].push_back(isNANO ? muonIso->At(i) < 0.25 : muons->at(i).passed(reco::Muon::PFIsoLoose));
+            boolVariables[1].push_back(isNANO ? muonIso->At(i) < 0.15 : muons->at(i).passed(reco::Muon::PFIsoTight));
+
+            boolVariables[2].push_back(isNANO ? muonLooseID->At(i) : muons->at(i).passed(reco::Muon::CutBasedIdLoose));
+            boolVariables[3].push_back(isNANO ? muonTightID->At(i) : muons->at(i).passed(reco::Muon::CutBasedIdTight));
             boolVariables[4].push_back(isNANO ? triggerMatching(lVec) : triggerMatching(lVec, *trigObjects));
             
             if(!isData){
                 //Scale factors
-                floatVariables[5].push_back(triggerSFhist->GetBinContent(triggerSFhist->FindBin(pt, abs(eta))) != 0 ? triggerSFhist->GetBinContent(triggerSFhist->FindBin(pt, abs(eta))) : 1.);
-                floatVariables[6].push_back(mediumIDHist->GetBinContent(mediumIDHist->FindBin(pt, abs(eta))) != 0 ? mediumIDHist->GetBinContent(mediumIDHist->FindBin(pt, abs(eta))) : 1.);
-                floatVariables[7].push_back(tightIDHist->GetBinContent(tightIDHist->FindBin(pt, abs(eta))) != 0 ? tightIDHist->GetBinContent(tightIDHist->FindBin(pt, abs(eta))) : 1.);
-                floatVariables[8].push_back(looseIsoMediumSFhist->GetBinContent(looseIsoMediumSFhist->FindBin(pt, abs(eta))) != 0 ? looseIsoMediumSFhist->GetBinContent(looseIsoMediumSFhist->FindBin(pt, abs(eta))) : 1.);
-                floatVariables[9].push_back(tightIsoMediumSFhist->GetBinContent(tightIsoMediumSFhist->FindBin(pt, abs(eta))) != 0 ? tightIsoMediumSFhist->GetBinContent(tightIsoMediumSFhist->FindBin(pt, abs(eta))) : 1.);
-                floatVariables[10].push_back(looseIsoTightSFhist->GetBinContent(looseIsoTightSFhist->FindBin(pt, abs(eta))) != 0 ? looseIsoTightSFhist->GetBinContent(looseIsoTightSFhist->FindBin(pt, abs(eta))) : 1.);
-                floatVariables[11].push_back(tightIsoTightSFhist->GetBinContent(tightIsoTightSFhist->FindBin(pt, abs(eta))) != 0 ? tightIsoTightSFhist->GetBinContent(tightIsoTightSFhist->FindBin(pt, abs(eta))) : 1.);
+                floatVariables[5].push_back(IsoHist[0]->GetBinContent(IsoHist[0]->FindBin(pt, abs(eta))));
+                floatVariables[6].push_back(IsoHist[1]->GetBinContent(IsoHist[1]->FindBin(pt, abs(eta))));
+
+                floatVariables[7].push_back(IDHist[0]->GetBinContent(IDHist[0]->FindBin(pt, abs(eta))));
+                floatVariables[8].push_back(IDHist[1]->GetBinContent(IDHist[1]->FindBin(pt, abs(eta))));
+
+
+                floatVariables[9].push_back(triggerSFhist->GetBinContent(triggerSFhist->FindBin(pt, abs(eta))));
 
                 //Save gen particle information
                 if(isNANO) boolVariables[5].push_back(SetGenParticles(lVec, i, 13));

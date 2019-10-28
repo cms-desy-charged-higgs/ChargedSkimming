@@ -17,13 +17,8 @@ class MuonAnalyzer: public BaseAnalyzer{
         //Hist with scale factors
         TH2F* triggerSFhist;
 
-        TH2F* looseIsoMediumSFhist;
-        TH2F* tightIsoMediumSFhist;
-        TH2F* looseIsoTightSFhist;
-        TH2F* tightIsoTightSFhist;
-
-        TH2F* mediumIDHist;
-        TH2F* tightIDHist;
+        std::vector<TH2F*> IsoHist;
+        std::vector<TH2F*> IDHist;
 
         //Kinematic cut criteria
         int era;
@@ -48,7 +43,7 @@ class MuonAnalyzer: public BaseAnalyzer{
         std::unique_ptr<TTreeReaderArray<float>> muonPhi;
         std::unique_ptr<TTreeReaderArray<float>> muonIso;
         std::unique_ptr<TTreeReaderArray<int>> muonCharge;
-        std::unique_ptr<TTreeReaderArray<bool>> muonMediumID;
+        std::unique_ptr<TTreeReaderArray<bool>> muonLooseID;
         std::unique_ptr<TTreeReaderArray<bool>> muonTightID;
         std::unique_ptr<TTreeReaderArray<int>> muonGenIdx;
 
