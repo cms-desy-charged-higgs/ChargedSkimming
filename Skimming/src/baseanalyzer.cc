@@ -67,7 +67,7 @@ bool BaseAnalyzer::triggerMatching(const TLorentzVector &particle, const std::ve
         eta = isNANO ? trigObjEta->At(i) : trigObj[i].eta();
         phi = isNANO ? trigObjPhi->At(i) : trigObj[i].phi();
 
-        if(5e-2 > std::sqrt(std::pow(eta - particle.Eta(), 2) + std::pow(phi - particle.Phi(), 2)) and abs(particle.Pt()-pt)/particle.Pt() < 0.02){
+        if(0.5 > std::sqrt(std::pow(eta - particle.Eta(), 2) + std::pow(phi - particle.Phi(), 2)) and abs(particle.Pt()-pt)/particle.Pt() < 0.5){
             return true;
         }
     }
@@ -81,7 +81,7 @@ bool BaseAnalyzer::SetGenParticles(TLorentzVector &validLepton, const int &i, co
     if(!isNANO){
         for(const reco::GenParticle &part: genParticle){
             if(part.isPromptFinalState()){
-                if(0.3 > std::sqrt(std::pow(part.eta() - validLepton.Eta(), 2) + std::pow(part.phi() - validLepton.Phi(), 2)) and abs(validLepton.Pt()-part.pt())/validLepton.Pt() < 0.05){
+                if(0.5 > std::sqrt(std::pow(part.eta() - validLepton.Eta(), 2) + std::pow(part.phi() - validLepton.Phi(), 2)) and abs(validLepton.Pt()-part.pt())/validLepton.Pt() < 0.5){
                     matchedLep = &part;
                 }
             }
