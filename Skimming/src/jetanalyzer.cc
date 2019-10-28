@@ -486,7 +486,7 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
 
         else lVec *= corrFac;
 
-        if(lVec.M() > 50. and abs(lVec.Eta()) < etaCut){
+        if(lVec.Pt() > 170. and lVec.M() > 40. and abs(lVec.Eta()) < etaCut){
             //Fatjet four momentum components
             FatJetfloatVariables[0].push_back(lVec.E());   //Energy
             FatJetfloatVariables[1].push_back(lVec.Px());  //Px
@@ -529,47 +529,46 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
 
             //Fill in particle flow candidates
             if(!isNANO){
-                for(const pat::Jet& fatJet: *fatJets){
-                    for(unsigned int j = 0; j < fatJet.numberOfDaughters(); j++){
-                        reco::Candidate const * cand = fatJet.daughter(j);
-                        if(cand->numberOfDaughters() == 0){
+                for(unsigned int j = 0; j < fatJets->at(i).numberOfDaughters(); j++){
+                    reco::Candidate const * cand = fatJets->at(i).daughter(j);
+                    
+                    if(cand->numberOfDaughters() == 0){
+                        //Jet particle four momentum components
+                        JetParticlefloatVariables[0].push_back(cand->energy());   //Energy
+                        JetParticlefloatVariables[1].push_back(cand->px());  //Px
+                        JetParticlefloatVariables[2].push_back(cand->py());  //Py
+                        JetParticlefloatVariables[3].push_back(cand->pz());  //Pz
+
+                        //Jet particle vertex
+                        JetParticlefloatVariables[4].push_back(cand->vx());      
+                        JetParticlefloatVariables[5].push_back(cand->vy()); 
+                        JetParticlefloatVariables[6].push_back(cand->vz());
+                        JetParticlefloatVariables[7].push_back(cand->charge());
+            
+                        //Fat Jet Index
+                        JetParticlefloatVariables[8].push_back(FatJetfloatVariables[0].size()-1);
+                    }
+                            
+                    else{
+                        for(unsigned int k = 0; k < cand->numberOfDaughters(); k++){
+                            reco::Candidate const * cand2 = cand->daughter(k);
+
                             //Jet particle four momentum components
-                            JetParticlefloatVariables[0].push_back(cand->energy());   //Energy
-                            JetParticlefloatVariables[1].push_back(cand->px());  //Px
-                            JetParticlefloatVariables[2].push_back(cand->py());  //Py
-                            JetParticlefloatVariables[3].push_back(cand->pz());  //Pz
+                            JetParticlefloatVariables[0].push_back(cand2->energy());   //Energy
+                            JetParticlefloatVariables[1].push_back(cand2->px());  //Px
+                            JetParticlefloatVariables[2].push_back(cand2->py());  //Py
+                            JetParticlefloatVariables[3].push_back(cand2->pz());  //Pz
 
                             //Jet particle vertex
-                            JetParticlefloatVariables[4].push_back(cand->vx());
-                            JetParticlefloatVariables[5].push_back(cand->vy()); 
-                            JetParticlefloatVariables[6].push_back(cand->vz());
-                            JetParticlefloatVariables[7].push_back(cand->charge());
-            
+                            JetParticlefloatVariables[4].push_back(cand2->vx());
+                            JetParticlefloatVariables[5].push_back(cand2->vy()); 
+                            JetParticlefloatVariables[6].push_back(cand2->vz());
+                            JetParticlefloatVariables[7].push_back(cand2->charge());
+                
                             //Fat Jet Index
                             JetParticlefloatVariables[8].push_back(FatJetfloatVariables[0].size()-1);
                         }
-                            
-                        else{
-                            for(unsigned int k = 0; k < cand->numberOfDaughters(); k++) {
-                                reco::Candidate const * cand2 = cand->daughter(k);
-
-                                 //Jet particle four momentum components
-                                JetParticlefloatVariables[0].push_back(cand2->energy());   //Energy
-                                JetParticlefloatVariables[1].push_back(cand2->px());  //Px
-                                JetParticlefloatVariables[2].push_back(cand2->py());  //Py
-                                JetParticlefloatVariables[3].push_back(cand2->pz());  //Pz
-
-                                //Jet particle vertex
-                                JetParticlefloatVariables[4].push_back(cand2->vx());
-                                JetParticlefloatVariables[5].push_back(cand2->vy()); 
-                                JetParticlefloatVariables[6].push_back(cand2->vz());
-                                JetParticlefloatVariables[7].push_back(cand2->charge());
-                
-                                //Fat Jet Index
-                                JetParticlefloatVariables[8].push_back(FatJetfloatVariables[0].size()-1);
-                            }
-                        }
-                    } 
+                    }
                 }
 
                 for(const reco::VertexCompositePtrCandidate &vtx: *secVtx){
@@ -577,7 +576,7 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                     vtxP4.SetPtEtaPhiM(vtx.p4().Pt(), vtx.p4().Eta(), vtx.p4().Phi(), vtx.p4().M());
 
                     if(lVec.DeltaR(vtxP4) < 0.8){
-                         //SV four momentum components
+                        //SV four momentum components
                         VertexfloatVariables[0].push_back(vtx.energy());   //Energy
                         VertexfloatVariables[1].push_back(vtx.px());  //Px
                         VertexfloatVariables[2].push_back(vtx.py());  //Py
