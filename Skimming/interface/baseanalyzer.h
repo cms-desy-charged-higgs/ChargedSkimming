@@ -101,9 +101,9 @@ class BaseAnalyzer {
         void SetCollection(bool &isData);
 
         //Check for gen particle if it is last copy
-        const reco::Candidate* LastCopy(const reco::GenParticle& part, const int& pdgID);
-        const reco::Candidate* LastCopy(const reco::Candidate* part, const int& pdgID); //MINIAOD
-        int LastCopy(const int& index, const int& pdgID); //NANOAOD
+        const reco::Candidate* FirstCopy(const reco::GenParticle& part, const int& pdgID);
+        const reco::Candidate* FirstCopy(const reco::Candidate* part, const int& pdgID); //MINIAOD
+        int FirstCopy(const int& index, const int& pdgID); //NANOAOD
 
         //Match Reco to gen particles
         bool SetGenParticles(TLorentzVector &lepton, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle={});
