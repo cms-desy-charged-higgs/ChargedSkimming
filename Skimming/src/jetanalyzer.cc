@@ -132,11 +132,11 @@ int JetAnalyzer::SetGenParticles(TLorentzVector& validJet, const int &i, const i
             const reco::Candidate* parton=NULL;
             int index=0;
 
-            int ID = isNANO ? abs(genID->At(genMotherIdx->At(i))) : abs(genParticle.at(i).pdgId());
+            int ID = isNANO ? abs(genID->At(i)) : abs(genParticle.at(i).pdgId());
     
             if(ID == pdgID){
-                if(isNANO) index = LastCopy(i, pdgID);
-                else parton = LastCopy(genParticle.at(i), pdgID);
+                if(isNANO) index = FirstCopy(i, pdgID);
+                else parton = FirstCopy(genParticle.at(i), pdgID);
             }
     
             else continue;
@@ -153,12 +153,11 @@ int JetAnalyzer::SetGenParticles(TLorentzVector& validJet, const int &i, const i
 
                 if(motherID == 25){
                     const reco::Candidate* hBoson=NULL;
-                    int index=0;
 
                     nParton++;
                                 
-                    if(isNANO) index = LastCopy(index, 25);
-                    else hBoson = LastCopy(parton->mother(), 25);
+                    if(isNANO) index = FirstCopy(genMotherIdx->At(index), 25);
+                    else hBoson = FirstCopy(parton->mother(), 25);
 
                     int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(hBoson->mother()->pdgId());  
 
