@@ -51,8 +51,8 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
         elePhi = std::make_unique<TTreeReaderArray<float>>(*reader, "Electron_phi");
         eleCharge = std::make_unique<TTreeReaderArray<int>>(*reader, "Electron_charge");
         eleIso = std::make_unique<TTreeReaderArray<float>>(*reader, "Electron_pfRelIso03_all");
-        eleMediumMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17Iso_WP80");
-        eleTightMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17Iso_WP80");
+        eleMediumMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17V2Iso_WP80");
+        eleTightMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17V2Iso_WP90");
 
         //Set TTreeReader for genpart and trigger obj from baseanalyzer    
         SetCollection(this->isData);
