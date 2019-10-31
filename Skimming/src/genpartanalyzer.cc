@@ -65,14 +65,16 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
         for(int i = 0; i < size; i++){
             int ID = isNANO ? abs(genID->At(i)) : abs(genParts->at(i).pdgId());  
 
+           // std::cout << ID << std::endl;
+
             if(ID == 11 or ID == 12 or ID == 13 or ID == 14){
                 const reco::Candidate* part=NULL;
                 int index=0;
 
-                if(isNANO) index = LastCopy(i, ID);
-                else part = LastCopy(genParts->at(i), ID);
+                if(isNANO) index = FirstCopy(i, ID);
+                else part = FirstCopy(genParts->at(i), ID);
 
-                int motherID = isNANO ? abs(genID->At(index)) : abs(part->mother()->pdgId()); 
+                int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId()); 
 
                 float pt, eta, phi, m;
                 pt = isNANO ? genPt->At(index) : part->pt();
@@ -84,13 +86,10 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                 lVec.SetPtEtaPhiM(pt, eta, phi, m);
 
                 if(motherID == 24){
-                    const reco::Candidate* part=NULL;
-                    int index=0;
-                
-                    if(isNANO) index = LastCopy(i, 24);
-                    else part = LastCopy(genParts->at(i), 24);
+                    if(isNANO) index = FirstCopy(genMotherIdx->At(index), 24);
+                    else part = FirstCopy(part->mother(), 24);
 
-                    int motherID = isNANO ? abs(genID->At(index)) : abs(part->mother()->pdgId()); 
+                    int motherID = isNANO ? abs(genMotherIdx->At(index)) : abs(part->mother()->pdgId()); 
 
                     if(motherID == 37){
                         //Lepton four momentum components
@@ -106,10 +105,10 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                 const reco::Candidate* part=NULL;
                 int index=0;
 
-                if(isNANO) index = LastCopy(i, ID);
-                else part = LastCopy(genParts->at(i), ID);
+                if(isNANO) index = FirstCopy(i, ID);
+                else part = FirstCopy(genParts->at(i), ID);
 
-                int motherID = isNANO ? abs(genID->At(index)) : abs(part->mother()->pdgId()); 
+                int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId());
 
                 float pt, eta, phi, m;
                 pt = isNANO ? genPt->At(index) : part->pt();
@@ -120,14 +119,11 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                 TLorentzVector lVec;
                 lVec.SetPtEtaPhiM(pt, eta, phi, m);
 
-                if(motherID == 25){
-                    const reco::Candidate* part=NULL;
-                    int index=0;
-                
-                    if(isNANO) index = LastCopy(i, 25);
-                    else part = LastCopy(genParts->at(i), 25);
+                if(motherID == 25){             
+                    if(isNANO) index = FirstCopy(genMotherIdx->At(index), 25);
+                    else part = FirstCopy(part->mother(), 25);
 
-                    int motherID = isNANO ? abs(genID->At(index)) : abs(part->mother()->pdgId()); 
+                    int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId()); 
 
                     if(motherID == 37 and h1Variables[0].size() < 2){
                         //Quark four momentum components
