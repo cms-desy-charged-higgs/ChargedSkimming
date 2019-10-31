@@ -4,7 +4,7 @@ import os
 import subprocess
 import time
 import argparse
-from multiprocessing import Process
+from multiprocessing import Process, Pool, cpu_count
 
 from CRABAPI.RawCommand import crabCommand
 from CRABClient.UserUtilities import config
@@ -12,7 +12,9 @@ from CRABClient.UserUtilities import config
 def parser():
     parser = argparse.ArgumentParser(description = "Skim MINIAOD with crab", formatter_class=argparse.RawTextHelpFormatter)
     
+    parser.add_argument("--submit", action = "store_true", help = "Submit all the jobs")
     parser.add_argument("--monitor", action = "store_true", help = "Check if jobs only should be monitored")
+    parser.add_argument("--merge", action = "store_true", help = "Merge output together")
 
     return parser.parse_args()
 
@@ -32,7 +34,7 @@ def crabConfig(dataSet, setName, outDir):
     crabConf.JobType.pyCfgParams = ["outname={}.root".format(setName)]
     crabConf.JobType.outputFiles = ["{}.root".format(setName)]
     crabConf.JobType.maxMemoryMB = 3000
-    crabConf.JobType.maxJobRuntimeMin = 1440
+    crabConf.JobType.maxJobRuntimeMin = 1750
 
     crabConf.Data.inputDataset = dataSet
     crabConf.Data.inputDBS = "global" if not isSignal else "phys03"
@@ -44,6 +46,9 @@ def crabConfig(dataSet, setName, outDir):
     crabConf.User.voGroup = "dcms"
 
     return crabConf
+
+def submit(crabJob):
+    crabCommand("submit", config=crabJob)
 
 def monitor(crabJob):
     ##Crab dir
@@ -68,34 +73,45 @@ def monitor(crabJob):
                 ##Check if you have to increase memory/run time
                 exitCode = [crabStatus["jobs"][key]["Error"][0] for key in crabStatus["jobs"] if "Error" in crabStatus["jobs"][key]]
 
-                runTime = "1440" if not 50664 in exitCode else "1700"
+                runTime = "1750" if not 50664 in exitCode else "1900"
                 memory = "3000" if not 50660 in exitCode else "3200"
 
                 crabCommand("resubmit", dir=crabDir, maxmemory=memory, maxjobruntime=runTime)
-                break
+                break 
 
-        if "finished" in crabStatus["jobsPerStatus"]:
-            if crabStatus["jobsPerStatus"]["finished"] == len(crabStatus["jobs"].keys()):
-                jobsNrs = crabStatus["jobs"].keys()
+    if "finished" in crabStatus["jobsPerStatus"]:
+        jobNrs = [nr for nr in crabStatus["jobs"].keys() if crabStatus["jobs"][nr]["State"] == "finished"]
 
-                ##Skip if output already retrieved
-                if(len(os.listdir("{}/results/".format(crabDir))) == len(jobsNrs)):
-                    return True
-
-                ##Retrieve output
-                for jobList in [jobsNrs[i:i + 500] for i in range(0, len(jobsNrs), 500)]:
-                    while(True):
-                        try:
-                            crabCommand("getoutput", dir=crabDir, jobids=",".join(jobList))
-                            break
-                        except:
-                            pass       
-     
-                ##If all jobs finished, retrieve output
+        ##Skip if output already retrieved
+        if(len(os.listdir("{}/results/".format(crabDir))) == len(jobNrs)):
+            if len(os.listdir("{}/results/".format(crabDir))) == len(crabStatus["jobs"].keys()):
                 return True
 
+            return False
+
+        ##Retrieve output
+        for jobList in [jobNrs[i:i + 500] for i in range(0, len(jobNrs), 500)]:
+            while(True):
+                try:
+                    crabCommand("getoutput", dir=crabDir, jobids=",".join(jobList))
+                    break
+                except:
+                    pass
+
     return False
-        
+
+def merge(crabJob):
+    resultDir = "{}/crab_{}/results".format(crabJob.General.workArea, crabJob.General.requestName)
+    files = ["{}/{}".format(resultDir, f) for f in os.listdir(resultDir)]
+    
+    mergeOutput =  "{}/merged/{}.root".format(crabJob.General.workArea, "_".join(crabJob.General.requestName.split("_")[2:]))
+
+    if(len(files) == 0):
+        return None
+
+    subprocess.call(["mkdir", "-p", "{}/merged/".format(crabJob.General.workArea)])
+    subprocess.call(["hadd", "-n", "50", "-f", mergeOutput] + files)       
+
 def main():
     ##Parser arguments
     args = parser()
@@ -130,15 +146,20 @@ def main():
                 crabJobs.append(crabConfig(dataset, "MiniSkim_{}".format(name), "{}/Skim/{}".format(os.environ["CHDIR"], name)))
 
     ##Submit all crab jobs
-    if not args.monitor:
-        processes = [Process(target=crabCommand, args=("submit", config)) for config in crabJobs]
+    if args.submit:
+        processes = [Process(target=submit, args=(config,)) for config in crabJobs]
 
         for process in processes:
             process.start()
             process.join()
 
+    ##Merge output files
+    elif args.merge:
+        for crabJob in crabJobs:
+            merge(crabJob)
+
     ##Just monitor crab jobs
-    else:
+    elif args.monitor:
         while(True):
             for crabJob in crabJobs:
                 isFinished = monitor(crabJob)
