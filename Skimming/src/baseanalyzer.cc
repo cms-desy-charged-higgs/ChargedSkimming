@@ -26,34 +26,40 @@ void BaseAnalyzer::SetCollection(bool &isData){
 }
 
 
-const reco::Candidate* BaseAnalyzer::LastCopy(const reco::GenParticle& part, const int& pdgID){
-    const reco::Candidate* cand = &part;
+const reco::Candidate* BaseAnalyzer::FirstCopy(const reco::GenParticle& part, const int& pdgID){
+    const reco::Candidate* daughter = &part;
+    const reco::Candidate* mother = daughter->mother();
 
-    while(abs(cand->mother()->pdgId()) == pdgID){
-        cand = cand->mother();
+    while(abs(mother->pdgId()) == pdgID){
+        daughter = mother;
+        mother = daughter->mother();
     }
 
-    return cand;
+    return daughter;
 }
 
-const reco::Candidate* BaseAnalyzer::LastCopy(const reco::Candidate* part, const int& pdgID){
-    const reco::Candidate* cand = part;
+const reco::Candidate* BaseAnalyzer::FirstCopy(const reco::Candidate* part, const int& pdgID){
+    const reco::Candidate* daughter = part;
+    const reco::Candidate* mother = daughter->mother();
 
-    while(abs(cand->mother()->pdgId()) == pdgID){
-        cand = cand->mother();
+    while(abs(mother->pdgId()) == pdgID){
+        daughter = mother;
+        mother = daughter->mother();
     }
 
-    return cand;
+    return daughter;
 }
 
-int BaseAnalyzer::LastCopy(const int& index, const int& pdgID){
-    int idx = genMotherIdx->At(index);
+int BaseAnalyzer::FirstCopy(const int& index, const int& pdgID){
+    int daughterIdx = index;
+    int motherIdx = genMotherIdx->At(index);
 
-    while(abs(genID->At(idx)) == pdgID){
-        idx = genMotherIdx->At(idx);
+    while(abs(genID->At(motherIdx)) == pdgID){
+        daughterIdx = motherIdx;
+        motherIdx = genMotherIdx->At(daughterIdx);
     }
 
-    return idx; 
+    return daughterIdx; 
 }
 
 bool BaseAnalyzer::triggerMatching(const TLorentzVector &particle, const std::vector<pat::TriggerObjectStandAlone> trigObj){
@@ -86,26 +92,31 @@ bool BaseAnalyzer::SetGenParticles(TLorentzVector &validLepton, const int &i, co
                 }
             }
         }
-    }   
+    }  
+;
 
-    bool isgenMatched = isNANO ? eleGenIdx->At(i) != -1 : matchedLep!=NULL;
+    std::map<int, int> genIndex;
+    if(isNANO) genIndex = {{11, eleGenIdx->At(i)}, {13, muonGenIdx->At(i)}};
+
+    bool isgenMatched = isNANO ? genIndex[pdgID] != -1 : matchedLep!=NULL;
+
 
     //Check if gen matched particle exist
     if(isgenMatched){
         const reco::Candidate* lepton=NULL;
         int index=0;
             
-        if(isNANO) index = LastCopy(pdgID == 11 ? eleGenIdx->At(i) : muonGenIdx->At(i), pdgID);
-        else lepton = LastCopy(*matchedLep, pdgID);
+
+        if(isNANO) index = FirstCopy(genIndex[pdgID], pdgID);
+        else lepton = FirstCopy(matchedLep, pdgID);
 
         int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(lepton->mother()->pdgId()); 
 
         if(motherID == 24){
             const reco::Candidate* WBoson=NULL;
-            int index=0;
                 
-            if(isNANO) index = LastCopy(eleGenIdx->At(i), 24);
-            else WBoson = LastCopy(lepton->mother(), 24);
+            if(isNANO) index = FirstCopy(genMotherIdx->At(index), 24);
+            else WBoson = FirstCopy(lepton->mother(), 24);
 
             int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(WBoson->mother()->pdgId());     
 
