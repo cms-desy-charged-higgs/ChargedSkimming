@@ -4,6 +4,7 @@ import os
 import subprocess
 import time
 import argparse
+import numpy as np
 from multiprocessing import Process, Pool, cpu_count
 
 from CRABAPI.RawCommand import crabCommand
@@ -15,6 +16,7 @@ def parser():
     parser.add_argument("--submit", action = "store_true", help = "Submit all the jobs")
     parser.add_argument("--monitor", action = "store_true", help = "Check if jobs only should be monitored")
     parser.add_argument("--merge", action = "store_true", help = "Merge output together")
+    parser.add_argument("--process", action = "store", default = "all", help = "Merge output together")
 
     return parser.parse_args()
 
@@ -101,16 +103,26 @@ def monitor(crabJob):
     return False
 
 def merge(crabJob):
+    subprocess.call(["mkdir", "-p", "{}/merged/".format(crabJob.General.workArea)])
+
     resultDir = "{}/crab_{}/results".format(crabJob.General.workArea, crabJob.General.requestName)
     files = ["{}/{}".format(resultDir, f) for f in os.listdir(resultDir)]
-    
-    mergeOutput =  "{}/merged/{}.root".format(crabJob.General.workArea, "_".join(crabJob.General.requestName.split("_")[2:]))
-
     if(len(files) == 0):
         return None
+    files = np.array_split(files, 1 if len(files) < 20 else int(len(files)/20.))
+    
+    tmpOutput = []
 
-    subprocess.call(["mkdir", "-p", "{}/merged/".format(crabJob.General.workArea)])
-    subprocess.call(["hadd", "-n", "50", "-f", mergeOutput] + files)       
+    for index, filesBunch in enumerate(files):
+        tmpFile = "{}/merged/{}_{}.root".format(crabJob.General.workArea, "_".join(crabJob.General.requestName.split("_")[2:]), index)
+        subprocess.call(["hadd", "-f", tmpFile] + list(filesBunch))  
+
+        tmpOutput.append(tmpFile)
+
+    mergeOutput =  "{}/merged/{}.root".format(crabJob.General.workArea, "_".join(crabJob.General.requestName.split("_")[2:]))
+
+    subprocess.call(["hadd", "-f", mergeOutput] + tmpOutput)  
+    subprocess.call(["rm"] + tmpOutput)     
 
 def main():
     ##Parser arguments
@@ -119,11 +131,27 @@ def main():
     ##Txt with dataset names
     filePath = "{}/src/ChargedSkimming/Skimming/data/filelists".format(os.environ["CMSSW_BASE"])
 
-    fileLists = [
-                filePath + "/filelist_bkg_2017_MINI.txt",
-                filePath + "/filelist_data_2017_MINI.txt",
-                filePath + "/filelist_signal_2017_MINI.txt",
-    ]
+    if args.process == "all":
+        fileLists = [
+                    filePath + "/filelist_bkg_2017_MINI.txt",
+                    filePath + "/filelist_data_2017_MINI.txt",
+                    filePath + "/filelist_signal_2017_MINI.txt",
+        ]
+
+    elif args.process == "data":
+        fileLists = [
+                    filePath + "/filelist_data_2017_MINI.txt",
+        ]
+
+    elif args.process == "sig":
+        fileLists = [
+                    filePath + "/filelist_signal_2017_MINI.txt",
+        ]
+
+    elif args.process == "bkg":
+        fileLists = [
+                    filePath + "/filelist_bkg_2017_MINI.txt",
+        ]
 
     ##Create with each dataset a crab config
     crabJobs = []
