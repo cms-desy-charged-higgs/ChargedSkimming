@@ -1,0 +1,28 @@
+<bin name="NanoSkim" file="nanoskim.cc" />
+
+<use name="root"/>
+<use name="rootrio"/>
+<use name="rootcore"/>
+<use name="rootphysics"/>
+<use name="rootgraphics"/>
+
+<use name="ChargedSkimming/Skimming"/>
+
+<use name="CondFormats/BTauObjects"/>
+<use name="CondTools/BTau"/>
+<use name="JetMETCorrections/Modules"/>
+<use name="CondFormats/JetMETObjects"/>
+
+<use name="DataFormats/PatCandidates"/>
+<use name="DataFormats/JetReco"/>
+<use name="DataFormats/Common"/>
+<use name="DataFormats/HepMCCandidate"/>
+<use name="DataFormats/Candidate"/>
+<use name="DataFormats/VertexReco"/>
+
+<use name="SimDataFormats/PileupSummaryInfo"/>
+<use name="SimDataFormats/GeneratorProducts"/>
+
+<export>
+    <lib name="1"/>
+</export>
