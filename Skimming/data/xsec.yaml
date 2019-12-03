@@ -6,14 +6,14 @@
 TTJets_TuneCP5_13TeV-madgraphMLM-pythia8:
     xsec: 831.76
 
-TTJets_DiLept_TuneCP5_13TeV-madgraphMLM-pythia8:
-    xsec: 54.23
+TTTo2L2Nu_TuneCP5_PSweights_13TeV-powheg-pythia8:
+    xsec: 89.0482256
 
-TTJets_SingleLeptFromT_TuneCP5_13TeV-madgraphMLM-pythia8:
-    xsec: 182.17540224
+TTToSemiLeptonic_TuneCP5_PSweights_13TeV-powheg-pythia8:
+    xsec: 364.31088
 
-TTJets_SingleLeptFromTbar_TuneCP5_13TeV-madgraphMLM-pythia8:
-    xsec: 182.17540224
+TTToHadronic_TuneCP5_PSweights_13TeV-powheg-pythia8:
+    xsec: 380.11432
 
 TTZToLL_M-1to10_TuneCP5_13TeV-amcatnlo-pythia8:
     xsec: 0.05324
