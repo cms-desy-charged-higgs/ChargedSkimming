@@ -1,28 +1,21 @@
 #!/bin/bash
+source $CHDIR/ChargedAnalysis/setenv.sh CMSSW
+cd $TMP
 
-##Source relevant stuff
-source /cvmfs/cms.cern.ch/cmsset_default.sh
-source /cvmfs/cms.cern.ch/crab3/crab.sh
-export SCRAM_ARCH=slc6_amd64_gcc700
-
-##Set CMSSW
-eval `scramv1 project CMSSW CMSSW_10_4_0`
-cd CMSSW_10_4_0/src/
-eval `scramv1 runtime -sh`
-
-##Move ChargeHiggs framework into CMSSW src dir
-mv ../../ChargedHiggs/ ./
-mv ../../x509 ./
-export X509_USER_PROXY=$CMSSW_BASE/src/x509
-
-scram b
+INFILE=$1
+ISDATA=$2
+CHANNEL=$3
+XSEC=$4
+OUT=$5
+JOB=$6
 
 ##Copy file from DAS
 xrdcp $1 nanoFile.root
 
 ##Do the skimming
-nanoskimmer.py --filename nanoFile.root --out-name $2 --channel ${@:3}
+NanoSkim nanoFile.root $ISDATA "$CHANNEL" $XSEC ${OUT}_${JOB}.root
 rm nanoFile.root
 
 ##Move output to base dir
-mv *.root ../../
+mkdir -p $CHDIR/Skim2/$OUT/output/
+mv ${OUT}_${JOB}.root $CHDIR/Skim2/$OUT/output
