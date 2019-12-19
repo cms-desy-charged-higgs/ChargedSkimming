@@ -7,7 +7,7 @@ JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut
     etaCut(etaCut)
     {}
 
-JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken, genPartToken& genParticleToken, secvtxToken& vertexToken):
+JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken, genPartToken& genParticleToken, secvtxToken& vertexToken, const std::string& systematic):
     BaseAnalyzer(),    
     era(era),
     ptCut(ptCut),
@@ -17,14 +17,37 @@ JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut
     rhoToken(rhoToken),
     genParticleToken(genParticleToken),
     vertexToken(vertexToken)
-    {}
+    {
+        if(systematic.find("JEC") != std::string::npos){
+            jecSyst = systematic;
+            jecSyst.replace(jecSyst.find("JEC"), 3, "");
+
+            if(jecSyst.find("Up") != std::string::npos){
+                isUp = true;
+                jecSyst.replace(jecSyst.find("Up"), 2, "");    
+            }
+
+            else{
+                isUp = false;
+                jecSyst.replace(jecSyst.find("Down"), 4, "");    
+            }
+        }
+
+        if(systematic.find("JER") != std::string::npos){
+            isJERsyst = true;
+
+            if(systematic.find("Up") != std::string::npos){
+                isUp = true;
+            }
+        }
+    }
 
 
 void JetAnalyzer::SetCorrector(const JetType &type, const int& runNumber){
     std::vector<JetCorrectorParameters> corrVec;
 
-    for(std::string fileName: isData? JECDATA[type][era] : JECMC[type][era]){
-        if(fileName.find("@") != std::string::npos){
+    for(std::string fileName: isData? JECDATA[era] : JECMC[era]){
+        if(fileName.find("@") == std::string::npos){
             for(std::pair<std::string, std::pair<int, int>> eraNames: runEras[era]){
                 if(eraNames.second.first <= runNumber and runNumber <= eraNames.second.second){
                     fileName.replace(fileName.find("@"), 1, eraNames.first);
@@ -32,9 +55,11 @@ void JetAnalyzer::SetCorrector(const JetType &type, const int& runNumber){
             }
         }
 
+        fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");
+
         corrVec.push_back(JetCorrectorParameters(fileName));
     }
-
+  
     jetCorrector[type] = new FactorizedJetCorrector(corrVec);
 }
 
@@ -56,11 +81,13 @@ float JetAnalyzer::SmearEnergy(const TLorentzVector &jet, const float &rho, cons
     //Configure jet SF reader
     jetParameter.setJetPt(jet.Pt()).setJetEta(jet.Eta()).setRho(rho);
 
-    float dR;
     float reso = resolution[type].getResolution(jetParameter);
-    float resoSF = resolution_sf[type].getScaleFactor(jetParameter);
+    float resoSF; 
+    if(!isJERsyst) resoSF = resolution_sf[type].getScaleFactor(jetParameter);
+    else resoSF = resolution_sf[type].getScaleFactor(jetParameter, isUp ? Variation::UP : Variation::DOWN);
+        
     float smearFac = 1.; 
-
+    float dR;
     float genPt, genPhi, genEta, genMass;
     unsigned int size;
 
@@ -186,41 +213,34 @@ int JetAnalyzer::SetGenParticles(TLorentzVector& validJet, const int &i, const i
     return -1.;
 }
 
-
 void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     JECMC = {
-            {AK4, {
-                {2017, {filePath + "/JEC/Fall17_17Nov2017_V32_MC_L1FastJet_AK4PFchs.txt", 
-                        filePath + "/JEC/Fall17_17Nov2017_V32_MC_L2Relative_AK4PFchs.txt",
-                        filePath + "/JEC/Fall17_17Nov2017_V32_MC_L3Absolute_AK4PFchs.txt"}}
-                },
-            },  
-
-            {AK8, {
-                {2017, {filePath + "/JEC/Fall17_17Nov2017_V32_MC_L1FastJet_AK8PFchs.txt", 
-                        filePath + "/JEC/Fall17_17Nov2017_V32_MC_L2Relative_AK8PFchs.txt",
-                        filePath + "/JEC/Fall17_17Nov2017_V32_MC_L3Absolute_AK8PFchs.txt"}}
-                },
-            },               
+                {2017, {filePath + "/JEC/Fall17_17Nov2017_V32_MC_L1FastJet_&PFchs.txt", 
+                        filePath + "/JEC/Fall17_17Nov2017_V32_MC_L2Relative_&PFchs.txt",
+                        filePath + "/JEC/Fall17_17Nov2017_V32_MC_L3Absolute_&PFchs.txt"}},
+                            
     };
 
     JECDATA = {
-            {AK4, {
-                {2017, {filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L1FastJet_AK4PFchs.txt", 
-                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L2Relative_AK4PFchs.txt",
-                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L3Absolute_AK4PFchs.txt",
-                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L2L3Residual_AK4PFchs.txt"}}
-                },
-            }, 
-
-            {AK8, {
-                {2017, {filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L1FastJet_AK8PFchs.txt", 
-                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L2Relative_AK8PFchs.txt",
-                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L3Absolute_AK8PFchs.txt",
-                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L2L3Residual_AK8PFchs.txt"}}
-                },
-            },               
+                {2017, {filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L1FastJet_&PFchs.txt", 
+                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L2Relative_&PFchs.txt",
+                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L3Absolute_&PFchs.txt",
+                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L2L3Residual_&PFchs.txt"}},
+             
     };
+
+    JECUNC = {
+                {2017, filePath + "/JEC/Fall17_17Nov2017_V32_MC_UncertaintySources_&PFchs.txt"},
+    };
+
+    JMESF = {
+                {2017, filePath + "/JME/Fall17_V3_MC_SF_&PFchs.txt"},     
+    };
+
+    JMEPtReso = {
+                {2017, filePath + "/JME/Fall17_V3_MC_PtResolution_&PFchs.txt"},    
+    };
+
 
     bTagSF = {
             {AK4, {
@@ -234,29 +254,6 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
             },
     };
 
-    JMESF = {
-            {AK4, {
-                {2017, filePath + "/JME/Fall17_V3_MC_SF_AK4PFchs.txt"},
-                }
-            },       
-
-            {AK8, {
-                {2017, filePath + "/JME/Fall17_V3_MC_SF_AK8PFchs.txt"},
-                }
-            },             
-    };
-
-    JMEPtReso = {
-            {AK4, {
-                {2017, filePath + "/JME/Fall17_V3_MC_PtResolution_AK4PFchs.txt"},
-                }
-            },       
-
-            {AK8, {
-                {2017, filePath + "/JME/Fall17_V3_MC_PtResolution_AK8PFchs.txt"},
-                }
-            },
-    };
 
     //https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation94
     bTagCuts = {
@@ -315,7 +312,7 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
         //Set TTreeReader for genpart and trigger obj from baseanalyzer
         SetCollection(this->isData);
     }
-
+    
     for(JetType type: {AK4, AK8}){
         //Set configuration for bTagSF reader  ##https://twiki.cern.ch/twiki/bin/view/CMS/BTagCalibration
         calib[type] = BTagCalibration(std::to_string(type), bTagSF[type][era]);
@@ -332,13 +329,28 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
         }
     
         //Set configuration for JER tools
-        resolution[type] = JME::JetResolution(JMEPtReso[type][era]);
-        resolution_sf[type] = JME::JetResolutionScaleFactor(JMESF[type][era]);
+        std::string fileName = JMEPtReso[era];
+        fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");
+        resolution[type] = JME::JetResolution(fileName);
+
+        fileName = JMESF[era];
+        fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");
+        resolution_sf[type] = JME::JetResolutionScaleFactor(fileName);
+
+        //Set object to get JEC uncertainty
+        if(jecSyst != ""){
+            std::string fileName = JECUNC[era];
+            fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");  
+
+            jecUnc[type] = new JetCorrectionUncertainty(JetCorrectorParameters(fileName, "Total"));
+        }
+
+        else jecUnc[type] = NULL;
     }
 
     //Set output names
-    JetfloatNames = {"E", "Px", "Py", "Pz", "loosebTagSF", "mediumbTagSF", "tightbTagSF", "FatJetIdx", "isFromh"};
-    FatJetfloatNames = {"E", "Px", "Py", "Pz", "oneSubJettiness", "twoSubJettiness", "threeSubJettiness", "loosebTagSF", "mediumbTagSF", "isFromh"};
+    JetfloatNames = {"E", "Px", "Py", "Pz", "loosebTagSF", "loosebTagSFUp", "loosebTagDown", "mediumbTagSF", "mediumbTagSFUp", "mediumbTagSFDown", "tightbTagSF", "tightbTagSFUp", "tightbTagSFDown", "FatJetIdx", "isFromh"};
+    FatJetfloatNames = {"E", "Px", "Py", "Pz", "oneSubJettiness", "twoSubJettiness", "threeSubJettiness", "loosebTagSF", "loosebTagSFUp", "loosebTagDown", "mediumbTagSF", "mediumbTagSF", "mediumbTagSFUp", "isFromh"};
     JetParticlefloatNames = {"E", "Px", "Py", "Pz", "Vx", "Vy", "Vz", "Charge", "FatJetIdx"};
 
     boolNames = {"isLooseB", "isMediumB", "isTightB"};
@@ -382,7 +394,6 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     }
 }
 
-
 void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
     //Clear variables vector
     for(std::vector<float>& variable: JetfloatVariables){
@@ -420,10 +431,8 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
     }
 
     //Get Event info is using MINIAOD
-    edm::Handle<std::vector<pat::Jet>> jets;
-    edm::Handle<std::vector<pat::Jet>> fatJets;
-    edm::Handle<std::vector<reco::GenJet>> genJets;
-    edm::Handle<std::vector<reco::GenJet>> genfatJets;
+    edm::Handle<std::vector<pat::Jet>> jets, fatJets;
+    edm::Handle<std::vector<reco::GenJet>> genJets, genfatJets;
     edm::Handle<std::vector<pat::MET>> MET;
     edm::Handle<double> rho;
     edm::Handle<std::vector<reco::GenParticle>> genParts;
@@ -477,6 +486,14 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
     
         corrFac = isNANO ? CorrectEnergy(lVec,  *jetRho->Get(), fatJetArea->At(i), AK8) : CorrectEnergy(lVec, *rho, jets->at(i).jetArea(), AK8);
 
+        //Get jet uncertainty
+        if(jecUnc[AK8] !=  NULL){
+            jecUnc[AK8]->setJetPt(corrFac*lVec.Pt());
+            jecUnc[AK8]->setJetEta(lVec.Eta());
+            float unc = jecUnc[AK8]->getUncertainty(isUp);
+            corrFac *= isUp ? 1 + unc : 1 - unc;
+        }
+
         //Smear pt if not data
         if(!isData){
             smearFac = isNANO ? SmearEnergy(lVec*corrFac, *jetRho->Get(), 0.8, AK8) : SmearEnergy(lVec*corrFac, *rho, 0.8, AK8, *genfatJets);
@@ -516,13 +533,17 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
             if(!isData){
                 //btag SF
                 FatJetfloatVariables[7].push_back(looseReader[AK8].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                FatJetfloatVariables[8].push_back(mediumReader[AK8].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                FatJetfloatVariables[8].push_back(looseReader[AK8].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                FatJetfloatVariables[9].push_back(looseReader[AK8].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                FatJetfloatVariables[10].push_back(mediumReader[AK8].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                FatJetfloatVariables[11].push_back(mediumReader[AK8].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                FatJetfloatVariables[12].push_back(mediumReader[AK8].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
 
 
-                if(isNANO) FatJetfloatVariables[9].push_back(SetGenParticles(lVec, i, 5, AK8));
+                if(isNANO) FatJetfloatVariables[13].push_back(SetGenParticles(lVec, i, 5, AK8));
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    FatJetfloatVariables[9].push_back(SetGenParticles(lVec, i, 5, AK8, *genParts));
+                    FatJetfloatVariables[13].push_back(SetGenParticles(lVec, i, 5, AK8, *genParts));
                 }
             }
 
@@ -608,6 +629,14 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
 
         corrFac = isNANO ? CorrectEnergy(lVec,  *jetRho->Get(), jetArea->At(i), AK4) : CorrectEnergy(lVec, *rho, jets->at(i).jetArea(), AK4);
 
+        //Get jet uncertainty
+        if(jecUnc[AK8] !=  NULL){
+            jecUnc[AK4]->setJetPt(corrFac*lVec.Pt());
+            jecUnc[AK4]->setJetEta(lVec.Eta());
+            float unc = jecUnc[AK4]->getUncertainty(isUp);
+            corrFac *= isUp ? 1 + unc : 1 - unc;
+        }
+
         //Smear pt if not data
         if(!isData){
             smearFac = isNANO ? SmearEnergy(lVec*corrFac,  *jetRho->Get(), jetArea->At(i), AK4) : SmearEnergy(lVec, *rho, 0.4, AK4, *genJets);
@@ -653,13 +682,19 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
             if(!isData){
                 //btag SF
                 JetfloatVariables[4].push_back(looseReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                JetfloatVariables[5].push_back(mediumReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                JetfloatVariables[6].push_back(tightReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                JetfloatVariables[5].push_back(looseReader[AK4].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                JetfloatVariables[6].push_back(looseReader[AK4].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                JetfloatVariables[7].push_back(looseReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                JetfloatVariables[8].push_back(looseReader[AK4].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                JetfloatVariables[9].push_back(looseReader[AK4].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                JetfloatVariables[10].push_back(looseReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                JetfloatVariables[11].push_back(looseReader[AK4].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                JetfloatVariables[12].push_back(looseReader[AK4].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
 
-                if(isNANO) JetfloatVariables[8].push_back(SetGenParticles(lVec, i, 5, AK4));
+                if(isNANO) JetfloatVariables[14].push_back(SetGenParticles(lVec, i, 5, AK4));
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    JetfloatVariables[8].push_back(SetGenParticles(lVec, i, 5, AK4, *genParts));
+                    JetfloatVariables[14].push_back(SetGenParticles(lVec, i, 5, AK4, *genParts));
                 }
             }
 
@@ -669,12 +704,12 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                 FatlVec.SetPxPyPzE(FatJetfloatVariables[1][j], FatJetfloatVariables[2][j], FatJetfloatVariables[3][j], FatJetfloatVariables[0][j]);
 
                 if(FatlVec.DeltaR(lVec) < 1.2){
-                    JetfloatVariables[7].push_back(j);
+                    JetfloatVariables[13].push_back(j);
                     nSubJets++;
                 }
 
                 else{
-                    JetfloatVariables[7].push_back(-1.);
+                    JetfloatVariables[13].push_back(-1.);
                 }
             }
         } 
