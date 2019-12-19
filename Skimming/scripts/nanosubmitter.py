@@ -19,7 +19,7 @@ def parser():
 
 
 def submit(jobInfo, channel):
-    skimDir = "{}/Skim2".format(os.environ["CHDIR"])
+    skimDir = "{}/Skim".format(os.environ["CHDIR"])
 
     for d in ["out", "log", "err"]:
         subprocess.call(["mkdir", "-p", "{}/{}".format(skimDir, d)])
