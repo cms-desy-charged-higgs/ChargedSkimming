@@ -49,7 +49,7 @@ def submit(jobInfo, channel):
 
 
 def merge():
-    skimDir = "{}/Skim2".format(os.environ["CHDIR"])
+    skimDir = "{}/Skim".format(os.environ["CHDIR"])
     procDir = [d for d in os.listdir(skimDir) if d not in ['condor.sub', 'log', 'err', 'out']]
 
     for dir in procDir:
