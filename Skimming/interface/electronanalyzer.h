@@ -28,6 +28,9 @@ class ElectronAnalyzer: public BaseAnalyzer {
         trigObjToken triggerObjToken;
         genPartToken genParticleToken;
 
+        //Name of the energy correction (dependent on systematic study)
+        std::string energyCorrection;
+
         //Vector with output varirables of the output tree
         std::vector<std::string> floatNames;
         std::vector<std::string> boolNames;
@@ -45,7 +48,7 @@ class ElectronAnalyzer: public BaseAnalyzer {
         std::unique_ptr<TTreeReaderArray<bool>> eleTightMVA;
 
     public:
-        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken);
+        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, const std::string& systematic="");
         ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
 
         void BeginJob(std::vector<TTree*>& trees, bool &isData);

@@ -1,6 +1,6 @@
 #include <ChargedSkimming/Skimming/interface/electronanalyzer.h>
 
-ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken):
+ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, const std::string& systematic):
     BaseAnalyzer(),    
     era(era),
     ptCut(ptCut),
@@ -8,7 +8,9 @@ ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const flo
     eleToken(eleToken),
     triggerObjToken(triggerObjToken),
     genParticleToken(genParticleToken)
-    {}
+    {
+        energyCorrection = systematic == "" ? "ecalTrkEnergyPostCorr" : systematic; 
+    }
 
 ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader):
     BaseAnalyzer(&reader),    
@@ -59,7 +61,7 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     }
 
     //Set output names
-    floatNames = {"E", "Px", "Py", "Pz", "Isolation", "Charge", "mediumSF", "tightSF", "recoSF"};
+    floatNames = {"E", "Px", "Py", "Pz", "Isolation", "Charge", "recoSF", "recoSFUp", "recoSFDown", "mediumSF", "mediumSFUp", "mediumSFDown", "tightSF", "tightSFUp", "tightSFDown"};
     boolNames = { "isMedium", "isTight", "isTriggerMatched", "isFromHc"};
 
     floatVariables = std::vector<std::vector<float>>(floatNames.size(), std::vector<float>());
@@ -101,9 +103,9 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event*
     
     //Loop over all electrons
     for(unsigned int i = 0; i < eleSize; i++){
-        float pt = isNANO ? elePt->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Pt();
-        float eta = isNANO ? eleEta->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Eta();
-        float phi = isNANO ? elePhi->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat("ecalTrkEnergyPostCorr") / electrons->at(i).energy()).Phi();
+        float pt = isNANO ? elePt->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat(energyCorrection) / electrons->at(i).energy()).Pt();
+        float eta = isNANO ? eleEta->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat(energyCorrection) / electrons->at(i).energy()).Eta();
+        float phi = isNANO ? elePhi->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat(energyCorrection) / electrons->at(i).energy()).Phi();
 
         if(pt > ptCut && abs(eta) < etaCut){
             TLorentzVector lVec;
@@ -132,9 +134,21 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event*
 
             if(!isData){
                //Fill scale factors
-                floatVariables[6].push_back(recoSFhist->GetBinContent(recoSFhist->FindBin(eta, pt)));
-                floatVariables[7].push_back(mediumSFhist->GetBinContent(mediumSFhist->FindBin(eta, pt)));
-                floatVariables[8].push_back(tightSFhist->GetBinContent(tightSFhist->FindBin(eta, pt)));
+                Int_t recoBin = recoSFhist->FindBin(eta, pt);
+                Int_t mediumBin = mediumSFhist->FindBin(eta, pt);
+                Int_t tightBin = tightSFhist->FindBin(eta, pt);
+
+                floatVariables[6].push_back(recoSFhist->GetBinContent(recoBin));
+                floatVariables[7].push_back(recoSFhist->GetBinContent(recoBin) + recoSFhist->GetBinErrorUp(recoBin));
+                floatVariables[8].push_back(recoSFhist->GetBinContent(recoBin) - recoSFhist->GetBinErrorLow(recoBin));
+
+                floatVariables[9].push_back(mediumSFhist->GetBinContent(mediumBin));
+                floatVariables[10].push_back(mediumSFhist->GetBinContent(mediumBin) + mediumSFhist->GetBinErrorUp(mediumBin));
+                floatVariables[11].push_back(mediumSFhist->GetBinContent(mediumBin) - mediumSFhist->GetBinErrorLow(mediumBin));
+
+                floatVariables[12].push_back(tightSFhist->GetBinContent(tightBin));
+                floatVariables[13].push_back(tightSFhist->GetBinContent(tightBin) + tightSFhist->GetBinErrorUp(tightBin));
+                floatVariables[14].push_back(tightSFhist->GetBinContent(tightBin) - tightSFhist->GetBinErrorLow(tightBin));
 
                 //Save gen particle information
                 if(isNANO) boolVariables[3].push_back(SetGenParticles(lVec, i, 11));
@@ -143,8 +157,6 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event*
                     boolVariables[3].push_back(SetGenParticles(lVec, i, 11, *genParts));
                 }
             }
-
-            //Fill electron in collection
         } 
     }
 
