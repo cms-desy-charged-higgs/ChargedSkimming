@@ -38,11 +38,16 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 
         //Output file
         TFile* outputFile;
-        std::vector<TTree*> outputTrees;
-        std::vector<CutFlow> cutflows; 
 
-        //Vector with wished analyzers
-        std::vector<std::shared_ptr<BaseAnalyzer>> analyzers;
+        //Trees for each systematic analysis
+        std::vector<std::vector<TTree*>> outputTrees;
+        std::vector<std::vector<CutFlow>> cutflows; 
+
+        //Vector with wished analyzers for each systematic
+        std::vector<std::vector<std::shared_ptr<BaseAnalyzer>>> analyzers;
+
+        //Map with systematic uncertanties
+        std::vector<std::pair<std::string, std::string>> systNames;
 
         //EDM tokens
         jToken jetToken; 
@@ -60,6 +65,11 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         edm::EDGetTokenT<double> rhoToken;
         vtxToken vertexToken;
         secvtxToken secVertexToken;
+        edm::EDGetTokenT<double> prefireToken;
+        edm::EDGetTokenT<double> prefireTokenUp;
+        edm::EDGetTokenT<double> prefireTokenDown;
+        wgtToken pdfToken;
+        wgtToken scaleToken;
 
         //Channel
         std::vector<std::string> channels;

@@ -16,7 +16,12 @@ MiniSkimmer::MiniSkimmer(const edm::ParameterSet& iConfig):
       genParticleToken(consumes<std::vector<reco::GenParticle>>(iConfig.getParameter<edm::InputTag>("genPart"))),
       rhoToken(consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))),
       vertexToken(consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("vtx"))),
-      secVertexToken(consumes<std::vector<reco::VertexCompositePtrCandidate>>(iConfig.getParameter<edm::InputTag>("svtx"))),
+      secVertexToken(consumes<std::vector<reco::VertexCompositePtrCandidate>>(iConfig.getParameter<edm::InputTag>("svtx"))), 
+      prefireToken(consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProb"))),
+      prefireTokenUp(consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProbUp"))),
+      prefireTokenDown(consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProbDown"))),
+      pdfToken(consumes<std::vector<float>>(iConfig.getParameter<edm::InputTag>("pdf"))),
+      scaleToken(consumes<std::vector<float>>(iConfig.getParameter<edm::InputTag>("scale"))),
 
       //Other stuff
       channels(iConfig.getParameter<std::vector<std::string>>("channels")),
@@ -32,8 +37,10 @@ MiniSkimmer::~MiniSkimmer(){
     std::cout << "Finished event loop (in seconds): " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << std::endl;
 
     //Print stats
-    for(TTree* tree: outputTrees){
-        std::cout << tree->GetName() << " analysis: Selected " << tree->GetEntries() << " events of " << nEvents << " (" << 100*(float)tree->GetEntries()/nEvents << "%)" << std::endl;
+    for(unsigned int i = 0; i < analyzers.size(); i++){
+        for(TTree* tree: outputTrees[i]){
+            std::cout << tree->GetName() << " analysis: Selected " << tree->GetEntries() << " events of " << nEvents << " (" << 100*(float)tree->GetEntries()/nEvents << "%)" << std::endl;
+        }
     }
 }
 
@@ -45,96 +52,137 @@ void MiniSkimmer::beginJob(){
     nMin = {
             {"mu4j", {1, 0, 4, 0}},
             {"e4j", {0, 1, 4, 0}},
-            {"mu2j1f", {1, 0, 2, 1}},
-            {"e2j1f", {0, 1, 2, 1}},
-            {"mu2f", {1, 0, 0, 2}},
-            {"e2f", {0, 1, 0, 2}},
+            {"mu2j1fj", {1, 0, 2, 1}},
+            {"e2j1fj", {0, 1, 2, 1}},
+            {"mu2fj", {1, 0, 0, 2}},
+            {"e2fj", {0, 1, 0, 2}},
     };
 
-    for(const std::string &channel: channels){
-        //Create output trees
-        TTree* tree = new TTree();
-        tree->SetName(channel.c_str());
-        outputTrees.push_back(tree);
-
-        //Create cutflow histograms
-        CutFlow cutflow;
-
-        cutflow.hist = new TH1F();
-        cutflow.hist->SetName(("cutflow_" + channel).c_str());
-        cutflow.hist->SetName(("cutflow_" + channel).c_str());
-        cutflow.hist->GetYaxis()->SetName("Events");
-
-        cutflow.nMinMu=nMin[channel][0];
-        cutflow.nMinEle=nMin[channel][1];
-        cutflow.nMinJet=nMin[channel][2];
-        cutflow.nMinFatjet=nMin[channel][3];
-        
-        cutflow.weight = 1;    
-
-        cutflows.push_back(cutflow); 
-    }
-
-    analyzers = {
-        std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken)),
-        std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, {"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
-        std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
-        std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken)),
-        std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 20., 2.4, muonToken, triggerObjToken, genParticleToken)),
-        std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, eleToken, triggerObjToken, genParticleToken)),
-        std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
+    //Name of systematic uncertainties
+    systNames = {
+                    {"", ""}, 
+                    {"energyScale", "e"}, 
+                    {"energySigma", "e"},
+                    {"JECTotal", "j"},
+                    {"JER", "j"},
     };
 
-    //Begin jobs for all analyzers
-    for(std::shared_ptr<BaseAnalyzer> analyzer: analyzers){
-        analyzer->BeginJob(outputTrees, isData);
+    for(const std::pair<std::string, std::string>& systInfo: systNames){
+        for(const std::string& shift: {"Up", "Down"}){
+            //Get systematic name and relevant particle
+            std::string systematic, particle;
+            std::tie(systematic, particle) = systInfo;
+
+            //Check if nominal analysis
+            bool isNomi = systematic == "" ? true : false;
+            std::string systName = isNomi ? "" : systematic + shift;
+
+            //Skip Up Down loop for nominal for Down variation
+            if(systematic == "" and shift == "Down") continue;
+
+            //Vector of objects (One object for each channel)
+            std::vector<TTree*> treesPerSyst;
+            std::vector<CutFlow> flowPerSyst;
+            std::vector<std::shared_ptr<BaseAnalyzer>> analyzerPerSyst;
+
+            for(const std::string &channel: channels){
+                //Check channel has relevant particle for the systematic
+                if(channel.find(particle) == std::string::npos) continue;
+
+                //Create output trees
+                TTree* tree = new TTree();
+                tree->SetName((isNomi ? channel : channel + "_" + systName).c_str());
+                treesPerSyst.push_back(tree);
+
+                //Create cutflow histograms
+                CutFlow cutflow;
+
+                cutflow.hist = new TH1F();
+                cutflow.hist->SetName((isNomi ? "cutflow_" + channel : "cutflow_" + channel + "_" + systName).c_str());
+                cutflow.hist->SetName((isNomi ? "cutflow_" + channel : "cutflow_" + channel + "_" + systName).c_str());
+                cutflow.hist->GetYaxis()->SetName("Events");
+
+                cutflow.nMinMu=nMin[channel][0];
+                cutflow.nMinEle=nMin[channel][1];
+                cutflow.nMinJet=nMin[channel][2];
+                cutflow.nMinFatjet=nMin[channel][3];
+                
+                cutflow.weight = 1;    
+
+                flowPerSyst.push_back(cutflow); 
+            }
+
+            analyzerPerSyst = {
+                std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken, {prefireToken, prefireTokenUp, prefireTokenDown}, pdfToken, scaleToken)),
+                std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, {"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
+                std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
+                std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken, particle == "j" ? systName : "")),
+                std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 20., 2.4, muonToken, triggerObjToken, genParticleToken)),
+                std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, eleToken, triggerObjToken, genParticleToken, particle == "ele" ? systName : "")),
+                std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
+            };
+
+            //Begin jobs for all analyzers
+            for(std::shared_ptr<BaseAnalyzer> analyzer: analyzerPerSyst){
+                analyzer->BeginJob(treesPerSyst, isData);
+            }
+
+            outputTrees.push_back(treesPerSyst);
+            cutflows.push_back(flowPerSyst);
+            analyzers.push_back(analyzerPerSyst);
+        }
     }
 }
 
 void MiniSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
     nEvents++;
-    unsigned int nFailed = 0;
 
-    //Call each analyzer
     for(unsigned int i = 0; i < analyzers.size(); i++){
-        nFailed = 0;
-        analyzers[i]->Analyze(cutflows, &iEvent);
+        unsigned int nFailed = 0;
 
-        for(CutFlow &cutflow: cutflows){
-            if(!cutflow.passed) nFailed++;
+        //Call each analyzer
+        for(unsigned int j = 0; j < analyzers[i].size(); j++){
+            nFailed = 0;
+            analyzers[i][j]->Analyze(cutflows[i], &iEvent);
+
+            for(CutFlow &cutflow: cutflows[i]){
+                if(!cutflow.passed) nFailed++;
+            }
+
+            //If for all channels one analyzer fails, reject event
+            if(nFailed == cutflows.size()){
+                break;
+            }        
         }
 
-        //If for all channels one analyzer fails, reject event
-        if(nFailed == cutflows.size()){
-            break;
-        }        
-    }
+        //Check individual for each channel, if event should be filled
+        for(unsigned int j = 0; j < outputTrees[i].size(); j++){
+            if(cutflows[i][j].passed){
+                outputTrees[i][j]->Fill();
+            }
 
-    //Check individual for each channel, if event should be filled
-    for(unsigned int i = 0; i < outputTrees.size(); i++){
-        if(cutflows[i].passed){
-            outputTrees[i]->Fill();
+            cutflows[i][j].passed = true;
         }
-
-        cutflows[i].passed = true;
     }
 }
 
 void MiniSkimmer::endJob(){
     TFile* file = TFile::Open(outFile.c_str(), "RECREATE");
     
-    for(TTree* tree: outputTrees){
-        tree->Write();
-    }
-
-    //End jobs for all analyzers
     for(unsigned int i = 0; i < analyzers.size(); i++){
-        analyzers[i]->EndJob(file);
-    }
+        for(TTree* tree: outputTrees[i]){
+            tree->Write();
+        }
 
-    for(CutFlow& cutflow: cutflows){
-        cutflow.hist->Write();
-        delete cutflow.hist;
+        //End jobs for all analyzers
+        for(unsigned int j = 0; j < analyzers[i].size(); j++){
+            analyzers[i][j]->EndJob(file);
+        }
+
+        for(CutFlow& cutflow: cutflows[i]){
+            cutflow.hist->Write();
+            delete cutflow.hist;
+        }
     }
 
     file->Write();
