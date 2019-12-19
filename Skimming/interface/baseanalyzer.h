@@ -59,6 +59,7 @@ typedef edm::EDGetTokenT<std::vector<pat::TriggerObjectStandAlone>> trigObjToken
 typedef edm::EDGetTokenT<std::vector<reco::GenParticle>> genPartToken;
 typedef edm::EDGetTokenT<std::vector<reco::Vertex>> vtxToken;
 typedef edm::EDGetTokenT<std::vector<reco::VertexCompositePtrCandidate>> secvtxToken;
+typedef edm::EDGetTokenT<std::vector<float>> wgtToken;
 
 class BaseAnalyzer {
     protected:
@@ -81,21 +82,11 @@ class BaseAnalyzer {
 
         std::unique_ptr<TTreeReaderValue<unsigned int>> run;
 
-        std::unique_ptr<TTreeReaderArray<float>> trigObjPt;
-        std::unique_ptr<TTreeReaderArray<float>> trigObjPhi;
-        std::unique_ptr<TTreeReaderArray<float>> trigObjEta;
-        std::unique_ptr<TTreeReaderArray<int>> trigObjID;
-        std::unique_ptr<TTreeReaderArray<int>> trigObjFilterBit;
+        std::unique_ptr<TTreeReaderArray<float>> trigObjPt, trigObjPhi, trigObjEta;
+        std::unique_ptr<TTreeReaderArray<int>> trigObjID, trigObjFilterBit;
     
-        std::unique_ptr<TTreeReaderArray<float>> genPhi;
-        std::unique_ptr<TTreeReaderArray<float>> genEta;
-        std::unique_ptr<TTreeReaderArray<float>> genPt;
-        std::unique_ptr<TTreeReaderArray<float>> genMass;
-        std::unique_ptr<TTreeReaderArray<int>> genID;
-        std::unique_ptr<TTreeReaderArray<int>> genMotherIdx;
-        std::unique_ptr<TTreeReaderArray<int>> genStatus;
-        std::unique_ptr<TTreeReaderArray<int>> eleGenIdx;
-        std::unique_ptr<TTreeReaderArray<int>> muonGenIdx;
+        std::unique_ptr<TTreeReaderArray<float>> genPhi, genEta, genPt, genMass;
+        std::unique_ptr<TTreeReaderArray<int>> genID, genMotherIdx, genStatus, eleGenIdx, muonGenIdx;
 
         //Set trihObj and Gen particle collection
         void SetCollection(bool &isData);
