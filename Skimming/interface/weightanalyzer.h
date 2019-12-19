@@ -17,6 +17,9 @@ class WeightAnalyzer : public BaseAnalyzer {
         float genWeight = 1.;
         float eventNumber = 1.;
         float nTrueInt = 1.;
+        std::vector<float> prefireWeights;
+        std::vector<float> pdfWeights;
+        std::vector<float> scaleWeights;
 
         //Lumi information
         std::map<int, float> lumis;
@@ -24,6 +27,9 @@ class WeightAnalyzer : public BaseAnalyzer {
         //Token for MINIAOD
         puToken pileupToken;
         genToken geninfoToken;
+        std::vector<edm::EDGetTokenT<double>> prefireTokens;
+        wgtToken scaleToken;
+        wgtToken pdfToken;
 
         //Histograms
         TH1F* puMC; 
@@ -35,10 +41,9 @@ class WeightAnalyzer : public BaseAnalyzer {
         std::unique_ptr<TTreeReaderValue<float>> genWeightValue;
         std::unique_ptr<TTreeReaderValue<ULong64_t>> evtNumber;
 
-
     public:
         WeightAnalyzer(const float era, const float xSec, TTreeReader &reader);
-        WeightAnalyzer(const float era, const float xSec, puToken &pileupToken, genToken &geninfoToken);
+        WeightAnalyzer(const float era, const float xSec, puToken &pileupToken, genToken &geninfoToken, const std::vector<edm::EDGetTokenT<double>> prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken);
         void BeginJob(std::vector<TTree*>& trees, bool &isData);
         void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);

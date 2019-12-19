@@ -6,14 +6,16 @@ WeightAnalyzer::WeightAnalyzer(const float era, const float xSec, TTreeReader &r
     xSec(xSec)
     {}
 
-WeightAnalyzer::WeightAnalyzer(const float era, const float xSec, puToken &pileupToken, genToken &geninfoToken):
+WeightAnalyzer::WeightAnalyzer(const float era, const float xSec, puToken &pileupToken, genToken &geninfoToken, const std::vector<edm::EDGetTokenT<double>> prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken):
     BaseAnalyzer(),
     era(era),
     xSec(xSec),
     pileupToken(pileupToken),
-    geninfoToken(geninfoToken)
+    geninfoToken(geninfoToken),
+    prefireTokens(prefireTokens),
+    scaleToken(scaleToken),
+    pdfToken(pdfToken)
     {}
-
 
 void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     //Set lumi map
@@ -36,11 +38,19 @@ void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
 
     evtNumber = std::make_unique<TTreeReaderValue<ULong64_t>>(*reader, "event");
 
+    prefireWeights = {1., 1., 1.};
+
     //Branches for output tree
     for(TTree* tree: trees){
         tree->Branch("Weight_lumi", &lumi);
         tree->Branch("Weight_xsec", &xSec);
+        tree->Branch("Weight_pdfVariations", &pdfWeights);
+        tree->Branch("Weight_scaleVariations", &scaleWeights);
+        tree->Branch("Weight_xsec", &xSec);
         tree->Branch("Weight_genWeight", &genWeight);
+        tree->Branch("Weight_prefireWeight", &prefireWeights[0]);
+        tree->Branch("Weight_prefireWeightUp", &prefireWeights[1]);
+        tree->Branch("Weight_prefireWeightDown", &prefireWeights[2]);
         tree->Branch("Misc_TrueInteraction", &nTrueInt);
         tree->Branch("Misc_eventNumber", &eventNumber);
     }
@@ -49,24 +59,57 @@ void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
 void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
     edm::Handle<std::vector<PileupSummaryInfo>> pileUp; 
     edm::Handle<GenEventInfoProduct> genInfo;
+    std::vector<edm::Handle<double>> prefire;
+    edm::Handle<std::vector<float>> pdfVariations;
+    edm::Handle<std::vector<float>> scaleVariations;
+    prefireWeights.clear();
     
     if(!isNANO){
         event->getByToken(pileupToken, pileUp);
         event->getByToken(geninfoToken, genInfo);
+        event->getByToken(pdfToken, pdfVariations);
+        event->getByToken(scaleToken, scaleVariations);
+
+        for(unsigned int i = 0; i < prefireTokens.size(); i ++){
+            edm::Handle<double> fireHandle;
+            event->getByToken(prefireTokens[i], fireHandle);
+            prefire.push_back(fireHandle);
+        }
     }
 
     //Set values if not data
     if(!this->isData){
         lumi = lumis[era];
-        nTrueInt = isNANO ? *nPU->Get() : pileUp->at(0).getTrueNumInteractions(); 
+        nTrueInt = isNANO ? *nPU->Get() : 1.;
         genWeight = isNANO ? *genWeightValue->Get() : genInfo->weight();
+
+        if(!isNANO){
+            //PDF uncertainties
+            scaleWeights = *scaleVariations;
+            pdfWeights = *pdfVariations;
+
+            //Fill prefire weight
+            for(unsigned int i = 0; i < prefire.size(); i ++){
+                prefireWeights.push_back(*(prefire[i]));
+            }
+
+            //Get true number of interaction https://twiki.cern.ch/twiki/bin/view/CMS/PileupSystematicErrors
+            for(PileupSummaryInfo puInfo: *pileUp) {
+                int BX = puInfo.getBunchCrossing();
+
+                if(BX == 0) { 
+                    nTrueInt = puInfo.getTrueNumInteractions();
+                    continue;
+                }
+            }
+        }
 
         nGenHist->Fill(1);
         nGenWeightedHist->Fill(genWeight);
         puMC->Fill(nTrueInt);
     }
 
-    eventNumber = isNANO ? *evtNumber->Get() : event->eventAuxiliary().id().event();
+    eventNumber = isNANO ? *evtNumber->Get() : event->id().event();
 
     for(CutFlow& cutflow: cutflows){
         cutflow.weight = xSec*lumi;
@@ -77,9 +120,27 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* e
 
 void WeightAnalyzer::EndJob(TFile* file){
     if(!this->isData){
-        nGenHist->Write();
-        nGenWeightedHist->Write();
-        puMC->Write();
+        if(!file->GetListOfKeys()->Contains("nGen")){
+            nGenHist->Write();
+            nGenWeightedHist->Write();
+            puMC->Write();
+
+            //Also get measured PU distributions https://twiki.cern.ch/twiki/bin/view/CMS/PileupJSONFileforData
+            for(const std::string& syst: {"", "Up", "Down"}){
+                std::string filename = filePath + "/pileUp/pileUp@!.root";
+                filename.replace(filename.find("@"), 1, std::to_string(int(era)));
+                filename.replace(filename.find("!"), 1, syst);
+
+                TFile* pileFile = TFile::Open(filename.c_str(), "READ");
+                TH1F* realPile = (TH1F*)pileFile->Get("pileup");
+                realPile->SetName(("pileUp" + syst).c_str());
+                file->cd();
+                realPile->Write();
+
+                delete realPile;
+                delete pileFile;
+            }
+        }
     }
 
     delete puMC;
