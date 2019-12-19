@@ -4,13 +4,14 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 from Configuration.AlCa.GlobalTag import GlobalTag
 from RecoEgamma.EgammaTools.EgammaPostRecoTools import setupEgammaPostRecoSeq
 from PhysicsTools.PatAlgos.tools.jetTools import updateJetCollection
+from PhysicsTools.PatUtils.l1ECALPrefiringWeightProducer_cfi import l1ECALPrefiringWeightProducer
 
 import yaml
 import os
 
 ##Argument parsing
 options = VarParsing()
-options.register("channel", ["mu4j", "e4j", "mu2j1f", "e2j1f", "mu2f", "e2f"], VarParsing.multiplicity.list, VarParsing.varType.string,
+options.register("channel", ["mu4j", "e4j", "mu2j1fj", "e2j1fj", "mu2fj", "e2fj"], VarParsing.multiplicity.list, VarParsing.varType.string,
 "Name of file for skimming")
 options.register("filename", "", VarParsing.multiplicity.list, VarParsing.varType.string,
 "Name of file for skimming")
@@ -30,6 +31,7 @@ for key in xSecFile.keys():
 
 ##Check if file is true data file
 isData = True in [name in options.outname for name in ["Electron", "Muon", "MET"]]
+isSignal = "HPlus" in options.outname
 
 process = cms.Process("MiniSkimming")
 
@@ -73,8 +75,22 @@ updateJetCollection(
     jetCorrections = ('AK8PFchs', cms.vstring([]), 'None')
 )
 
+##Prefiring weight https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1ECALPrefiringWeightRecipe
+process.prefiringweight = l1ECALPrefiringWeightProducer.clone(
+                            DataEra = cms.string("2017BtoF"), #Use 2016BtoH for 2016
+                            UseJetEMPt = cms.bool(False),
+                            PrefiringRateSystematicUncty = cms.double(0.2),
+                            SkipWarnings = False
+)
+
 ##https://twiki.cern.ch/twiki/bin/view/CMS/EgammaMiniAODV2#2017_MiniAOD_V2
 setupEgammaPostRecoSeq(process, era='2017-Nov17ReReco')
+
+##Producer to get pdf weights
+process.pdfweights = cms.EDProducer("PDFWeights",
+                                    LHE = cms.InputTag("externalLHEProducer" if not isSignal else "source"),
+                                    LHAID=cms.int32(306000),
+)
 
 ##Mini Skimmer class which does the skimming
 process.skimmer = cms.EDAnalyzer("MiniSkimmer", 
@@ -93,11 +109,14 @@ process.skimmer = cms.EDAnalyzer("MiniSkimmer",
                                 rho = cms.InputTag("fixedGridRhoFastjetAll"),
                                 vtx = cms.InputTag("offlineSlimmedPrimaryVertices"),
                                 svtx = cms.InputTag("slimmedSecondaryVertices"),
+                                pdf = cms.InputTag("pdfweights","pdfVariations"),
+                                scale = cms.InputTag("pdfweights", "scaleVariations"),
                                 channels = cms.vstring(options.channel[0]),
                                 xSec = cms.double(xSec),
                                 outFile = cms.string(options.outname),
                                 isData = cms.bool(isData),
-                )
+)
+
 
 ##Let it run baby
 process.p = cms.Path(
@@ -110,5 +129,7 @@ process.p = cms.Path(
                      process.updatedPatJetsTransientCorrectedRAW*process.selectedUpdatedPatJetsRAW*
                      process.patJetCorrFactorsAK8RAW*process.updatedPatJetsAK8RAW*
                      process.egammaPostRecoSeq*
+                     process.prefiringweight*
+                     process.pdfweights*
                      process.skimmer
-            )
+)
