@@ -22,7 +22,7 @@ class MetFilterAnalyzer : public BaseAnalyzer {
     public:
         MetFilterAnalyzer(const int &era, TTreeReader &reader);
         MetFilterAnalyzer(const int &era, trigToken& triggerToken);
-        void BeginJob(std::vector<TTree*>& trees, bool &isData);
+        void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
         void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };

@@ -51,7 +51,7 @@ class MuonAnalyzer: public BaseAnalyzer{
         MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
         MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, muToken &muonToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken);
 
-        void BeginJob(std::vector<TTree*>& trees, bool &isData);
+        void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
         void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };

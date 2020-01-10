@@ -51,7 +51,7 @@ class ElectronAnalyzer: public BaseAnalyzer {
         ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, const std::string& systematic="");
         ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
 
-        void BeginJob(std::vector<TTree*>& trees, bool &isData);
+        void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
         void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };

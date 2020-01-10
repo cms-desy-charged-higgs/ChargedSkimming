@@ -23,7 +23,7 @@ class TriggerAnalyzer : public BaseAnalyzer {
     public:
         TriggerAnalyzer(const std::vector<std::string> &muPaths, const std::vector<std::string> &elePaths, TTreeReader &reader);
         TriggerAnalyzer(const std::vector<std::string> &muPaths, const std::vector<std::string> &elePaths, trigToken& triggerToken);
-        void BeginJob(std::vector<TTree*>& trees, bool &isData);
+        void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
         void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };

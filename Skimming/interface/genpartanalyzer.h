@@ -20,7 +20,7 @@ class GenPartAnalyzer: public BaseAnalyzer{
     public:
         GenPartAnalyzer(genPartToken& genParticleToken);
         GenPartAnalyzer(TTreeReader &reader);
-        void BeginJob(std::vector<TTree*>& trees, bool &isData);
+        void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
         void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };

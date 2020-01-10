@@ -44,7 +44,6 @@ struct CutFlow {
     unsigned int nMinFatjet=0;
     
     bool passed = true;
-
 };
 
 typedef edm::EDGetTokenT<std::vector<pat::Jet>> jToken;
@@ -90,6 +89,7 @@ class BaseAnalyzer {
 
         //Set trihObj and Gen particle collection
         void SetCollection(bool &isData);
+        bool isSyst=false;
 
         //Check for gen particle if it is last copy
         const reco::Candidate* FirstCopy(const reco::GenParticle& part, const int& pdgID);
@@ -102,12 +102,11 @@ class BaseAnalyzer {
         //Trigger matching
         bool triggerMatching(const TLorentzVector &particle, const std::vector<pat::TriggerObjectStandAlone> trigObj = {});
 
-
     public:
         virtual ~BaseAnalyzer(){};
         BaseAnalyzer();
         BaseAnalyzer(TTreeReader* reader);
-        virtual void BeginJob(std::vector<TTree*>& trees, bool &isData) = 0;
+        virtual void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false) = 0;
         virtual void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event = NULL) = 0;
         virtual void EndJob(TFile* file) = 0;
 };

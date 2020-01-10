@@ -17,7 +17,7 @@ MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaC
     genParticleToken(genParticleToken)
     {}
 
-void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
+void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
     isoSFfiles = {
         {2017, filePath + "/muonSF/RunBCDEF_SF_ISO.root"},
     };
@@ -32,6 +32,7 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
 
     //Set data bool
     this->isData = isData;
+    this->isSyst = isSyst;
 
     //Hist with scale factors
     TFile* triggerSFfile = TFile::Open(triggerSFfiles[era].c_str());
@@ -65,7 +66,14 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     }
 
     //Set output names
-    floatNames = {"E", "Px", "Py", "Pz", "Charge", "looseIsoLooseSF", "looseIsoLooseSFUp", "looseIsoLooseSFDown", "tightIsoTightSF", "tightIsoTightSFUp", "tightIsoTightSFDown", "looseSF", "looseSFUp", "tightSFDown", "triggerSF", "triggerSFUp", "triggerSFDown"};
+    floatNames = {"E", "Px", "Py", "Pz", "Charge", "looseIsoLooseSF", "tightIsoTightSF", "looseSF", "tightSF", "triggerSF"};
+
+    if(!isSyst){
+        std::vector<std::string> SFvariations = {"looseIsoLooseSFUp", "looseIsoLooseSFDown", "tightIsoTightSFUp", "tightIsoTightSFDown", "looseSFUp", "looseSDown", "tightSFUp", "tightSFDown", "triggerSFUp", "triggerSFDown"}; 
+
+        floatNames.insert(floatNames.end(), SFvariations.begin(), SFvariations.end());   
+    }
+
     boolNames = {"isLooseIso", "isTightIso", "isLoose", "isTight", "isTriggerMatched", "isFromHc"};
 
     floatVariables = std::vector<std::vector<float>>(floatNames.size(), std::vector<float>());
@@ -134,29 +142,33 @@ void MuonAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* eve
             if(!isData){
                 //Scale factors
                 Int_t looseIsoBin = IsoHist[0]->FindBin(pt, abs(eta));
-                floatVariables[5].push_back(IsoHist[0]->GetBinContent(looseIsoBin));
-                floatVariables[6].push_back(IsoHist[0]->GetBinContent(looseIsoBin) + IsoHist[0]->GetBinErrorUp(looseIsoBin));
-                floatVariables[7].push_back(IsoHist[0]->GetBinContent(looseIsoBin) - IsoHist[0]->GetBinErrorLow(looseIsoBin));
-
                 Int_t tightIsoBin = IsoHist[1]->FindBin(pt, abs(eta));
-                floatVariables[8].push_back(IsoHist[1]->GetBinContent(tightIsoBin));
-                floatVariables[9].push_back(IsoHist[1]->GetBinContent(tightIsoBin) + IsoHist[1]->GetBinErrorUp(tightIsoBin));
-                floatVariables[10].push_back(IsoHist[1]->GetBinContent(tightIsoBin) - IsoHist[1]->GetBinErrorLow(tightIsoBin));
-
                 Int_t looseIDBin = IDHist[0]->FindBin(pt, abs(eta));
-                floatVariables[11].push_back(IDHist[0]->GetBinContent(looseIDBin));
-                floatVariables[12].push_back(IDHist[0]->GetBinContent(looseIDBin) + IDHist[0]->GetBinErrorUp(looseIDBin));
-                floatVariables[13].push_back(IDHist[0]->GetBinContent(looseIDBin) - IDHist[0]->GetBinErrorLow(looseIDBin));
-
                 Int_t tightIDBin = IDHist[1]->FindBin(pt, abs(eta));
-                floatVariables[11].push_back(IDHist[1]->GetBinContent(tightIDBin));
-                floatVariables[12].push_back(IDHist[1]->GetBinContent(tightIDBin) + IDHist[1]->GetBinErrorUp(tightIDBin));
-                floatVariables[13].push_back(IDHist[1]->GetBinContent(tightIDBin) - IDHist[1]->GetBinErrorLow(tightIDBin));
-
                 Int_t triggerBin = triggerSFhist->FindBin(pt, abs(eta));
-                floatVariables[14].push_back(triggerSFhist->GetBinContent(triggerBin));
-                floatVariables[15].push_back(triggerSFhist->GetBinContent(triggerBin) + triggerSFhist->GetBinErrorUp(triggerBin));
-                floatVariables[16].push_back(triggerSFhist->GetBinContent(triggerBin) - triggerSFhist->GetBinErrorLow(triggerBin));
+
+                floatVariables[5].push_back(IsoHist[0]->GetBinContent(looseIsoBin));
+                floatVariables[6].push_back(IsoHist[1]->GetBinContent(tightIsoBin));
+                floatVariables[7].push_back(IDHist[0]->GetBinContent(looseIDBin));
+                floatVariables[8].push_back(IDHist[1]->GetBinContent(tightIDBin));
+                floatVariables[9].push_back(triggerSFhist->GetBinContent(triggerBin));
+
+                if(!isSyst){
+                    floatVariables[10].push_back(IsoHist[0]->GetBinContent(looseIsoBin) + IsoHist[0]->GetBinErrorUp(looseIsoBin));
+                    floatVariables[11].push_back(IsoHist[0]->GetBinContent(looseIsoBin) - IsoHist[0]->GetBinErrorLow(looseIsoBin));
+
+                    floatVariables[12].push_back(IsoHist[1]->GetBinContent(tightIsoBin) + IsoHist[1]->GetBinErrorUp(tightIsoBin));
+                    floatVariables[13].push_back(IsoHist[1]->GetBinContent(tightIsoBin) - IsoHist[1]->GetBinErrorLow(tightIsoBin));
+
+                    floatVariables[14].push_back(IDHist[0]->GetBinContent(looseIDBin) + IDHist[0]->GetBinErrorUp(looseIDBin));
+                    floatVariables[15].push_back(IDHist[0]->GetBinContent(looseIDBin) - IDHist[0]->GetBinErrorLow(looseIDBin));
+
+                    floatVariables[16].push_back(IDHist[1]->GetBinContent(tightIDBin) + IDHist[1]->GetBinErrorUp(tightIDBin));
+                    floatVariables[17].push_back(IDHist[1]->GetBinContent(tightIDBin) - IDHist[1]->GetBinErrorLow(tightIDBin));
+
+                    floatVariables[18].push_back(triggerSFhist->GetBinContent(triggerBin) + triggerSFhist->GetBinErrorUp(triggerBin));
+                    floatVariables[19].push_back(triggerSFhist->GetBinContent(triggerBin) - triggerSFhist->GetBinErrorLow(triggerBin));
+                }
 
                 //Save gen particle information
                 if(isNANO) boolVariables[5].push_back(SetGenParticles(lVec, i, 13));

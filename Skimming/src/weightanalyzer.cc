@@ -17,12 +17,13 @@ WeightAnalyzer::WeightAnalyzer(const float era, const float xSec, puToken &pileu
     pdfToken(pdfToken)
     {}
 
-void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
+void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
     //Set lumi map
     lumis = {{2016, 35.92*1e3}, {2017, 41.53*1e3}};
 
     //Set data bool
     this->isData = isData;
+    this->isSyst = isSyst;
 
     if(!this->isData){
         if(isNANO){
@@ -44,15 +45,17 @@ void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     for(TTree* tree: trees){
         tree->Branch("Weight_lumi", &lumi);
         tree->Branch("Weight_xsec", &xSec);
-        tree->Branch("Weight_pdfVariations", &pdfWeights);
-        tree->Branch("Weight_scaleVariations", &scaleWeights);
-        tree->Branch("Weight_xsec", &xSec);
         tree->Branch("Weight_genWeight", &genWeight);
         tree->Branch("Weight_prefireWeight", &prefireWeights[0]);
-        tree->Branch("Weight_prefireWeightUp", &prefireWeights[1]);
-        tree->Branch("Weight_prefireWeightDown", &prefireWeights[2]);
         tree->Branch("Misc_TrueInteraction", &nTrueInt);
         tree->Branch("Misc_eventNumber", &eventNumber);
+
+        if(!isSyst){
+            tree->Branch("Weight_pdfVariations", &pdfWeights);
+            tree->Branch("Weight_scaleVariations", &scaleWeights);
+            tree->Branch("Weight_prefireWeightUp", &prefireWeights[1]);
+            tree->Branch("Weight_prefireWeightDown", &prefireWeights[2]);
+        }
     }
 }
 
@@ -84,23 +87,29 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* e
         genWeight = isNANO ? *genWeightValue->Get() : genInfo->weight();
 
         if(!isNANO){
-            //PDF uncertainties
-            scaleWeights = *scaleVariations;
-            pdfWeights = *pdfVariations;
+            if(!isSyst){
+                //PDF uncertainties
+                scaleWeights = *scaleVariations;
+                pdfWeights = *pdfVariations;
 
-            //Fill prefire weight
-            for(unsigned int i = 0; i < prefire.size(); i ++){
-                prefireWeights.push_back(*(prefire[i]));
+                //Fill prefire weight
+                for(unsigned int i = 0; i < prefire.size(); i ++){
+                    prefireWeights.push_back(*(prefire[i]));
+                }
+
+                //Get true number of interaction https://twiki.cern.ch/twiki/bin/view/CMS/PileupSystematicErrors
+                for(PileupSummaryInfo puInfo: *pileUp) {
+                    int BX = puInfo.getBunchCrossing();
+
+                    if(BX == 0) { 
+                        nTrueInt = puInfo.getTrueNumInteractions();
+                        continue;
+                    }
+                }
             }
 
-            //Get true number of interaction https://twiki.cern.ch/twiki/bin/view/CMS/PileupSystematicErrors
-            for(PileupSummaryInfo puInfo: *pileUp) {
-                int BX = puInfo.getBunchCrossing();
-
-                if(BX == 0) { 
-                    nTrueInt = puInfo.getTrueNumInteractions();
-                    continue;
-                }
+            else{
+                prefireWeights.push_back(*(prefire[0]));
             }
         }
 
@@ -141,9 +150,9 @@ void WeightAnalyzer::EndJob(TFile* file){
                 delete pileFile;
             }
         }
-    }
 
-    delete puMC;
-    delete nGenHist;
-    delete nGenWeightedHist;
+        delete puMC;
+        delete nGenHist;
+        delete nGenWeightedHist;
+    }
 }

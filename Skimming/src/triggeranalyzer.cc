@@ -11,7 +11,7 @@ TriggerAnalyzer::TriggerAnalyzer(const std::vector<std::string> &muPaths, const 
     elePaths(elePaths),
     triggerToken(triggerToken){}
 
-void TriggerAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
+void TriggerAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
     if(isNANO){
         //TTreeReader Values
         for(std::string triggerPath: muPaths){

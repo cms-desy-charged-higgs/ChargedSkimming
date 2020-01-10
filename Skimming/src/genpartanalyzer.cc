@@ -8,7 +8,7 @@ GenPartAnalyzer::GenPartAnalyzer(genPartToken& genParticleToken):
 GenPartAnalyzer::GenPartAnalyzer(TTreeReader& reader):
     BaseAnalyzer(&reader){}
 
-void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
+void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
     //Set data bool
     this->isData = isData;
     

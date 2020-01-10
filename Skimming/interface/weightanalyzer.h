@@ -44,7 +44,7 @@ class WeightAnalyzer : public BaseAnalyzer {
     public:
         WeightAnalyzer(const float era, const float xSec, TTreeReader &reader);
         WeightAnalyzer(const float era, const float xSec, puToken &pileupToken, genToken &geninfoToken, const std::vector<edm::EDGetTokenT<double>> prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken);
-        void BeginJob(std::vector<TTree*>& trees, bool &isData);
+        void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
         void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };

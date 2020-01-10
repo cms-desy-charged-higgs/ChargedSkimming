@@ -47,7 +47,7 @@ void JetAnalyzer::SetCorrector(const JetType &type, const int& runNumber){
     std::vector<JetCorrectorParameters> corrVec;
 
     for(std::string fileName: isData? JECDATA[era] : JECMC[era]){
-        if(fileName.find("@") == std::string::npos){
+        if(fileName.find("@") != std::string::npos){
             for(std::pair<std::string, std::pair<int, int>> eraNames: runEras[era]){
                 if(eraNames.second.first <= runNumber and runNumber <= eraNames.second.second){
                     fileName.replace(fileName.find("@"), 1, eraNames.first);
@@ -56,7 +56,6 @@ void JetAnalyzer::SetCorrector(const JetType &type, const int& runNumber){
         }
 
         fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");
-
         corrVec.push_back(JetCorrectorParameters(fileName));
     }
   
@@ -213,7 +212,7 @@ int JetAnalyzer::SetGenParticles(TLorentzVector& validJet, const int &i, const i
     return -1.;
 }
 
-void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
+void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
     JECMC = {
                 {2017, {filePath + "/JEC/Fall17_17Nov2017_V32_MC_L1FastJet_&PFchs.txt", 
                         filePath + "/JEC/Fall17_17Nov2017_V32_MC_L2Relative_&PFchs.txt",
@@ -270,6 +269,7 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
 
     //Set data bool
     this->isData = isData;
+    this->isSyst = isSyst;
 
     if(isNANO){
         //Initiliaze TTreeReaderValues
@@ -349,10 +349,18 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     }
 
     //Set output names
-    JetfloatNames = {"E", "Px", "Py", "Pz", "loosebTagSF", "loosebTagSFUp", "loosebTagDown", "mediumbTagSF", "mediumbTagSFUp", "mediumbTagSFDown", "tightbTagSF", "tightbTagSFUp", "tightbTagSFDown", "FatJetIdx", "isFromh"};
-    FatJetfloatNames = {"E", "Px", "Py", "Pz", "oneSubJettiness", "twoSubJettiness", "threeSubJettiness", "loosebTagSF", "loosebTagSFUp", "loosebTagDown", "mediumbTagSF", "mediumbTagSF", "mediumbTagSFUp", "isFromh"};
-    JetParticlefloatNames = {"E", "Px", "Py", "Pz", "Vx", "Vy", "Vz", "Charge", "FatJetIdx"};
+    JetfloatNames = {"E", "Px", "Py", "Pz", "FatJetIdx", "isFromh", "loosebTagSF",  "mediumbTagSF", "tightbTagSF"};
+    FatJetfloatNames = {"E", "Px", "Py", "Pz", "oneSubJettiness", "twoSubJettiness", "threeSubJettiness", "isFromh", "loosebTagSF", "mediumbTagSF"};
 
+    if(!isSyst){
+        std::vector<std::string> SFJetvariations = {"loosebTagSFUp", "loosebTagDown", "mediumbTagSFUp", "mediumbTagSFDown", "tightbTagSFUp", "tightbTagSFDown"};
+        std::vector<std::string> SFFatJetvariations = {"loosebTagSFUp", "loosebTagDown", "mediumbTagSFUp", "mediumbTagSFDown"};
+
+        JetfloatNames.insert(JetfloatNames.end(), SFJetvariations.begin(), SFJetvariations.end()); 
+        FatJetfloatNames.insert(FatJetfloatNames.end(), SFFatJetvariations.begin(), SFFatJetvariations.end()); 
+    }
+
+    JetParticlefloatNames = {"E", "Px", "Py", "Pz", "Vx", "Vy", "Vz", "Charge", "FatJetIdx"};
     boolNames = {"isLooseB", "isMediumB", "isTightB"};
 
     JetfloatVariables = std::vector<std::vector<float>>(JetfloatNames.size(), std::vector<float>());
@@ -532,18 +540,20 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
             FatJetfloatVariables[6].push_back(isNANO ? fatJetTau3->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau3"));
             if(!isData){
                 //btag SF
-                FatJetfloatVariables[7].push_back(looseReader[AK8].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                FatJetfloatVariables[8].push_back(looseReader[AK8].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                FatJetfloatVariables[9].push_back(looseReader[AK8].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                FatJetfloatVariables[10].push_back(mediumReader[AK8].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                FatJetfloatVariables[11].push_back(mediumReader[AK8].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                FatJetfloatVariables[12].push_back(mediumReader[AK8].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                FatJetfloatVariables[8].push_back(looseReader[AK8].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                FatJetfloatVariables[9].push_back(mediumReader[AK8].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
 
+                if(!isSyst){
+                    FatJetfloatVariables[10].push_back(looseReader[AK8].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                    FatJetfloatVariables[11].push_back(looseReader[AK8].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                    FatJetfloatVariables[12].push_back(mediumReader[AK8].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                    FatJetfloatVariables[13].push_back(mediumReader[AK8].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                }
 
-                if(isNANO) FatJetfloatVariables[13].push_back(SetGenParticles(lVec, i, 5, AK8));
+                if(isNANO) FatJetfloatVariables[7].push_back(SetGenParticles(lVec, i, 5, AK8));
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    FatJetfloatVariables[13].push_back(SetGenParticles(lVec, i, 5, AK8, *genParts));
+                    FatJetfloatVariables[7].push_back(SetGenParticles(lVec, i, 5, AK8, *genParts));
                 }
             }
 
@@ -681,20 +691,24 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
 
             if(!isData){
                 //btag SF
-                JetfloatVariables[4].push_back(looseReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                JetfloatVariables[5].push_back(looseReader[AK4].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                JetfloatVariables[6].push_back(looseReader[AK4].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                JetfloatVariables[6].push_back(looseReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
                 JetfloatVariables[7].push_back(looseReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                JetfloatVariables[8].push_back(looseReader[AK4].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                JetfloatVariables[9].push_back(looseReader[AK4].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                JetfloatVariables[10].push_back(looseReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                JetfloatVariables[11].push_back(looseReader[AK4].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
-                JetfloatVariables[12].push_back(looseReader[AK4].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                JetfloatVariables[8].push_back(looseReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
 
-                if(isNANO) JetfloatVariables[14].push_back(SetGenParticles(lVec, i, 5, AK4));
+                if(!isSyst){
+                    JetfloatVariables[9].push_back(looseReader[AK4].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                    JetfloatVariables[10].push_back(looseReader[AK4].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                    JetfloatVariables[11].push_back(mediumReader[AK4].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                    JetfloatVariables[12].push_back(mediumReader[AK4].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                    JetfloatVariables[13].push_back(tightReader[AK4].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                    JetfloatVariables[14].push_back(tightReader[AK4].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(lVec.Eta()), lVec.Pt()));
+                }
+
+
+                if(isNANO) JetfloatVariables[5].push_back(SetGenParticles(lVec, i, 6, AK4));
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    JetfloatVariables[14].push_back(SetGenParticles(lVec, i, 5, AK4, *genParts));
+                    JetfloatVariables[5].push_back(SetGenParticles(lVec, i, 6, AK4, *genParts));
                 }
             }
 
@@ -704,12 +718,12 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                 FatlVec.SetPxPyPzE(FatJetfloatVariables[1][j], FatJetfloatVariables[2][j], FatJetfloatVariables[3][j], FatJetfloatVariables[0][j]);
 
                 if(FatlVec.DeltaR(lVec) < 1.2){
-                    JetfloatVariables[13].push_back(j);
+                    JetfloatVariables[4].push_back(j);
                     nSubJets++;
                 }
 
                 else{
-                    JetfloatVariables[13].push_back(-1.);
+                    JetfloatVariables[4].push_back(-1.);
                 }
             }
         } 
@@ -735,7 +749,6 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         }
     }
 }
-
 
 void JetAnalyzer::EndJob(TFile* file){
     for(const JetType& type: {AK4, AK8}){

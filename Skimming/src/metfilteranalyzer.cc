@@ -10,7 +10,7 @@ MetFilterAnalyzer::MetFilterAnalyzer(const int &era, trigToken& triggerToken):
     triggerToken(triggerToken)
     {}
 
-void MetFilterAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
+void MetFilterAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
     //Set Filter names for each era
     filterNames = {
                 {2017, {"Flag_goodVertices",

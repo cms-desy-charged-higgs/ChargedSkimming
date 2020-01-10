@@ -19,7 +19,7 @@ ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const flo
     etaCut(etaCut)
     {}
 
-void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
+void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
     //SF files
     mediumSFfiles = {
                     {2017, filePath + "eleSF/gammaEffi.txt_EGM2D_runBCDEF_passingMVA94Xwp80iso.root"},
@@ -35,6 +35,7 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
 
     //Set data bool
     this->isData = isData;
+    this->isSyst = isSyst;
 
     //Hist with scale factors
     TFile* recoSFfile = TFile::Open(recoSFfiles[era].c_str());
@@ -61,8 +62,15 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData){
     }
 
     //Set output names
-    floatNames = {"E", "Px", "Py", "Pz", "Isolation", "Charge", "recoSF", "recoSFUp", "recoSFDown", "mediumSF", "mediumSFUp", "mediumSFDown", "tightSF", "tightSFUp", "tightSFDown"};
-    boolNames = { "isMedium", "isTight", "isTriggerMatched", "isFromHc"};
+    floatNames = {"E", "Px", "Py", "Pz", "Isolation", "Charge", "recoSF", "mediumSF", "tightSF"};
+
+    if(!isSyst){
+        std::vector<std::string> SFvariations = {"recoSFUp", "recoSFDown", "mediumSFUp", "mediumSFDown", "tightSFUp", "tightSFDown"};
+
+        floatNames.insert(floatNames.end(), SFvariations.begin(), SFvariations.end());
+    }
+
+    boolNames = {"isMedium", "isTight", "isTriggerMatched", "isFromHc"};
 
     floatVariables = std::vector<std::vector<float>>(floatNames.size(), std::vector<float>());
     boolVariables = std::vector<std::vector<bool>>(boolNames.size(), std::vector<bool>());
@@ -139,16 +147,19 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event*
                 Int_t tightBin = tightSFhist->FindBin(eta, pt);
 
                 floatVariables[6].push_back(recoSFhist->GetBinContent(recoBin));
-                floatVariables[7].push_back(recoSFhist->GetBinContent(recoBin) + recoSFhist->GetBinErrorUp(recoBin));
-                floatVariables[8].push_back(recoSFhist->GetBinContent(recoBin) - recoSFhist->GetBinErrorLow(recoBin));
+                floatVariables[7].push_back(mediumSFhist->GetBinContent(mediumBin));
+                floatVariables[8].push_back(tightSFhist->GetBinContent(tightBin));
 
-                floatVariables[9].push_back(mediumSFhist->GetBinContent(mediumBin));
-                floatVariables[10].push_back(mediumSFhist->GetBinContent(mediumBin) + mediumSFhist->GetBinErrorUp(mediumBin));
-                floatVariables[11].push_back(mediumSFhist->GetBinContent(mediumBin) - mediumSFhist->GetBinErrorLow(mediumBin));
+                if(!isSyst){
+                    floatVariables[9].push_back(recoSFhist->GetBinContent(recoBin) + recoSFhist->GetBinErrorUp(recoBin));
+                    floatVariables[10].push_back(recoSFhist->GetBinContent(recoBin) - recoSFhist->GetBinErrorLow(recoBin));
 
-                floatVariables[12].push_back(tightSFhist->GetBinContent(tightBin));
-                floatVariables[13].push_back(tightSFhist->GetBinContent(tightBin) + tightSFhist->GetBinErrorUp(tightBin));
-                floatVariables[14].push_back(tightSFhist->GetBinContent(tightBin) - tightSFhist->GetBinErrorLow(tightBin));
+                    floatVariables[11].push_back(mediumSFhist->GetBinContent(mediumBin) + mediumSFhist->GetBinErrorUp(mediumBin));
+                    floatVariables[12].push_back(mediumSFhist->GetBinContent(mediumBin) - mediumSFhist->GetBinErrorLow(mediumBin));
+
+                    floatVariables[13].push_back(tightSFhist->GetBinContent(tightBin) + tightSFhist->GetBinErrorUp(tightBin));
+                    floatVariables[14].push_back(tightSFhist->GetBinContent(tightBin) - tightSFhist->GetBinErrorLow(tightBin));
+                }
 
                 //Save gen particle information
                 if(isNANO) boolVariables[3].push_back(SetGenParticles(lVec, i, 11));
@@ -173,7 +184,6 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event*
         }
     }
 }
-
 
 void ElectronAnalyzer::EndJob(TFile* file){
 }
