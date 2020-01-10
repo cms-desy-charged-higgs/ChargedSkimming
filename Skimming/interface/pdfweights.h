@@ -38,6 +38,7 @@ class PDFWeights : public edm::EDProducer {
         edm::EDPutTokenT<std::vector<float>> ScaleToken;
         edm::InputTag LHETag;
         int LHAID;
+        bool isData;
 
         //
         std::vector<std::string> variationIDs; 

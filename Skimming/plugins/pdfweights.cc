@@ -2,7 +2,8 @@
 
 PDFWeights::PDFWeights(const edm::ParameterSet& iConfig) :
     LHETag(iConfig.getParameter<edm::InputTag>("LHE")),
-    LHAID(iConfig.getParameter<int>("LHAID")) {
+    LHAID(iConfig.getParameter<int>("LHAID")),
+    isData(iConfig.getParameter<bool>("isData")) {
         consumes<LHERunInfoProduct, edm::InRun>(LHETag);
         LHEToken = consumes<LHEEventProduct>(LHETag);
         PDFToken = produces<std::vector<float>>("pdfVariations").setBranchAlias("pdfVariations");
@@ -24,6 +25,9 @@ std::vector<std::string> PDFWeights::SplitString(const std::string& splitString,
 }
 
 void PDFWeights::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup){
+    //Do nothing if data
+    if(isData) return;
+
     //Get information of LHE files about pdf weights
     edm::Handle<LHERunInfoProduct> run; 
     typedef std::vector<LHERunInfoProduct::Header>::const_iterator headers_const_iterator;
@@ -87,19 +91,22 @@ void PDFWeights::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup){
 }
 
 void PDFWeights::produce(edm::Event& iEvent, const edm::EventSetup& iSetup){
+    //Do nothing if data
     std::unique_ptr<std::vector<float>> pdfVariations(new std::vector<float>);
     std::unique_ptr<std::vector<float>> scaleVariations(new std::vector<float>);
 
-    edm::Handle<LHEEventProduct> LHEInfo;
-    iEvent.getByToken(LHEToken, LHEInfo);
+    if(!isData){
+        edm::Handle<LHEEventProduct> LHEInfo;
+        iEvent.getByToken(LHEToken, LHEInfo);
 
-    for(const gen::WeightsInfo& weight: LHEInfo->weights()){
-        if(std::find(variationIDs.begin(), variationIDs.end(), weight.id) != variationIDs.end()){
-            pdfVariations->push_back(weight.wgt/LHEInfo->originalXWGTUP());
-        }
+        for(const gen::WeightsInfo& weight: LHEInfo->weights()){
+            if(std::find(variationIDs.begin(), variationIDs.end(), weight.id) != variationIDs.end()){
+                pdfVariations->push_back(weight.wgt/LHEInfo->originalXWGTUP());
+            }
 
-        if(std::find(scaleIDs.begin(), scaleIDs.end(), weight.id) != variationIDs.end()){
-            scaleVariations->push_back(weight.wgt/LHEInfo->originalXWGTUP());
+            if(std::find(scaleIDs.begin(), scaleIDs.end(), weight.id) != variationIDs.end()){
+                scaleVariations->push_back(weight.wgt/LHEInfo->originalXWGTUP());
+            }
         }
     }
     
