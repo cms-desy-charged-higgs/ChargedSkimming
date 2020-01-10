@@ -90,6 +90,7 @@ setupEgammaPostRecoSeq(process, era='2017-Nov17ReReco')
 process.pdfweights = cms.EDProducer("PDFWeights",
                                     LHE = cms.InputTag("externalLHEProducer" if not isSignal else "source"),
                                     LHAID=cms.int32(306000),
+                                    isData = cms.bool(isData or "TuneCP5_13TeV-pythia8" in options.filename[0]),
 )
 
 ##Mini Skimmer class which does the skimming
