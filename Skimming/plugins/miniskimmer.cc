@@ -68,6 +68,9 @@ void MiniSkimmer::beginJob(){
     };
 
     for(const std::pair<std::string, std::string>& systInfo: systNames){
+        //Dont do systematics for data
+        if(isData and systInfo.first != "") continue;
+
         for(const std::string& shift: {"Up", "Down"}){
             //Get systematic name and relevant particle
             std::string systematic, particle;
@@ -124,7 +127,7 @@ void MiniSkimmer::beginJob(){
 
             //Begin jobs for all analyzers
             for(std::shared_ptr<BaseAnalyzer> analyzer: analyzerPerSyst){
-                analyzer->BeginJob(treesPerSyst, isData);
+                analyzer->BeginJob(treesPerSyst, isData, !isNomi);
             }
 
             outputTrees.push_back(treesPerSyst);
