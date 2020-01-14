@@ -104,7 +104,7 @@ void PDFWeights::produce(edm::Event& iEvent, const edm::EventSetup& iSetup){
                 pdfVariations->push_back(weight.wgt/LHEInfo->originalXWGTUP());
             }
 
-            if(std::find(scaleIDs.begin(), scaleIDs.end(), weight.id) != variationIDs.end()){
+            if(std::find(scaleIDs.begin(), scaleIDs.end(), weight.id) != scaleIDs.end()){
                 scaleVariations->push_back(weight.wgt/LHEInfo->originalXWGTUP());
             }
         }
