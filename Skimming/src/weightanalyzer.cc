@@ -96,20 +96,20 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* e
                 for(unsigned int i = 0; i < prefire.size(); i ++){
                     prefireWeights.push_back(*(prefire[i]));
                 }
-
-                //Get true number of interaction https://twiki.cern.ch/twiki/bin/view/CMS/PileupSystematicErrors
-                for(PileupSummaryInfo puInfo: *pileUp) {
-                    int BX = puInfo.getBunchCrossing();
-
-                    if(BX == 0) { 
-                        nTrueInt = puInfo.getTrueNumInteractions();
-                        continue;
-                    }
-                }
             }
 
             else{
                 prefireWeights.push_back(*(prefire[0]));
+            }
+
+            //Get true number of interaction https://twiki.cern.ch/twiki/bin/view/CMS/PileupSystematicErrors
+            for(PileupSummaryInfo puInfo: *pileUp) {
+                int BX = puInfo.getBunchCrossing();
+
+                if(BX == 0) { 
+                    nTrueInt = puInfo.getTrueNumInteractions();
+                    continue;
+                }
             }
         }
 
