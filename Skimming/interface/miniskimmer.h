@@ -40,6 +40,7 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         TFile* outputFile;
 
         //Trees for each systematic analysis
+        std::vector<TFile*> outputFiles;
         std::vector<std::vector<TTree*>> outputTrees;
         std::vector<std::vector<CutFlow>> cutflows; 
 

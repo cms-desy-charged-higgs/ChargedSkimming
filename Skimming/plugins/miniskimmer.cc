@@ -83,6 +83,15 @@ void MiniSkimmer::beginJob(){
             //Skip Up Down loop for nominal for Down variation
             if(systematic == "" and shift == "Down") continue;
 
+            //Open output file
+            std::string outname = outFile;
+
+            if(!isNomi){
+                outname.insert(outname.find("."), "_" + systName);            
+            } 
+
+            TFile* outFile = TFile::Open(outname.c_str(), "RECREATE"); 
+
             //Vector of objects (One object for each channel)
             std::vector<TTree*> treesPerSyst;
             std::vector<CutFlow> flowPerSyst;
@@ -94,15 +103,15 @@ void MiniSkimmer::beginJob(){
 
                 //Create output trees
                 TTree* tree = new TTree();
-                tree->SetName((isNomi ? channel : channel + "_" + systName).c_str());
+                tree->SetName(channel.c_str());
                 treesPerSyst.push_back(tree);
 
                 //Create cutflow histograms
                 CutFlow cutflow;
 
                 cutflow.hist = new TH1F();
-                cutflow.hist->SetName((isNomi ? "cutflow_" + channel : "cutflow_" + channel + "_" + systName).c_str());
-                cutflow.hist->SetName((isNomi ? "cutflow_" + channel : "cutflow_" + channel + "_" + systName).c_str());
+                cutflow.hist->SetName(("cutflow_" + channel).c_str());
+                cutflow.hist->SetName(("cutflow_" + channel).c_str());
                 cutflow.hist->GetYaxis()->SetName("Events");
 
                 cutflow.nMinMu=nMin[channel][0];
@@ -121,7 +130,7 @@ void MiniSkimmer::beginJob(){
                 std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
                 std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken, particle == "j" ? systName : "")),
                 std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 20., 2.4, muonToken, triggerObjToken, genParticleToken)),
-                std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, eleToken, triggerObjToken, genParticleToken, particle == "ele" ? systName : "")),
+                std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, eleToken, triggerObjToken, genParticleToken, particle == "e" ? systName : "")),
                 std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
             };
 
@@ -133,6 +142,7 @@ void MiniSkimmer::beginJob(){
             outputTrees.push_back(treesPerSyst);
             cutflows.push_back(flowPerSyst);
             analyzers.push_back(analyzerPerSyst);
+            outputFiles.push_back(outFile);
         }
     }
 }
@@ -169,27 +179,28 @@ void MiniSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     }
 }
 
-void MiniSkimmer::endJob(){
-    TFile* file = TFile::Open(outFile.c_str(), "RECREATE");
-    
+void MiniSkimmer::endJob(){    
     for(unsigned int i = 0; i < analyzers.size(); i++){
+        outputFiles[i]->cd();
+
         for(TTree* tree: outputTrees[i]){
             tree->Write();
         }
 
         //End jobs for all analyzers
         for(unsigned int j = 0; j < analyzers[i].size(); j++){
-            analyzers[i][j]->EndJob(file);
+            analyzers[i][j]->EndJob(outputFiles[i]);
         }
 
         for(CutFlow& cutflow: cutflows[i]){
             cutflow.hist->Write();
             delete cutflow.hist;
         }
-    }
 
-    file->Write();
-    file->Close();
+
+        outputFiles[i]->Write();
+        outputFiles[i]->Close();
+    }
 }
 
 //define this as a plug-in
