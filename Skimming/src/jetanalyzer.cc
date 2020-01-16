@@ -36,9 +36,8 @@ JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut
         if(systematic.find("JER") != std::string::npos){
             isJERsyst = true;
 
-            if(systematic.find("Up") != std::string::npos){
-                isUp = true;
-            }
+            if(systematic.find("Up") != std::string::npos) isUp = true;
+            else isUp = false;
         }
     }
 
