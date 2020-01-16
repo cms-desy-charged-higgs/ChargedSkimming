@@ -27,14 +27,32 @@ TTWJetsToQQ_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8:
 TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8:
     xsec: 0.2198
 
-WW_TuneCP5_13TeV-pythia8:
-    xsec: 75.8
+ZZTo4L_13TeV_powheg_pythia8:
+    xsec: 1.256
 
-WZ_TuneCP5_13TeV-pythia8:
-    xsec: 27.6
+ZZTo2L2Q_13TeV_amcatnloFXFX_madspin_pythia8:
+    xsec: 3.222
 
-ZZ_TuneCP5_13TeV-pythia8:
-    xsec: 12.14
+ZZTo2L2Nu_13TeV_powheg_pythia8:
+    xsec: 0.5644
+
+VVTo2L2Nu_13TeV_amcatnloFXFX_madspin_pythia8:
+    xsec: 11.91
+
+WWToLNuQQ_NNPDF31_TuneCP5_13TeV-powheg-pythia8:
+    xsec: 45.99
+
+WZTo3LNu_TuneCP5_13TeV-amcatnloFXFX-pythia8:
+    xsec: 5.052
+
+WZTo2L2Q_13TeV_amcatnloFXFX_madspin_pythia8:
+    xsec: 5.606
+
+WZTo1L3Nu_13TeV_amcatnloFXFX_madspin_pythia8_v2:
+    xsec: 3.054
+
+WZTo1L1Nu2Q_13TeV_amcatnloFXFX_madspin_pythia8:
+    xsec: 10.73
 
 ZZZ_TuneCP5_13TeV-amcatnlo-pythia8:
     xsec: 0.01398
