@@ -20,28 +20,44 @@ def parser():
 
     return parser.parse_args()
 
-def crabConfig(dataSet, setName, outDir):
+def crabConfig(dataSet, setName, outDir, systematics):
     isSignal = "HPlus" in setName
+    isData = "Single" in setName
+
+    channels = ["mu4j", "e4j", "mu2j1fj", "e2j1fj", "mu2fj", "e2fj"]
+
+    outFiles = []
+
+    for systematic in systematics:
+        if systematic == "":
+            outFiles.append("{}.root".format(setName))
+            continue
+
+        if isData:
+            break
+
+        for shift in ["Up", "Down"]:
+            outFiles.append("{}_{}{}.root".format(setName, systematic, shift))
 
     ##Crab config
     crabConf = config()
 
-    crabConf.General.requestName = "MiniSkim_{}".format(setName)
+    crabConf.General.requestName = "Skim"
     crabConf.General.workArea = outDir
     crabConf.General.transferOutputs = True
     crabConf.General.transferLogs = False
 
+    crabConf.JobType.allowUndistributedCMSSW = True
     crabConf.JobType.pluginName = "Analysis"
     crabConf.JobType.psetName = "ChargedSkimming/Skimming/python/miniskimmer.py"
-    crabConf.JobType.pyCfgParams = ["outname={}.root".format(setName)]
-    crabConf.JobType.outputFiles = ["{}.root".format(setName)]
-    crabConf.JobType.maxMemoryMB = 3000
-    crabConf.JobType.maxJobRuntimeMin = 1750
+    crabConf.JobType.pyCfgParams = ["outname={}.root".format(setName), "channel={}".format(",".join(channels))]
+    crabConf.JobType.outputFiles = outFiles
+    crabConf.JobType.maxMemoryMB = 3500
 
     crabConf.Data.inputDataset = dataSet
     crabConf.Data.inputDBS = "global" if not isSignal else "phys03"
     crabConf.Data.splitting = "EventAwareLumiBased" if not isSignal else "FileBased"
-    crabConf.Data.unitsPerJob = 250000 if not isSignal else 1
+    crabConf.Data.unitsPerJob = 150000 if not isSignal else 2
     crabConf.Data.outLFNDirBase = "/store/user/dbrunner/skim"
 
     crabConf.Site.storageSite = "T2_DE_DESY"
@@ -75,8 +91,8 @@ def monitor(crabJob):
                 ##Check if you have to increase memory/run time
                 exitCode = [crabStatus["jobs"][key]["Error"][0] for key in crabStatus["jobs"] if "Error" in crabStatus["jobs"][key]]
 
-                runTime = "1750" if not 50664 in exitCode else "1900"
-                memory = "3000" if not 50660 in exitCode else "3200"
+                runTime = "1400" if not 50664 in exitCode else "1500"
+                memory = "3500" if not 50660 in exitCode else "3600"
 
                 crabCommand("resubmit", dir=crabDir, maxmemory=memory, maxjobruntime=runTime)
                 break 
@@ -85,44 +101,108 @@ def monitor(crabJob):
         jobNrs = [nr for nr in crabStatus["jobs"].keys() if crabStatus["jobs"][nr]["State"] == "finished"]
 
         ##Skip if output already retrieved
-        if(len(os.listdir("{}/results/".format(crabDir))) == len(jobNrs)):
-            if len(os.listdir("{}/results/".format(crabDir))) == len(crabStatus["jobs"].keys()):
-                return True
+        if(len(crabStatus["jobs"].keys()) == len(jobNrs)):
+            return True
 
-            return False
-
-        ##Retrieve output
-        for jobList in [jobNrs[i:i + 500] for i in range(0, len(jobNrs), 500)]:
-            while(True):
-                try:
-                    crabCommand("getoutput", dir=crabDir, jobids=",".join(jobList))
-                    break
-                except:
-                    pass
+    time.sleep(10)
 
     return False
 
-def merge(crabJob):
+def merge(crabJob, systematics):
+    ##Create output directories
+    crabDir = "{}/crab_{}".format(crabJob.General.workArea, crabJob.General.requestName)
     subprocess.call(["mkdir", "-p", "{}/merged/".format(crabJob.General.workArea)])
+    setName = crabJob.General.workArea.split("/")[-1]
 
-    resultDir = "{}/crab_{}/results".format(crabJob.General.workArea, crabJob.General.requestName)
-    files = ["{}/{}".format(resultDir, f) for f in os.listdir(resultDir)]
-    if(len(files) == 0):
-        return None
-    files = np.array_split(files, 1 if len(files) < 20 else int(len(files)/20.))
-    
-    tmpOutput = []
+    ##Get all output files
+    allFiles = subprocess.check_output(["crab", "getoutput", "--xrootd", crabDir]).split("\n")[:-1]
 
-    for index, filesBunch in enumerate(files):
-        tmpFile = "{}/merged/{}_{}.root".format(crabJob.General.workArea, "_".join(crabJob.General.requestName.split("_")[2:]), index)
-        subprocess.call(["hadd", "-f", tmpFile] + list(filesBunch))  
+    for systematic in systematics:
+        for shift in ["Up", "Down"]:
+            ##Get files for specific systematic + shift
+            if systematic == "":
+                files = [f for f in allFiles if not "Down" in f and not "Up" in f]
+                if shift == "Down":
+                    continue
 
-        tmpOutput.append(tmpFile)
+            else:
+                files = [f for f in allFiles if shift in f and systematic in f]
 
-    mergeOutput =  "{}/merged/{}.root".format(crabJob.General.workArea, "_".join(crabJob.General.requestName.split("_")[2:]))
+            systName = "" if systematic == "" else "_{}{}".format(systematic, shift) 
 
-    subprocess.call(["hadd", "-f", mergeOutput] + tmpOutput)  
-    subprocess.call(["rm"] + tmpOutput)     
+            ##Create directory with dag files
+            subDir = "{}/Tmp/SkimMerge/{}{}".format(os.environ["CHDIR"], setName, systName)
+            subprocess.call(["mkdir", "-p", subDir])
+
+            ##Condor and dagman templates
+            condorSub = [
+                "universe = vanilla",
+                "arguments = $(FILES)",
+                "getenv = True",
+                'requirements = (OpSysAndVer =?= "CentOS7")',
+                "error = {}/err$(Process).txt".format(subDir),
+                "output = {}/out$(Process).txt".format(subDir),
+                "executable = {}/src/ChargedSkimming/Skimming/scripts/merge.sh".format(os.environ["CMSSW_BASE"]),
+            ]
+
+            dagmanSub = [
+                "JOB A {}/subMerge.sub".format(subDir),
+                "JOB B {}/merge.sub".format(subDir),
+                "JOB C {}/rm.sub".format(subDir),
+                "PARENT A CHILD B",
+                "PARENT B CHILD C",
+            ]
+
+            ##Split files in chuncks
+            if(len(files) == 0):
+                return None
+            files = np.array_split(files, 1 if len(files) < 40 else int(len(files)/40.))
+            
+            tmpOutput = []
+
+            ##Write condor script for merge of chunks of files
+            with open("{}/subMerge.sub".format(subDir), "w") as condFile:
+                for line in condorSub:
+                    condFile.write(line + "\n")
+                    
+                condFile.write("queue FILES from (\n")
+
+                for index, filesBunch in enumerate(files):
+                    tmpFile = "{}/merged/tmpFile{}_{}.root".format(crabJob.General.workArea, systName, index)
+                    condFile.write(" ".join([tmpFile] + list(filesBunch)) + "\n")
+
+                    tmpOutput.append(tmpFile)
+
+                condFile.write(")")
+
+            ##Write condor script for merge of chunks to complete file
+            with open("{}/merge.sub".format(subDir), "w") as condFile:
+                for line in condorSub:
+                    condFile.write(line + "\n")
+
+                mergeOutput =  "{}/merged/{}{}.root".format(crabJob.General.workArea, setName, systName)
+
+                condFile.write("queue FILES from (\n")
+                condFile.write(" ".join([mergeOutput] + tmpOutput) + "\n")
+                condFile.write(")")
+
+            ##Write condor script to clean up merge directory
+            with open("{}/rm.sub".format(subDir), "w") as condFile:
+                for line in condorSub[:-1]:
+                    condFile.write(line + "\n")
+
+                condFile.write("executable = /bin/rm\n")
+
+                condFile.write("queue FILES from (\n")
+                condFile.write(" ".join(tmpOutput) + "\n")
+                condFile.write(")")
+
+            ##Write and call dagman script
+            with open("{}/merge.dag".format(subDir), "w") as dagFile:
+                for line in dagmanSub:
+                    dagFile.write(line + "\n")
+            
+            subprocess.call(["condor_submit_dag", "-f", "{}/merge.dag".format(subDir)])
 
 def main():
     ##Parser arguments
@@ -155,6 +235,8 @@ def main():
 
     ##Create with each dataset a crab config
     crabJobs = []
+
+    systematics = ["", "energyScale", "energySigma", "JECTotal", "JER"]
     
     for fileName in fileLists:
         with open(fileName) as f:
@@ -170,8 +252,7 @@ def main():
                 else: 
                     name = dataset.split("/")[1] + "_" + dataset.split("/")[2]
 
-
-                crabJobs.append(crabConfig(dataset, "MiniSkim_{}".format(name), "{}/Skim/{}".format(os.environ["CHDIR"], name)))
+                crabJobs.append(crabConfig(dataset, name, "{}/Skim/{}".format(os.environ["CHDIR"], name), systematics))
 
     ##Submit all crab jobs
     if args.submit:
@@ -183,8 +264,13 @@ def main():
 
     ##Merge output files
     elif args.merge:
+        pool = Pool(processes=cpu_count())
+        mergeJobs = []
+
         for crabJob in crabJobs:
-            merge(crabJob)
+            mergeJobs.append(pool.apply_async(merge, (crabJob, systematics)))
+
+        [job.get() for job in mergeJobs]
 
     ##Just monitor crab jobs
     elif args.monitor:
@@ -195,8 +281,6 @@ def main():
                 if isFinished:
                     crabJobs.remove(crabJob)    
                     continue
-                
-                time.sleep(30)
     
 if __name__ == "__main__":
     main()
