@@ -11,12 +11,11 @@ import os
 
 ##Argument parsing
 options = VarParsing()
-options.register("channel", ["mu4j", "e4j", "mu2j1fj", "e2j1fj", "mu2fj", "e2fj"], VarParsing.multiplicity.list, VarParsing.varType.string,
-"Name of file for skimming")
+options.register("channel", "mu4j", VarParsing.multiplicity.list, VarParsing.varType.string,
+"Channel names")
 options.register("filename", "", VarParsing.multiplicity.list, VarParsing.varType.string,
 "Name of file for skimming")
 options.register("outname", "outputSkim.root", VarParsing.multiplicity.singleton, VarParsing.varType.string, "Name of file for output")
-options.register("outdir", "{}/src".format(os.environ["CMSSW_BASE"]), VarParsing.multiplicity.singleton, VarParsing.varType.string, "Dir of file for output")
 
 options.parseArguments()
 
@@ -46,7 +45,7 @@ process.load("Configuration.StandardSequences.MagneticField_cff")
 process.load("Geometry.CaloEventSetup.CaloTopology_cfi")
 
 ##Global tag
-tag = "94X_dataRun2_v11" if isData else "94X_mc2017_realistic_v17"
+tag = "102X_dataRun2_v12" if isData else "102X_mc2017_realistic_v7"
 process.GlobalTag = GlobalTag(process.GlobalTag, tag, '')
 
 ##Input file
@@ -90,7 +89,7 @@ setupEgammaPostRecoSeq(process, era='2017-Nov17ReReco')
 process.pdfweights = cms.EDProducer("PDFWeights",
                                     LHE = cms.InputTag("externalLHEProducer" if not isSignal else "source"),
                                     LHAID=cms.int32(306000),
-                                    isData = cms.bool(isData or "TuneCP5_13TeV-pythia8" in options.filename[0]),
+                                    isData = cms.bool(isData),
 )
 
 ##Mini Skimmer class which does the skimming
@@ -112,12 +111,11 @@ process.skimmer = cms.EDAnalyzer("MiniSkimmer",
                                 svtx = cms.InputTag("slimmedSecondaryVertices"),
                                 pdf = cms.InputTag("pdfweights","pdfVariations"),
                                 scale = cms.InputTag("pdfweights", "scaleVariations"),
-                                channels = cms.vstring(options.channel[0]),
+                                channels = cms.vstring(options.channel),
                                 xSec = cms.double(xSec),
                                 outFile = cms.string(options.outname),
-                                isData = cms.bool(isData),
+                                isData = cms.bool(isData)
 )
-
 
 ##Let it run baby
 process.p = cms.Path(
