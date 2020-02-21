@@ -8,30 +8,24 @@
 #include <bitset>
 
 #include <TFile.h>
+#include <TH1F.h>
 #include <TH2F.h>
 #include <Rtypes.h>
-#include <TLorentzVector.h>
+#include <Math/Vector4Dfwd.h>
 #include <TTreeReader.h>
 #include <TTreeReaderValue.h>
 #include <TTreeReaderArray.h>
 
 #include <FWCore/Framework/interface/Event.h>
 
-#include <DataFormats/PatCandidates/interface/Electron.h>
-#include <DataFormats/PatCandidates/interface/Muon.h>
-#include <DataFormats/PatCandidates/interface/Jet.h>
-#include <DataFormats/PatCandidates/interface/MET.h>
-#include <DataFormats/JetReco/interface/GenJet.h>
 #include <DataFormats/Common/interface/TriggerResults.h>
-#include "DataFormats/Candidate/interface/Candidate.h"
-#include <DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h>
-#include "DataFormats/Candidate/interface/Candidate.h"
-#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
-#include "DataFormats/VertexReco/interface/Vertex.h"
-#include <SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h>
-#include <SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h>
-#include <DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h>
 #include <FWCore/Common/interface/TriggerNames.h>
+
+#include <DataFormats/Candidate/interface/Candidate.h>
+#include <DataFormats/HepMCCandidate/interface/GenParticle.h>
+
+typedef edm::EDGetTokenT<edm::TriggerResults> trigToken;
+typedef edm::EDGetTokenT<std::vector<reco::GenParticle>> genPartToken;
 
 //Struct for cutflow
 struct CutFlow {
@@ -45,20 +39,6 @@ struct CutFlow {
     
     bool passed = true;
 };
-
-typedef edm::EDGetTokenT<std::vector<pat::Jet>> jToken;
-typedef edm::EDGetTokenT<std::vector<reco::GenJet>> genjToken;
-typedef edm::EDGetTokenT<std::vector<pat::Electron>> eToken;
-typedef edm::EDGetTokenT<std::vector<pat::Muon>> muToken;
-typedef edm::EDGetTokenT<edm::TriggerResults> trigToken;
-typedef edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puToken;
-typedef edm::EDGetTokenT<GenEventInfoProduct> genToken;
-typedef edm::EDGetTokenT<std::vector<pat::MET>> mToken;
-typedef edm::EDGetTokenT<std::vector<pat::TriggerObjectStandAlone>> trigObjToken;
-typedef edm::EDGetTokenT<std::vector<reco::GenParticle>> genPartToken;
-typedef edm::EDGetTokenT<std::vector<reco::Vertex>> vtxToken;
-typedef edm::EDGetTokenT<std::vector<reco::VertexCompositePtrCandidate>> secvtxToken;
-typedef edm::EDGetTokenT<std::vector<float>> wgtToken;
 
 class BaseAnalyzer {
     protected:
@@ -97,10 +77,7 @@ class BaseAnalyzer {
         int FirstCopy(const int& index, const int& pdgID); //NANOAOD
 
         //Match Reco to gen particles
-        bool SetGenParticles(TLorentzVector &lepton, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle={});
-
-        //Trigger matching
-        bool triggerMatching(const TLorentzVector &particle, const std::vector<pat::TriggerObjectStandAlone> trigObj = {});
+        bool SetGenParticles(ROOT::Math::PtEtaPhiMVector &lepton, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle={});
 
     public:
         virtual ~BaseAnalyzer(){};

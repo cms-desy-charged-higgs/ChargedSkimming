@@ -62,26 +62,7 @@ int BaseAnalyzer::FirstCopy(const int& index, const int& pdgID){
     return daughterIdx; 
 }
 
-bool BaseAnalyzer::triggerMatching(const TLorentzVector &particle, const std::vector<pat::TriggerObjectStandAlone> trigObj){
-    int size = isNANO ? trigObjEta->GetSize() : trigObj.size();
-
-    for(int i=0; i < size; i++){
-        //Check if trig obj is electron
-        float pt, eta, phi;
-
-        pt = isNANO ? trigObjPt->At(i) : trigObj[i].pt();
-        eta = isNANO ? trigObjEta->At(i) : trigObj[i].eta();
-        phi = isNANO ? trigObjPhi->At(i) : trigObj[i].phi();
-
-        if(0.5 > std::sqrt(std::pow(eta - particle.Eta(), 2) + std::pow(phi - particle.Phi(), 2)) and abs(particle.Pt()-pt)/particle.Pt() < 0.5){
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool BaseAnalyzer::SetGenParticles(TLorentzVector &validLepton, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle){
+bool BaseAnalyzer::SetGenParticles(ROOT::Math::PtEtaPhiMVector &validLepton, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle){
     const reco::GenParticle* matchedLep=NULL;
 
     if(!isNANO){
