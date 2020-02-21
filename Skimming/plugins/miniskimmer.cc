@@ -10,12 +10,10 @@ MiniSkimmer::MiniSkimmer(const edm::ParameterSet& iConfig):
       eleToken(consumes<std::vector<pat::Electron>>(iConfig.getParameter<edm::InputTag>("electrons"))),
       muonToken(consumes<std::vector<pat::Muon>>(iConfig.getParameter<edm::InputTag>("muons"))),
       triggerToken(consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("trigger"))),
-      triggerObjToken(consumes<std::vector<pat::TriggerObjectStandAlone>>(iConfig.getParameter<edm::InputTag>("triggerObjects"))),
       pileupToken(consumes<std::vector<PileupSummaryInfo>>(iConfig.getParameter<edm::InputTag>("pileUp"))),
       geninfoToken(consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("genInfo"))),
       genParticleToken(consumes<std::vector<reco::GenParticle>>(iConfig.getParameter<edm::InputTag>("genPart"))),
       rhoToken(consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))),
-      vertexToken(consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("vtx"))),
       secVertexToken(consumes<std::vector<reco::VertexCompositePtrCandidate>>(iConfig.getParameter<edm::InputTag>("svtx"))), 
       prefireToken(consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProb"))),
       prefireTokenUp(consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProbUp"))),
@@ -129,8 +127,8 @@ void MiniSkimmer::beginJob(){
                 std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, {"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
                 std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
                 std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken, particle == "j" ? systName : "")),
-                std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 20., 2.4, muonToken, triggerObjToken, genParticleToken)),
-                std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, eleToken, triggerObjToken, genParticleToken, particle == "e" ? systName : "")),
+                std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 10., 2.4, muonToken, genParticleToken)),
+                std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 10., 2.4, eleToken, genParticleToken, particle == "e" ? systName : "")),
                 std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
             };
 

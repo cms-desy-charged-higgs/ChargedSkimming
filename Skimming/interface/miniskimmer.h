@@ -6,12 +6,12 @@
 #include <string>
 #include <map>
 
-#include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/one/EDAnalyzer.h"
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/Utilities/interface/InputTag.h"
+#include <FWCore/Framework/interface/Frameworkfwd.h>
+#include <FWCore/Framework/interface/one/EDAnalyzer.h>
+#include <FWCore/Framework/interface/Event.h>
+#include <FWCore/Framework/interface/MakerMacros.h>
+#include <FWCore/ParameterSet/interface/ParameterSet.h>
+#include <FWCore/Utilities/interface/InputTag.h>
 
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
 #include <ChargedSkimming/Skimming/interface/jetanalyzer.h>
@@ -33,8 +33,7 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 
     private:
         //Measure execution time
-        std::chrono::steady_clock::time_point start;
-        std::chrono::steady_clock::time_point end;
+        std::chrono::steady_clock::time_point start, end;
 
         //Output file
         TFile* outputFile;
@@ -51,26 +50,19 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         std::vector<std::pair<std::string, std::string>> systNames;
 
         //EDM tokens
-        jToken jetToken; 
-        jToken fatjetToken; 
-        genjToken genjetToken; 
-        genjToken genfatjetToken; 
+        jToken jetToken, fatjetToken; 
+        genjToken genjetToken, genfatjetToken; 
         mToken metToken; 
         eToken eleToken; 
         muToken muonToken;
         trigToken triggerToken; 
-        trigObjToken triggerObjToken;
         puToken pileupToken;
         genToken geninfoToken;
         genPartToken genParticleToken;
         edm::EDGetTokenT<double> rhoToken;
-        vtxToken vertexToken;
         secvtxToken secVertexToken;
-        edm::EDGetTokenT<double> prefireToken;
-        edm::EDGetTokenT<double> prefireTokenUp;
-        edm::EDGetTokenT<double> prefireTokenDown;
-        wgtToken pdfToken;
-        wgtToken scaleToken;
+        edm::EDGetTokenT<double> prefireToken, prefireTokenUp, prefireTokenDown;
+        wgtToken pdfToken, scaleToken;
 
         //Channel
         std::vector<std::string> channels;
