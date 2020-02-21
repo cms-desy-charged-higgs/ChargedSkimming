@@ -2,7 +2,10 @@
 #define MUONANALYZER_H
 
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
+
 #include <DataFormats/PatCandidates/interface/Muon.h>
+
+typedef edm::EDGetTokenT<std::vector<pat::Muon>> muToken;
 
 class MuonAnalyzer: public BaseAnalyzer{
     private:
@@ -10,46 +13,37 @@ class MuonAnalyzer: public BaseAnalyzer{
         bool isData;
 
         //Map for SF files
-        std::map<int, std::string> isoSFfiles;
-        std::map<int, std::string> triggerSFfiles;
-        std::map<int, std::string> IDSFfiles;
+        std::map<int, std::string> isoSFfiles, triggerSFfiles, IDSFfiles;
 
         //Hist with scale factors
         TH2F* triggerSFhist;
-
-        std::vector<TH2F*> IsoHist;
-        std::vector<TH2F*> IDHist;
+        std::vector<TH2F*> IsoHist, IDHist;
 
         //Kinematic cut criteria
         int era;
-        float ptCut;
-        float etaCut;
+        float ptCut, etaCut;
 
         //Vector with output varirables of the output tree
-        std::vector<std::string> floatNames;
-        std::vector<std::string> boolNames;
+        std::map<std::string, std::vector<float>&> variables;
+        std::map<std::string, std::vector<bool>&> bools;
 
-        std::vector<std::vector<float>> floatVariables;
-        std::vector<std::vector<bool>> boolVariables;
+        std::vector<float> Px, Py, Pz, E, Charge, Isolation, triggerSF, triggerSFUp, triggerSFDown, looseSF, looseSFUp, looseSFDown, mediumSF, mediumSFUp, mediumSFDown, tightSF, tightSFUp, tightSFDown, looseIsoLooseSF, looseIsoLooseSFDown, looseIsoLooseSFUp, looseIsoMediumSF, looseIsoMediumSFDown, looseIsoMediumSFUp, looseIsoTightSF, looseIsoTightSFDown, looseIsoTightSFUp, tightIsoMediumSF, tightIsoMediumSFDown, tightIsoMediumSFUp, tightIsoTightSF, tightIsoTightSFDown, tightIsoTightSFUp;
+
+        std::vector<bool> isLoose, isMedium, isTight, isLooseIso, isMediumIso, isTightIso, isFromHPlus;
 
         //EDM Token for MINIAOD analysis
         muToken muonToken;
-        trigObjToken triggerObjToken; 
         genPartToken genParticleToken;
 
         //TTreeReader Values for NANO AOD analysis
-        std::unique_ptr<TTreeReaderArray<float>> muonPt;
-        std::unique_ptr<TTreeReaderArray<float>> muonEta;
-        std::unique_ptr<TTreeReaderArray<float>> muonPhi;
-        std::unique_ptr<TTreeReaderArray<float>> muonIso;
+        std::unique_ptr<TTreeReaderArray<float>> muonPt, muonEta, muonPhi, muonIso;
         std::unique_ptr<TTreeReaderArray<int>> muonCharge;
-        std::unique_ptr<TTreeReaderArray<bool>> muonLooseID;
-        std::unique_ptr<TTreeReaderArray<bool>> muonTightID;
+        std::unique_ptr<TTreeReaderArray<bool>> muonLooseID, muonMediumID, muonTightID;
         std::unique_ptr<TTreeReaderArray<int>> muonGenIdx;
 
     public:
         MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
-        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, muToken &muonToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken);
+        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, muToken &muonToken, genPartToken& genParticleToken);
 
         void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
         void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);

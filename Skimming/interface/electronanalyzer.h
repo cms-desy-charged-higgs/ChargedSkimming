@@ -3,52 +3,50 @@
 
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
 
+#include <DataFormats/PatCandidates/interface/Electron.h>
+
+typedef edm::EDGetTokenT<std::vector<pat::Electron>> eToken;
+
 class ElectronAnalyzer: public BaseAnalyzer {
     private:
         //Check if data
         bool isData;
 
         //Map for SF files
-        std::map<int, std::string> mediumSFfiles;
-        std::map<int, std::string> tightSFfiles;
-        std::map<int, std::string> recoSFfiles;
+        std::map<int, std::string> looseSFfiles, mediumSFfiles, tightSFfiles, recoSFfiles;
 
         //Hist with scale factors
+        TH2F* looseSFhist;
         TH2F* mediumSFhist;
         TH2F* tightSFhist;
         TH2F* recoSFhist;
 
         //Kinematic cut criteria
         int era;
-        float ptCut;
-        float etaCut;
+        float ptCut, etaCut;
 
         //EDM Token for MINIAOD analysis
         eToken eleToken;
-        trigObjToken triggerObjToken;
         genPartToken genParticleToken;
 
         //Name of the energy correction (dependent on systematic study)
         std::string energyCorrection;
 
         //Vector with output varirables of the output tree
-        std::vector<std::string> floatNames;
-        std::vector<std::string> boolNames;
+        std::map<std::string, std::vector<float>&> variables;
+        std::map<std::string, std::vector<bool>&> bools;
 
-        std::vector<std::vector<float>> floatVariables;
-        std::vector<std::vector<bool>> boolVariables;
+        std::vector<float> Px, Py, Pz, E, Charge, recoSF, recoSFUp, recoSFDown, looseSF, looseSFUp, looseSFDown, mediumSF, mediumSFUp, mediumSFDown, tightSF, tightSFUp, tightSFDown;
+
+        std::vector<bool> isLoose, isMedium, isTight, isLooseIso, isMediumIso, isTightIso, isFromHPlus;
 
         //TTreeReader Values for NANO AOD analysis
-        std::unique_ptr<TTreeReaderArray<float>> elePt;
-        std::unique_ptr<TTreeReaderArray<float>> eleEta;
-        std::unique_ptr<TTreeReaderArray<float>> elePhi;
-        std::unique_ptr<TTreeReaderArray<float>> eleIso;
+        std::unique_ptr<TTreeReaderArray<float>> elePt, eleEta, elePhi, eleIso;
         std::unique_ptr<TTreeReaderArray<int>> eleCharge;
-        std::unique_ptr<TTreeReaderArray<bool>> eleMediumMVA;
-        std::unique_ptr<TTreeReaderArray<bool>> eleTightMVA;
+        std::unique_ptr<TTreeReaderArray<int>> eleID;
 
     public:
-        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, const std::string& systematic="");
+        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, genPartToken& genParticleToken, const std::string& systematic="");
         ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
 
         void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);

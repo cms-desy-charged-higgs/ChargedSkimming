@@ -82,8 +82,7 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                 eta = isNANO ? genEta->At(index) : part->eta();
                 m = isNANO ? genMass->At(index) : part->mass();
 
-                TLorentzVector lVec;
-                lVec.SetPtEtaPhiM(pt, eta, phi, m);
+                ROOT::Math::PtEtaPhiMVector LV(pt, eta, phi, m);
 
                 if(motherID == 24){
                     if(isNANO) index = FirstCopy(genMotherIdx->At(index), 24);
@@ -93,10 +92,10 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
 
                     if(motherID == 37){
                         //Lepton four momentum components
-                        leptonVariables[0][ID%2==0 ? 0 : 1] = lVec.E();   //Energy
-                        leptonVariables[1][ID%2==0 ? 0 : 1] = lVec.Px();  //Px
-                        leptonVariables[2][ID%2==0 ? 0 : 1] = lVec.Py();  //Py
-                        leptonVariables[3][ID%2==0 ? 0 : 1] = lVec.Pz();  //Pz
+                        leptonVariables[0][ID%2==0 ? 0 : 1] = LV.E();   //Energy
+                        leptonVariables[1][ID%2==0 ? 0 : 1] = LV.Px();  //Px
+                        leptonVariables[2][ID%2==0 ? 0 : 1] = LV.Py();  //Py
+                        leptonVariables[3][ID%2==0 ? 0 : 1] = LV.Pz();  //Pz
                     }
                 }
             } 
@@ -116,8 +115,7 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                 eta = isNANO ? genEta->At(index) : part->eta();
                 m = isNANO ? genMass->At(index) : part->mass();
 
-                TLorentzVector lVec;
-                lVec.SetPtEtaPhiM(pt, eta, phi, m);
+                ROOT::Math::PtEtaPhiMVector LV(pt, eta, phi, m);
 
                 if(motherID == 25){             
                     if(isNANO) index = FirstCopy(genMotherIdx->At(index), 25);
@@ -127,18 +125,18 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
 
                     if(motherID == 37 and h1Variables[0].size() < 2){
                         //Quark four momentum components
-                        h1Variables[0].push_back(lVec.E());   //Energy
-                        h1Variables[1].push_back(lVec.Px());  //Px
-                        h1Variables[2].push_back(lVec.Py());  //Py
-                        h1Variables[3].push_back(lVec.Pz());  //Pz
+                        h1Variables[0].push_back(LV.E());   //Energy
+                        h1Variables[1].push_back(LV.Px());  //Px
+                        h1Variables[2].push_back(LV.Py());  //Py
+                        h1Variables[3].push_back(LV.Pz());  //Pz
                     }
             
                     else if(h2Variables[0].size() < 2){
                         //Quark four momentum components
-                        h2Variables[0].push_back(lVec.E());   //Energy
-                        h2Variables[1].push_back(lVec.Px());  //Px
-                        h2Variables[2].push_back(lVec.Py());  //Py
-                        h2Variables[3].push_back(lVec.Pz());  //Pz
+                        h2Variables[0].push_back(LV.E());   //Energy
+                        h2Variables[1].push_back(LV.Px());  //Px
+                        h2Variables[2].push_back(LV.Py());  //Py
+                        h2Variables[3].push_back(LV.Pz());  //Pz
                     }
                 }
             }

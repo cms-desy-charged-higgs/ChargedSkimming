@@ -13,12 +13,23 @@
 #include <CondFormats/JetMETObjects/interface/FactorizedJetCorrector.h>
 #include <CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h>
 
+#include <DataFormats/PatCandidates/interface/Jet.h>
+#include <DataFormats/PatCandidates/interface/MET.h>
+#include <DataFormats/JetReco/interface/GenJet.h>
+
+typedef edm::EDGetTokenT<std::vector<pat::Jet>> jToken;
+typedef edm::EDGetTokenT<std::vector<reco::GenJet>> genjToken;
+typedef edm::EDGetTokenT<std::vector<pat::MET>> mToken;
+typedef edm::EDGetTokenT<std::vector<reco::VertexCompositePtrCandidate>> secvtxToken;
+
 class JetAnalyzer: public BaseAnalyzer{
-    enum JetType {AK4, AK8};
+    enum JetType {AK4, AK8, PF, VTX};
 
     private:
         //Bool for checking if data file
         bool isData;
+
+        TH1F* Deep;
 
         //Map for SF files
         std::map<int, std::vector<std::string>> JECMC, JECDATA;
@@ -65,28 +76,31 @@ class JetAnalyzer: public BaseAnalyzer{
         std::unique_ptr<TTreeReaderArray<float>> genJetPt, genJetEta, genJetPhi, genJetMass;
         std::unique_ptr<TTreeReaderArray<float>> genFatJetPt, genFatJetEta, genFatJetPhi, genFatJetMass;
 
-        std::unique_ptr<TTreeReaderValue<float>> metPhi, metPt, valueHT, jetRho;
+        std::unique_ptr<TTreeReaderValue<float>> metPhi, metPt, jetRho;
 
         //Parameter for HT
         float HT, metPx, metPy;
         int runNumber;
 
         //Vector with output varirables of the output tree
-        std::vector<std::string> JetfloatNames, FatJetfloatNames, JetParticlefloatNames, boolNames;
-        std::vector<std::vector<float>> JetfloatVariables, FatJetfloatVariables, JetParticlefloatVariables, VertexfloatVariables;
-        std::vector<std::vector<bool>> JetboolVariables, FatJetboolVariables;
+        std::map<std::pair<std::string, std::string>, std::vector<float>&> variables;
+        std::map<std::string, std::vector<bool>&> bools;
+
+        std::map<JetType, std::vector<float>> Px, Py, Pz, E, Vx, Vy, Vz, Charge, FatJetIdx, isFromh, topVsHiggs, QCDVsHiggs, Njettiness1, Njettiness2, Njettiness3, loosebTagSF, loosebTagSFUp, loosebTagSFDown, mediumbTagSF, mediumbTagSFUp, mediumbTagSFDown, tightbTagSF, tightbTagSFUp, tightbTagSFDown;
+
+        std::vector<bool> isLooseB, isMediumB, isTightB;
 
         //Get jet energy correction
         std::map<JetType, FactorizedJetCorrector*> jetCorrector;
         void SetCorrector(const JetType &type, const int& runNumber);
-        float CorrectEnergy(const TLorentzVector &jet, const float &rho, const float &area, const JetType &type);
+        float CorrectEnergy(const ROOT::Math::PtEtaPhiMVector &jet, const float &rho, const float &area, const JetType &type);
 
         //Get JER smear factor
-        float SmearEnergy(const TLorentzVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJets = {});
+        float SmearEnergy(const ROOT::Math::PtEtaPhiMVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJets = {});
 
         //Set Gen particle information
-        std::map<JetType, TLorentzVector> genJet; 
-        int SetGenParticles(TLorentzVector& validJet, const int &i, const int &pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle={});
+        std::map<JetType, ROOT::Math::PtEtaPhiMVector> genJet; 
+        int SetGenParticles(ROOT::Math::PtEtaPhiMVector& validJet, const int &i, const int &pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle={});
 
     public:
         JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);

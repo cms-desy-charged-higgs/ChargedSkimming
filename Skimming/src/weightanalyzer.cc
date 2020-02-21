@@ -63,8 +63,7 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* e
     edm::Handle<std::vector<PileupSummaryInfo>> pileUp; 
     edm::Handle<GenEventInfoProduct> genInfo;
     std::vector<edm::Handle<double>> prefire;
-    edm::Handle<std::vector<float>> pdfVariations;
-    edm::Handle<std::vector<float>> scaleVariations;
+    edm::Handle<std::vector<float>> pdfVariations, scaleVariations;
     prefireWeights.clear();
     
     if(!isNANO){

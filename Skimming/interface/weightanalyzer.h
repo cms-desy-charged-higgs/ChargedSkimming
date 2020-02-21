@@ -3,6 +3,13 @@
 
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
 
+#include <SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h>
+#include <SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h>
+
+typedef edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puToken;
+typedef edm::EDGetTokenT<GenEventInfoProduct> genToken;
+typedef edm::EDGetTokenT<std::vector<float>> wgtToken;
+
 class WeightAnalyzer : public BaseAnalyzer {
     private:
         //Bool for data
@@ -13,13 +20,8 @@ class WeightAnalyzer : public BaseAnalyzer {
         float xSec;
     
         //Values for branch
-        float lumi = 1.;
-        float genWeight = 1.;
-        float eventNumber = 1.;
-        float nTrueInt = 1.;
-        std::vector<float> prefireWeights;
-        std::vector<float> pdfWeights;
-        std::vector<float> scaleWeights;
+        float lumi = 1., genWeight = 1., eventNumber = 1., nTrueInt = 1.;
+        std::vector<float> prefireWeights, pdfWeights, scaleWeights;
 
         //Lumi information
         std::map<int, float> lumis;
@@ -37,8 +39,7 @@ class WeightAnalyzer : public BaseAnalyzer {
         TH1F* nGenWeightedHist;
 
         //TTreeReader Values
-        std::unique_ptr<TTreeReaderValue<float>> nPU;
-        std::unique_ptr<TTreeReaderValue<float>> genWeightValue;
+        std::unique_ptr<TTreeReaderValue<float>> nPU, genWeightValue;
         std::unique_ptr<TTreeReaderValue<ULong64_t>> evtNumber;
 
     public:

@@ -1,12 +1,11 @@
 #include <ChargedSkimming/Skimming/interface/electronanalyzer.h>
 
-ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, trigObjToken& triggerObjToken, genPartToken& genParticleToken, const std::string& systematic):
+ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, genPartToken& genParticleToken, const std::string& systematic):
     BaseAnalyzer(),    
     era(era),
     ptCut(ptCut),
     etaCut(etaCut),
     eleToken(eleToken),
-    triggerObjToken(triggerObjToken),
     genParticleToken(genParticleToken)
     {
         energyCorrection = systematic == "" ? "ecalTrkEnergyPostCorr" : systematic; 
@@ -21,12 +20,16 @@ ElectronAnalyzer::ElectronAnalyzer(const int &era, const float &ptCut, const flo
 
 void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
     //SF files
+    looseSFfiles = {
+                    {2017, filePath + "eleSF/2017_ElectronLoose.root"},
+    };
+
     mediumSFfiles = {
-                    {2017, filePath + "eleSF/gammaEffi.txt_EGM2D_runBCDEF_passingMVA94Xwp80iso.root"},
+                    {2017, filePath + "eleSF/2017_ElectronMedium.root"},
     };
 
     tightSFfiles = {
-                    {2017, filePath + "eleSF/gammaEffi.txt_EGM2D_runBCDEF_passingMVA94Xwp90iso.root"},
+                    {2017, filePath + "eleSF/2017_ElectronTight.root"},
     };
 
     recoSFfiles = {
@@ -41,6 +44,9 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const 
     TFile* recoSFfile = TFile::Open(recoSFfiles[era].c_str());
     recoSFhist = (TH2F*)recoSFfile->Get("EGamma_SF2D");
 
+    TFile* looseSFfile = TFile::Open(looseSFfiles[era].c_str());
+    looseSFhist = (TH2F*)looseSFfile->Get("EGamma_SF2D");
+
     TFile* mediumSFfile = TFile::Open(mediumSFfiles[era].c_str());
     mediumSFhist = (TH2F*)mediumSFfile->Get("EGamma_SF2D");
 
@@ -54,57 +60,78 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const 
         elePhi = std::make_unique<TTreeReaderArray<float>>(*reader, "Electron_phi");
         eleCharge = std::make_unique<TTreeReaderArray<int>>(*reader, "Electron_charge");
         eleIso = std::make_unique<TTreeReaderArray<float>>(*reader, "Electron_pfRelIso03_all");
-        eleMediumMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17V2Iso_WP80");
-        eleTightMVA = std::make_unique<TTreeReaderArray<bool>>(*reader, "Electron_mvaFall17V2Iso_WP90");
+        eleID = std::make_unique<TTreeReaderArray<int>>(*reader, "Electron_cutBased");
 
         //Set TTreeReader for genpart and trigger obj from baseanalyzer    
         SetCollection(this->isData);
     }
 
-    //Set output names
-    floatNames = {"E", "Px", "Py", "Pz", "Isolation", "Charge", "recoSF", "mediumSF", "tightSF"};
+    //Variable name mapping to branch name
+    variables = {
+            {"E", E},
+            {"Px", Px},
+            {"Py", Py},
+            {"Pz", Pz},
+            {"Charge", Charge},
+            {"recoSF", recoSF},
+            {"looseSF", looseSF},
+            {"mediumSF", mediumSF},
+            {"tightSF", tightSF},
+    };
+
+    bools = {
+            {"isLoose", isLoose},
+            {"isMedium", isMedium},
+            {"isTight", isTight},
+            {"isLooseIso", isLooseIso}, 
+            {"isMediumIso", isMediumIso}, 
+            {"isTightIso", isTightIso},
+            {"isFromHPlus", isFromHPlus},
+    };
 
     if(!isSyst){
-        std::vector<std::string> SFvariations = {"recoSFUp", "recoSFDown", "mediumSFUp", "mediumSFDown", "tightSFUp", "tightSFDown"};
+        std::map<std::string, std::vector<float>&> SFvariations = {
+            {"recoSFUp", recoSFUp},
+            {"recoSFDown", recoSFDown},
+            {"looseSFUp", looseSFUp},
+            {"looseSFDown", looseSFDown},
+            {"mediumSFUp", mediumSFUp},
+            {"mediumSFDown", mediumSFDown},
+            {"tightSFUp", tightSFUp},
+            {"tightSFDown", tightSFDown},
+        };
 
-        floatNames.insert(floatNames.end(), SFvariations.begin(), SFvariations.end());
+        variables.insert(SFvariations.begin(), SFvariations.end());   
     }
-
-    boolNames = {"isMedium", "isTight", "isTriggerMatched", "isFromHc"};
-
-    floatVariables = std::vector<std::vector<float>>(floatNames.size(), std::vector<float>());
-    boolVariables = std::vector<std::vector<bool>>(boolNames.size(), std::vector<bool>());
 
     //Set Branches of output tree
     for(TTree* tree: trees){
-        for(unsigned int i=0; i<floatVariables.size(); i++){
-            tree->Branch(("Electron_" + floatNames[i]).c_str(), &floatVariables[i]);
+        for(std::pair<const std::string, std::vector<float>&>& variable: variables){
+            tree->Branch(("Electron_" + variable.first).c_str(), &variable.second);
         }
 
-        for(unsigned int i=0; i<boolVariables.size(); i++){
-            tree->Branch(("Electron_" + boolNames[i]).c_str(), &boolVariables[i]);
+        for(std::pair<const std::string, std::vector<bool>&>& variable: bools){
+            tree->Branch(("Electron_" + variable.first).c_str(), &variable.second);
         }
     }
 }
 
 void ElectronAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
     //Clear variables vector
-    for(std::vector<float>& variable: floatVariables){
-        variable.clear();
+    for(std::pair<const std::string, std::vector<float>&>& variable: variables){
+        variable.second.clear();
     }
 
-    for(std::vector<bool>& variable: boolVariables){
-        variable.clear();
+    for(std::pair<const std::string, std::vector<bool>&>& variable: bools){
+        variable.second.clear();
     }
 
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<pat::Electron>> electrons;
-    edm::Handle<std::vector<pat::TriggerObjectStandAlone>> trigObjects;
     edm::Handle<std::vector<reco::GenParticle>> genParts;
 
     if(!isNANO){
         event->getByToken(eleToken, electrons);
-        event->getByToken(triggerObjToken, trigObjects);
     }
 
     float eleSize = isNANO ? elePt->GetSize() : electrons->size();
@@ -116,63 +143,72 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event*
         float phi = isNANO ? elePhi->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat(energyCorrection) / electrons->at(i).energy()).Phi();
 
         if(pt > ptCut && abs(eta) < etaCut){
-            TLorentzVector lVec;
-            lVec.SetPtEtaPhiM(pt, eta, phi, 0.510*1e-3);
+            ROOT::Math::PtEtaPhiMVector LV(pt, eta, phi, 0.510*1e-3);
 
             //Electron four momentum components
-            floatVariables[0].push_back(lVec.E());   //Energy
-            floatVariables[1].push_back(lVec.Px());  //Px
-            floatVariables[2].push_back(lVec.Py());  //Py
-            floatVariables[3].push_back(lVec.Pz());  //Pz
+            E.push_back(LV.E());
+            Px.push_back(LV.Px());
+            Py.push_back(LV.Py());
+            Pz.push_back(LV.Pz());
 
-            //PF isolation
+            Charge.push_back(isNANO ? eleCharge->At(i) : electrons->at(i).charge());  //charge
+
+            //Isolation
             float iso;
 
             if(!isNANO){
                 iso = (electrons->at(i).pfIsolationVariables().sumChargedHadronPt + std::max(electrons->at(i).pfIsolationVariables().sumNeutralHadronEt + electrons->at(i).pfIsolationVariables().sumPhotonEt - 0.5 * electrons->at(i).pfIsolationVariables().sumPUPt, 0.0)) / electrons->at(i).pt();
             }
 
-            floatVariables[4].push_back(isNANO ? eleIso->At(i) : iso); //PF isolation
-            floatVariables[5].push_back(isNANO ? eleCharge->At(i) : electrons->at(i).charge());  //charge
+            else iso = eleIso->At(i);
+
+            isLooseIso.push_back(iso < 0.25);
+            isMediumIso.push_back(iso < 0.2);
+            isTightIso.push_back(iso < 0.15);
 
             //Electron ID
-            boolVariables[0].push_back(isNANO ? eleMediumMVA->At(i) : electrons->at(i).electronID("mvaEleID-Fall17-iso-V2-wp80"));  //Medium MVA ID
-            boolVariables[1].push_back(isNANO ? eleMediumMVA->At(i) : electrons->at(i).electronID("mvaEleID-Fall17-iso-V2-wp90"));  //Tight MVA ID
-            boolVariables[2].push_back(isNANO ? triggerMatching(lVec) : triggerMatching(lVec, *trigObjects)); //Trigger matching
+            isLoose.push_back(isNANO ? eleID->At(i) == 2 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-loose"));
+            isMedium.push_back(isNANO ? eleID->At(i) == 3 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-medium"));
+            isTight.push_back(isNANO ? eleID->At(i) == 4 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-tight"));
 
             if(!isData){
                //Fill scale factors
                 Int_t recoBin = recoSFhist->FindBin(eta, pt);
+                Int_t looseBin = looseSFhist->FindBin(eta, pt);
                 Int_t mediumBin = mediumSFhist->FindBin(eta, pt);
                 Int_t tightBin = tightSFhist->FindBin(eta, pt);
 
-                floatVariables[6].push_back(recoSFhist->GetBinContent(recoBin));
-                floatVariables[7].push_back(mediumSFhist->GetBinContent(mediumBin));
-                floatVariables[8].push_back(tightSFhist->GetBinContent(tightBin));
+                recoSF.push_back(recoSFhist->GetBinContent(recoBin));
+                looseSF.push_back(looseSFhist->GetBinContent(looseBin));
+                mediumSF.push_back(mediumSFhist->GetBinContent(mediumBin));
+                tightSF.push_back(tightSFhist->GetBinContent(tightBin));
 
                 if(!isSyst){
-                    floatVariables[9].push_back(recoSFhist->GetBinContent(recoBin) + recoSFhist->GetBinErrorUp(recoBin));
-                    floatVariables[10].push_back(recoSFhist->GetBinContent(recoBin) - recoSFhist->GetBinErrorLow(recoBin));
+                    recoSFUp.push_back(recoSFhist->GetBinContent(recoBin) + recoSFhist->GetBinErrorUp(recoBin));
+                    recoSFDown.push_back(recoSFhist->GetBinContent(recoBin) - recoSFhist->GetBinErrorLow(recoBin));
 
-                    floatVariables[11].push_back(mediumSFhist->GetBinContent(mediumBin) + mediumSFhist->GetBinErrorUp(mediumBin));
-                    floatVariables[12].push_back(mediumSFhist->GetBinContent(mediumBin) - mediumSFhist->GetBinErrorLow(mediumBin));
+                    looseSFUp.push_back(looseSFhist->GetBinContent(looseBin) + looseSFhist->GetBinErrorUp(looseBin));
+                    looseSFDown.push_back(looseSFhist->GetBinContent(looseBin) - looseSFhist->GetBinErrorLow(looseBin));
 
-                    floatVariables[13].push_back(tightSFhist->GetBinContent(tightBin) + tightSFhist->GetBinErrorUp(tightBin));
-                    floatVariables[14].push_back(tightSFhist->GetBinContent(tightBin) - tightSFhist->GetBinErrorLow(tightBin));
+                    mediumSFUp.push_back(mediumSFhist->GetBinContent(mediumBin) + mediumSFhist->GetBinErrorUp(mediumBin));
+                    mediumSFDown.push_back(mediumSFhist->GetBinContent(mediumBin) - mediumSFhist->GetBinErrorLow(mediumBin));
+
+                    tightSFUp.push_back(tightSFhist->GetBinContent(tightBin) + tightSFhist->GetBinErrorUp(tightBin));
+                    tightSFDown.push_back(tightSFhist->GetBinContent(tightBin) - tightSFhist->GetBinErrorLow(tightBin));
                 }
 
                 //Save gen particle information
-                if(isNANO) boolVariables[3].push_back(SetGenParticles(lVec, i, 11));
+                if(isNANO) isFromHPlus.push_back(SetGenParticles(LV, i, 11));
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    boolVariables[3].push_back(SetGenParticles(lVec, i, 11, *genParts));
+                    isFromHPlus.push_back(SetGenParticles(LV, i, 11, *genParts));
                 }
             }
         } 
     }
 
     for(CutFlow &cutflow: cutflows){
-        if(cutflow.nMinEle <= floatVariables[0].size()){
+        if(cutflow.nMinEle <= E.size()){
             if(cutflow.nMinEle!=0 and cutflow.passed){
                 std::string cutName("N_{e} >= " + std::to_string(cutflow.nMinEle) + " (no iso/ID req)");
                 cutflow.hist->Fill(cutName.c_str(), cutflow.weight);
