@@ -11,7 +11,7 @@ import os
 
 ##Argument parsing
 options = VarParsing()
-options.register("channel", "mu4j", VarParsing.multiplicity.list, VarParsing.varType.string,
+options.register("channel", "mu2j1fj", VarParsing.multiplicity.list, VarParsing.varType.string,
 "Channel names")
 options.register("filename", "", VarParsing.multiplicity.list, VarParsing.varType.string,
 "Name of file for skimming")
@@ -55,7 +55,7 @@ process.source.duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
 ##Calculate deep flavour discriminator
 updateJetCollection(
     process,
-    postfix = "RAW",
+    postfix = "WithDeepB",
     jetSource = cms.InputTag('slimmedJets'),
     pvSource = cms.InputTag('offlineSlimmedPrimaryVertices'),
     svSource = cms.InputTag('slimmedSecondaryVertices'),
@@ -65,13 +65,27 @@ updateJetCollection(
       'pfDeepFlavourJetTags:probbb',
       'pfDeepFlavourJetTags:problepb',
     ],
+    printWarning = False
 )
 
+##Deep AK8
 updateJetCollection(
     process,
-    postfix = 'AK8RAW',
     jetSource = cms.InputTag('slimmedJetsAK8'),
-    jetCorrections = ('AK8PFchs', cms.vstring([]), 'None')
+    pvSource = cms.InputTag('offlineSlimmedPrimaryVertices'),
+    svSource = cms.InputTag('slimmedSecondaryVertices'),
+    rParam = 0.8,
+    jetCorrections = ('AK8PFchs', cms.vstring([]), 'None'),
+    btagDiscriminators = [
+        "pfDeepBoostedJetTags:probHbb",
+        "pfDeepBoostedJetTags:probTbcq",
+        "pfDeepBoostedJetTags:probTbqq",
+        "pfDeepBoostedJetTags:probTbc",
+        "pfDeepBoostedJetTags:probTbq",
+        "pfDeepBoostedDiscriminatorsJetTags:HbbvsQCD", 
+    ],
+    postfix='AK8WithDeepTags',
+    printWarning = False
 )
 
 ##Prefiring weight https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1ECALPrefiringWeightRecipe
@@ -94,20 +108,18 @@ process.pdfweights = cms.EDProducer("PDFWeights",
 
 ##Mini Skimmer class which does the skimming
 process.skimmer = cms.EDAnalyzer("MiniSkimmer", 
-                                jets = cms.InputTag("selectedUpdatedPatJetsRAW"),
-                                fatjets = cms.InputTag("updatedPatJetsAK8RAW"),
+                                jets = cms.InputTag("selectedUpdatedPatJetsWithDeepB"),
+                                fatjets = cms.InputTag("selectedUpdatedPatJetsAK8WithDeepTags"),
                                 genjets = cms.InputTag("slimmedGenJets"),
                                 genfatjets = cms.InputTag("slimmedGenJetsAK8"),
                                 mets = cms.InputTag("slimmedMETs"),
                                 electrons = cms.InputTag("slimmedElectrons"), 
                                 muons = cms.InputTag("slimmedMuons"),
                                 trigger = cms.InputTag("TriggerResults","","HLT"),
-                                triggerObjects = cms.InputTag("slimmedPatTrigger"),
                                 pileUp = cms.InputTag("slimmedAddPileupInfo"),
                                 genInfo = cms.InputTag("generator"),
                                 genPart = cms.InputTag("prunedGenParticles"),
                                 rho = cms.InputTag("fixedGridRhoFastjetAll"),
-                                vtx = cms.InputTag("offlineSlimmedPrimaryVertices"),
                                 svtx = cms.InputTag("slimmedSecondaryVertices"),
                                 pdf = cms.InputTag("pdfweights","pdfVariations"),
                                 scale = cms.InputTag("pdfweights", "scaleVariations"),
@@ -119,14 +131,26 @@ process.skimmer = cms.EDAnalyzer("MiniSkimmer",
 
 ##Let it run baby
 process.p = cms.Path(
-                     process.patJetCorrFactorsRAW*process.updatedPatJetsRAW*
-                     process.patJetCorrFactorsTransientCorrectedRAW*
-                     process.pfImpactParameterTagInfosRAW*
-                     process.pfInclusiveSecondaryVertexFinderTagInfosRAW*
-                     process.pfDeepCSVTagInfosRAW*process.pfDeepFlavourTagInfosRAW*
-                     process.pfDeepFlavourJetTagsRAW*
-                     process.updatedPatJetsTransientCorrectedRAW*process.selectedUpdatedPatJetsRAW*
-                     process.patJetCorrFactorsAK8RAW*process.updatedPatJetsAK8RAW*
+                     process.patJetCorrFactorsWithDeepB * 
+                     process.updatedPatJetsWithDeepB *
+                     process.pfImpactParameterTagInfosWithDeepB *
+                     process.pfInclusiveSecondaryVertexFinderTagInfosWithDeepB *
+                     process.pfDeepCSVTagInfosWithDeepB * 
+                     process.pfDeepFlavourTagInfosWithDeepB * 
+                     process.pfDeepFlavourJetTagsWithDeepB *
+                     process.patJetCorrFactorsTransientCorrectedWithDeepB * 
+                     process.updatedPatJetsTransientCorrectedWithDeepB *
+                     process.selectedUpdatedPatJetsWithDeepB *
+
+                     process.patJetCorrFactorsAK8WithDeepTags *
+                     process.updatedPatJetsAK8WithDeepTags *
+                     process.patJetCorrFactorsTransientCorrectedAK8WithDeepTags *
+                     process.pfDeepBoostedJetTagInfosAK8WithDeepTags *
+                     process.pfDeepBoostedJetTagsAK8WithDeepTags *
+                     process.pfDeepBoostedDiscriminatorsJetTagsAK8WithDeepTags *
+                     process.updatedPatJetsTransientCorrectedAK8WithDeepTags *
+                     process.selectedUpdatedPatJetsAK8WithDeepTags *
+
                      process.egammaPostRecoSeq*
                      process.prefiringweight*
                      process.pdfweights*
