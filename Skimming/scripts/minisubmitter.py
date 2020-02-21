@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import subprocess
 import time
 import argparse
@@ -57,7 +58,7 @@ def crabConfig(dataSet, setName, outDir, systematics):
     crabConf.Data.inputDataset = dataSet
     crabConf.Data.inputDBS = "global" if not isSignal else "phys03"
     crabConf.Data.splitting = "EventAwareLumiBased" if not isSignal else "FileBased"
-    crabConf.Data.unitsPerJob = 150000 if not isSignal else 2
+    crabConf.Data.unitsPerJob = 220000 if not isSignal else 2
     crabConf.Data.outLFNDirBase = "/store/user/dbrunner/skim"
 
     crabConf.Site.storageSite = "T2_DE_DESY"
@@ -68,6 +69,12 @@ def crabConfig(dataSet, setName, outDir, systematics):
 def submit(crabJob):
     crabCommand("submit", config=crabJob)
 
+def getFiles(jobNr, crabDir):
+    fileNames =  subprocess.check_output(["crab", "getoutput", "--xrootd", "--jobids", ",".join(jobNr), crabDir]).split("\n")[:-1]
+    print("Got {} xrood paths".format(len(jobNr)))
+
+    return fileNames
+    
 def monitor(crabJob):
     ##Crab dir
     crabDir = "{}/crab_{}".format(crabJob.General.workArea, crabJob.General.requestName)
@@ -108,14 +115,13 @@ def monitor(crabJob):
 
     return False
 
-def merge(crabJob, systematics):
+def merge(crabJob, allFiles, systematics):
     ##Create output directories
     crabDir = "{}/crab_{}".format(crabJob.General.workArea, crabJob.General.requestName)
     subprocess.call(["mkdir", "-p", "{}/merged/".format(crabJob.General.workArea)])
     setName = crabJob.General.workArea.split("/")[-1]
 
-    ##Get all output files
-    allFiles = subprocess.check_output(["crab", "getoutput", "--xrootd", crabDir]).split("\n")[:-1]
+    print("Begin merging: {}".format(setName))
 
     for systematic in systematics:
         for shift in ["Up", "Down"]:
@@ -130,79 +136,25 @@ def merge(crabJob, systematics):
 
             systName = "" if systematic == "" else "_{}{}".format(systematic, shift) 
 
-            ##Create directory with dag files
-            subDir = "{}/Tmp/SkimMerge/{}{}".format(os.environ["CHDIR"], setName, systName)
-            subprocess.call(["mkdir", "-p", subDir])
-
-            ##Condor and dagman templates
-            condorSub = [
-                "universe = vanilla",
-                "arguments = $(FILES)",
-                "getenv = True",
-                'requirements = (OpSysAndVer =?= "CentOS7")',
-                "error = {}/err$(Process).txt".format(subDir),
-                "output = {}/out$(Process).txt".format(subDir),
-                "executable = {}/src/ChargedSkimming/Skimming/scripts/merge.sh".format(os.environ["CMSSW_BASE"]),
-            ]
-
-            dagmanSub = [
-                "JOB A {}/subMerge.sub".format(subDir),
-                "JOB B {}/merge.sub".format(subDir),
-                "JOB C {}/rm.sub".format(subDir),
-                "PARENT A CHILD B",
-                "PARENT B CHILD C",
-            ]
-
             ##Split files in chuncks
             if(len(files) == 0):
                 return None
-            files = np.array_split(files, 1 if len(files) < 40 else int(len(files)/40.))
+            files =[list(l) for l in np.array_split(files, 1 if len(files) < 40 else int(len(files)/40.))]
             
             tmpOutput = []
 
-            ##Write condor script for merge of chunks of files
-            with open("{}/subMerge.sub".format(subDir), "w") as condFile:
-                for line in condorSub:
-                    condFile.write(line + "\n")
-                    
-                condFile.write("queue FILES from (\n")
+            for index, filesBunch in enumerate(files):
+                tmpFile = "{}/merged/tmpFile{}_{}.root".format(crabJob.General.workArea, systName, index) 
+                tmpOutput.append(tmpFile)
 
-                for index, filesBunch in enumerate(files):
-                    tmpFile = "{}/merged/tmpFile{}_{}.root".format(crabJob.General.workArea, systName, index)
-                    condFile.write(" ".join([tmpFile] + list(filesBunch)) + "\n")
+                subprocess.check_output(["hadd", "-f", tmpFile] + filesBunch)
 
-                    tmpOutput.append(tmpFile)
+            mergeOutput =  "{}/merged/{}{}.root".format(crabJob.General.workArea, setName, systName)
+            subprocess.check_output(["hadd", "-f", mergeOutput] + tmpOutput)
 
-                condFile.write(")")
+            subprocess.check_output(["rm", "-f"] + tmpOutput)
 
-            ##Write condor script for merge of chunks to complete file
-            with open("{}/merge.sub".format(subDir), "w") as condFile:
-                for line in condorSub:
-                    condFile.write(line + "\n")
-
-                mergeOutput =  "{}/merged/{}{}.root".format(crabJob.General.workArea, setName, systName)
-
-                condFile.write("queue FILES from (\n")
-                condFile.write(" ".join([mergeOutput] + tmpOutput) + "\n")
-                condFile.write(")")
-
-            ##Write condor script to clean up merge directory
-            with open("{}/rm.sub".format(subDir), "w") as condFile:
-                for line in condorSub[:-1]:
-                    condFile.write(line + "\n")
-
-                condFile.write("executable = /bin/rm\n")
-
-                condFile.write("queue FILES from (\n")
-                condFile.write(" ".join(tmpOutput) + "\n")
-                condFile.write(")")
-
-            ##Write and call dagman script
-            with open("{}/merge.dag".format(subDir), "w") as dagFile:
-                for line in dagmanSub:
-                    dagFile.write(line + "\n")
-            
-            subprocess.call(["condor_submit_dag", "-f", "{}/merge.dag".format(subDir)])
+    print("Sucessfully merged: {}".format(setName)) 
 
 def main():
     ##Parser arguments
@@ -265,10 +217,33 @@ def main():
     ##Merge output files
     elif args.merge:
         pool = Pool(processes=cpu_count())
+        files = []
         mergeJobs = []
 
         for crabJob in crabJobs:
-            mergeJobs.append(pool.apply_async(merge, (crabJob, systematics)))
+            print("Get xrootd paths: {}".format(crabJob.General.workArea.split("/")[-1]))
+    
+            crabDir = "{}/crab_{}".format(crabJob.General.workArea, crabJob.General.requestName)
+            allFiles = []
+
+            sys.stdout = open(os.devnull, 'w')
+            crabStatus = crabCommand("status", dir=crabDir)
+            sys.stdout = sys.__stdout__
+
+            jobNrs = [nr for nr in crabStatus["jobs"].keys() if crabStatus["jobs"][nr]["State"] == "finished"]
+            jobNrs = [jobNrs[i:i + 30] for i in range(0, len(jobNrs), 30)]
+
+            jobs = [pool.apply_async(getFiles, (jobNr, crabDir)) for jobNr in jobNrs]
+
+            for job in jobs:
+                allFiles.extend(job.get())
+
+            files.append(allFiles)
+
+            print("Got all xrootd paths: {}".format(crabJob.General.workArea.split("/")[-1]))
+
+        for index, crabJob in enumerate(crabJobs):
+            mergeJobs.append(pool.apply_async(merge, (crabJob, files[index], systematics)))
 
         [job.get() for job in mergeJobs]
 
