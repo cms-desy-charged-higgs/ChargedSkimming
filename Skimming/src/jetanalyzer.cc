@@ -39,8 +39,6 @@ JetAnalyzer::JetAnalyzer(const int &era, const float &ptCut, const float &etaCut
             if(systematic.find("Up") != std::string::npos) isUp = true;
             else isUp = false;
         }
-
-        Deep = new TH1F("Deep", "Deep", 30, 0, 1);
     }
 
 
@@ -358,29 +356,29 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool&
         {{"Jet", "tightbTagSF"}, tightbTagSF[AK4]},
         {{"Jet", "isFromh"}, isFromh[AK4]},
         {{"Jet", "FatJetIdx"}, FatJetIdx[AK4]},
-        {{"FatJet", "E"}, Px[AK8]},
-        {{"FatJet", "Px"}, Py[AK8]},
-        {{"FatJet", "Py"}, Pz[AK8]},
-        {{"FatJet", "Pz"}, E[AK8]},
+        {{"FatJet", "E"}, E[AK8]},
+        {{"FatJet", "Px"}, Px[AK8]},
+        {{"FatJet", "Py"}, Py[AK8]},
+        {{"FatJet", "Pz"}, Pz[AK8]},
         {{"FatJet", "Njettiness1"}, Njettiness1[AK8]},
         {{"FatJet", "Njettiness2"}, Njettiness2[AK8]},
         {{"FatJet", "Njettiness3"}, Njettiness3[AK8]},
         {{"FatJet", "topVsHiggs"}, topVsHiggs[AK8]},
         {{"FatJet", "QCDVsHiggs"}, QCDVsHiggs[AK8]},
         {{"FatJet", "isFromh"}, isFromh[AK8]},
-        {{"JetParticle", "E"}, Px[PF]},
-        {{"JetParticle", "Px"}, Py[PF]},
-        {{"JetParticle", "Py"}, Pz[PF]},
-        {{"JetParticle", "Pz"}, E[PF]},
+        {{"JetParticle", "E"}, E[PF]},
+        {{"JetParticle", "Px"}, Px[PF]},
+        {{"JetParticle", "Py"}, Py[PF]},
+        {{"JetParticle", "Pz"}, Pz[PF]},
         {{"JetParticle", "Vx"}, Vx[PF]},
         {{"JetParticle", "Vy"}, Vy[PF]},
         {{"JetParticle", "Vz"}, Vz[PF]},
         {{"JetParticle", "Charge"}, Charge[PF]},
         {{"JetParticle", "FatJetIdx"}, FatJetIdx[PF]},
-        {{"SecondaryVertex", "E"}, Px[VTX]},
-        {{"SecondaryVertex", "Px"}, Py[VTX]},
-        {{"SecondaryVertex", "Py"}, Pz[VTX]},
-        {{"SecondaryVertex", "Pz"}, E[VTX]},
+        {{"SecondaryVertex", "E"}, E[VTX]},
+        {{"SecondaryVertex", "Px"}, Px[VTX]},
+        {{"SecondaryVertex", "Py"}, Py[VTX]},
+        {{"SecondaryVertex", "Pz"}, Pz[VTX]},
         {{"SecondaryVertex", "Vx"}, Vx[VTX]},
         {{"SecondaryVertex", "Vy"}, Vy[VTX]},
         {{"SecondaryVertex", "Vz"}, Vz[VTX]},
@@ -418,7 +416,6 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool&
 
         tree->Branch("MET_Px", &metPx);
         tree->Branch("MET_Py", &metPy);
-        tree->Branch("HT", &HT);
     }
 }
 
@@ -433,7 +430,6 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
     }
 
     int nSubJets=0;
-    HT=0;
     runNumber = isNANO ? *run->Get() : event->eventAuxiliary().id().run(); 
 
     if(jetCorrector.empty()){
@@ -463,9 +459,6 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         }
     }
 
-    //JER smearing
-    float smearFac = 1., corrFac = 1.;
-
     //MET values not correct for JER yet
     metPx = isNANO ? *metPt->Get()*std::cos(*metPhi->Get()) : MET->at(0).uncorPx();
     metPy = isNANO ? *metPt->Get()*std::sin(*metPhi->Get()) : MET->at(0).uncorPy();
@@ -487,6 +480,9 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         
     //Loop over all fat jets
     for(unsigned int i = 0; i < fatJetSize; i++){
+        //JER smearing
+        float smearFac = 1., corrFac = 1.;
+
         float fatPt = isNANO ? fatJetPt->At(i) : fatJets->at(i).pt();
         float fatEta = isNANO ? fatJetEta->At(i) : fatJets->at(i).eta();
         float fatPhi = isNANO ? fatJetPhi->At(i) : fatJets->at(i).phi();
@@ -494,12 +490,12 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
 
         ROOT::Math::PtEtaPhiMVector LV(fatPt, fatEta, fatPhi, fatMass);
     
-        corrFac = isNANO ? CorrectEnergy(LV,  *jetRho->Get(), fatJetArea->At(i), AK8) : CorrectEnergy(LV, *rho, jets->at(i).jetArea(), AK8);
+        corrFac = isNANO ? CorrectEnergy(LV,  *jetRho->Get(), fatJetArea->At(i), AK8) : CorrectEnergy(LV, *rho, fatJets->at(i).jetArea(), AK8);
 
         //Get jet uncertainty
         if(jecUnc[AK8] !=  NULL){
-            jecUnc[AK8]->setJetPt(corrFac*LV.Pt());
-            jecUnc[AK8]->setJetEta(LV.Eta());
+            jecUnc[AK8]->setJetPt((corrFac*LV).Pt());
+            jecUnc[AK8]->setJetEta((corrFac*LV).Eta());
             float unc = jecUnc[AK8]->getUncertainty(isUp);
             corrFac *= isUp ? 1 + unc : 1 - unc;
         }
@@ -507,10 +503,9 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         //Smear pt if not data
         if(!isData){
             smearFac = isNANO ? SmearEnergy(LV*corrFac, *jetRho->Get(), 0.8, AK8) : SmearEnergy(LV*corrFac, *rho, 0.8, AK8, *genfatJets);
-            LV *= smearFac*corrFac;
         }
 
-        else LV *= corrFac;
+        LV *= smearFac*corrFac;
 
         if(LV.Pt() > 170. and LV.M() > 40. and abs(LV.Eta()) < etaCut){
             float hScore = fatJets->at(i).bDiscriminator("pfDeepBoostedJetTags:probHbb");
@@ -611,6 +606,9 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
 
     //Loop over all jets
     for(unsigned int i = 0; i < jetSize; i++){
+        //JER smearing
+        float smearFac = 1., corrFac = 1.;
+
         float pt = isNANO ? jetPt->At(i) : jets->at(i).pt();
         float eta = isNANO ? jetEta->At(i) : jets->at(i).eta();
         float phi = isNANO ? jetPhi->At(i) : jets->at(i).phi();
@@ -622,9 +620,9 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         corrFac = isNANO ? CorrectEnergy(LV,  *jetRho->Get(), jetArea->At(i), AK4) : CorrectEnergy(LV, *rho, jets->at(i).jetArea(), AK4);
 
         //Get jet uncertainty
-        if(jecUnc[AK8] !=  NULL){
-            jecUnc[AK4]->setJetPt(corrFac*LV.Pt());
-            jecUnc[AK4]->setJetEta(LV.Eta());
+        if(jecUnc[AK4] !=  NULL){
+            jecUnc[AK4]->setJetPt((corrFac*LV).Pt());
+            jecUnc[AK4]->setJetEta((corrFac*LV).Eta());
             float unc = jecUnc[AK4]->getUncertainty(isUp);
             corrFac *= isUp ? 1 + unc : 1 - unc;
         }
@@ -632,21 +630,15 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         //Smear pt if not data
         if(!isData){
             smearFac = isNANO ? SmearEnergy(LV*corrFac,  *jetRho->Get(), jetArea->At(i), AK4) : SmearEnergy(LV, *rho, 0.4, AK4, *genJets);
-
-            LV*=smearFac*corrFac;
         }
 
-        else LV*=corrFac;
-
+        LV *= smearFac*corrFac;
+    
         //Correct met
         metPx+= LV.Px()*(1-smearFac*corrFac);
         metPy+= LV.Py()*(1-smearFac*corrFac);
 
-        LV *= smearFac*corrFac;
-
         if(LV.Pt() > ptCut and abs(LV.Eta()) < etaCut){
-            HT+=LV.Pt();
-
             //Fatjet four momentum components
             E[AK4].push_back(LV.E());
             Px[AK4].push_back(LV.Px());
@@ -693,19 +685,19 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                 }
             }
 
+            int idx = -1.;
+
             //Check overlap with AK4 valid jets
             for(unsigned int j = 0; j < E[AK8].size(); j++){
-                ROOT::Math::PtEtaPhiMVector FatLV(E[AK8][j], Px[AK8][j], Py[AK8][j], Pz[AK8][j]);
-
+                ROOT::Math::PxPyPzEVector FatLV(Px[AK8][j], Py[AK8][j], Pz[AK8][j], E[AK8][j]);
+    
                 if(ROOT::Math::VectorUtil::DeltaR(LV, FatLV) < 1.2){
-                    FatJetIdx[AK4].push_back(j);
-                    nSubJets++;
-                }
-
-                else{
-                    FatJetIdx[AK4].push_back(-1.);
+                    idx = j;
                 }
             }
+
+            if(idx != -1.) nSubJets++;
+            FatJetIdx[AK4].push_back(idx);
         } 
     }
 

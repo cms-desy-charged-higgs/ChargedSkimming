@@ -29,8 +29,6 @@ class JetAnalyzer: public BaseAnalyzer{
         //Bool for checking if data file
         bool isData;
 
-        TH1F* Deep;
-
         //Map for SF files
         std::map<int, std::vector<std::string>> JECMC, JECDATA;
         std::map<int, std::string> JECUNC, JMESF, JMEPtReso;
@@ -79,7 +77,7 @@ class JetAnalyzer: public BaseAnalyzer{
         std::unique_ptr<TTreeReaderValue<float>> metPhi, metPt, jetRho;
 
         //Parameter for HT
-        float HT, metPx, metPy;
+        float metPx, metPy;
         int runNumber;
 
         //Vector with output varirables of the output tree
