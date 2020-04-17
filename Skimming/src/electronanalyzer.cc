@@ -72,6 +72,7 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const 
             {"Px", Px},
             {"Py", Py},
             {"Pz", Pz},
+            {"Isolation", Isolation},
             {"Charge", Charge},
             {"recoSF", recoSF},
             {"looseSF", looseSF},
@@ -83,9 +84,6 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const 
             {"isLoose", isLoose},
             {"isMedium", isMedium},
             {"isTight", isTight},
-            {"isLooseIso", isLooseIso}, 
-            {"isMediumIso", isMediumIso}, 
-            {"isTightIso", isTightIso},
             {"isFromHPlus", isFromHPlus},
     };
 
@@ -162,9 +160,7 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event*
 
             else iso = eleIso->At(i);
 
-            isLooseIso.push_back(iso < 0.25);
-            isMediumIso.push_back(iso < 0.2);
-            isTightIso.push_back(iso < 0.15);
+            Isolation.push_back(iso);
 
             //Electron ID
             isLoose.push_back(isNANO ? eleID->At(i) == 2 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-loose"));

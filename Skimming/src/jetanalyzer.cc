@@ -239,30 +239,12 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool&
     };
 
 
-    bTagSF = {
-            {AK4, {
-                {2017, filePath + "/btagSF/DeepFlavour_94XSF_V1_B_F.csv"},
-                }
-            },
-
-            {AK8, {
-                 {2017, filePath + "/btagSF/subjet_DeepCSV_94XSF_V4_B_F.csv"},
-                }
-            },
+    DeepbTagSF = {
+        {2017, filePath + "/btagSF/DeepFlavour_94XSF_V1_B_F.csv"},
     };
 
-
-    //https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation94
-    bTagCuts = {
-            {AK4, {
-                {2017, {0.051, 0.3033, 0.7489}}, //Loose, Medium, Tight
-                }
-            },
-
-            {AK8, {
-                {2017, {0.1522, 0.4941}}, //Loose, Medium, Tight
-                }
-            },
+    CSVbTagSF = {
+        {2017, filePath + "/btagSF/DeepCSV_94XSF_V5_B_F.csv"},
     };
 
     //Set data bool
@@ -309,22 +291,28 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool&
         //Set TTreeReader for genpart and trigger obj from baseanalyzer
         SetCollection(this->isData);
     }
-    
-    for(JetType type: {AK4, AK8}){
-        //Set configuration for bTagSF reader  ##https://twiki.cern.ch/twiki/bin/view/CMS/BTagCalibration
-        calib[type] = BTagCalibration(std::to_string(type), bTagSF[type][era]);
 
-        looseReader[type] = BTagCalibrationReader(BTagEntry::OP_LOOSE, "central", {"up", "down"});
-        mediumReader[type] = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central", {"up", "down"});  
-        tightReader[type] = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central", {"up", "down"});  
+    //Set configuration for bTagSF reader  ##https://twiki.cern.ch/twiki/bin/view/CMS/BTagCalibration
+    CSVcalib = BTagCalibration("CSV", CSVbTagSF[era]);
+    Deepcalib = BTagCalibration("CSV", DeepbTagSF[era]);
 
-        looseReader[type].load(calib[type],  BTagEntry::FLAV_B, (type==AK4) ? "comb": "lt");  
-        mediumReader[type].load(calib[type],  BTagEntry::FLAV_B, (type==AK4) ? "comb": "lt");  
-        
-        if(type!=AK8){
-            tightReader[type].load(calib[type],  BTagEntry::FLAV_B, (type==AK4) ? "comb": "lt");  
-        }
+    looseCSVReader = BTagCalibrationReader(BTagEntry::OP_LOOSE, "central", {"up", "down"});
+    mediumCSVReader = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central", {"up", "down"});  
+    tightCSVReader = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central", {"up", "down"});  
+
+    looseCSVReader.load(CSVcalib,  BTagEntry::FLAV_B, "comb");  
+    mediumCSVReader.load(CSVcalib,  BTagEntry::FLAV_B, "comb");
+    tightCSVReader.load(CSVcalib,  BTagEntry::FLAV_B, "comb");  
+
+    looseDeepReader = BTagCalibrationReader(BTagEntry::OP_LOOSE, "central", {"up", "down"});
+    mediumDeepReader = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central", {"up", "down"});  
+    tightDeepReader = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central", {"up", "down"});  
+
+    looseDeepReader.load(Deepcalib,  BTagEntry::FLAV_B, "comb");  
+    mediumDeepReader.load(Deepcalib,  BTagEntry::FLAV_B, "comb");
+    tightDeepReader.load(Deepcalib,  BTagEntry::FLAV_B, "comb");  
     
+    for(JetType type: {AK4, AK8}){    
         //Set configuration for JER tools
         std::string fileName = JMEPtReso[era];
         fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");
@@ -351,9 +339,15 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool&
         {{"Jet", "Px"}, Px[AK4]},
         {{"Jet", "Py"}, Py[AK4]},
         {{"Jet", "Pz"}, Pz[AK4]},
-        {{"Jet", "loosebTagSF"}, loosebTagSF[AK4]},
-        {{"Jet", "mediumbTagSF"}, mediumbTagSF[AK4]},
-        {{"Jet", "tightbTagSF"}, tightbTagSF[AK4]},
+        {{"Jet", "TrueFlavour"}, TrueFlavour[AK4]},
+        {{"Jet", "looseCSVbTagSF"}, looseCSVbTagSF[AK4]},
+        {{"Jet", "mediumbCSVTagSF"}, mediumCSVbTagSF[AK4]},
+        {{"Jet", "tightCSVbTagSF"}, tightCSVbTagSF[AK4]},
+        {{"Jet", "looseDeepbTagSF"}, looseDeepbTagSF[AK4]},
+        {{"Jet", "mediumDeepbTagSF"}, mediumDeepbTagSF[AK4]},
+        {{"Jet", "tightDeepbTagSF"}, tightDeepbTagSF[AK4]},
+        {{"Jet", "DeepScore"}, DeepScore[AK4]},
+        {{"Jet", "CSVScore"}, CSVScore[AK4]},
         {{"Jet", "isFromh"}, isFromh[AK4]},
         {{"Jet", "FatJetIdx"}, FatJetIdx[AK4]},
         {{"FatJet", "E"}, E[AK8]},
@@ -385,20 +379,20 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool&
         {{"SecondaryVertex", "FatJetIdx"}, FatJetIdx[VTX]},
     };
 
-    bools = {
-            {"isLooseB", isLooseB},
-            {"isMediumB", isMediumB},
-            {"isTightB", isTightB},
-    };
-
     if(!isSyst){
         std::map<std::pair<std::string, std::string>, std::vector<float>&> SFvariations = {
-            {{"Jet", "loosebTagSFSFUp"}, loosebTagSFUp[AK4]},
-            {{"Jet", "loosebTagSFDown"}, loosebTagSFDown[AK4]},
-            {{"Jet", "mediumbTagSFSFUp"}, mediumbTagSFUp[AK4]},
-            {{"Jet", "mediumbTagSFDown"}, mediumbTagSFDown[AK4]},
-            {{"Jet", "tightbTagSFSFUp"}, tightbTagSFUp[AK4]},
-            {{"Jet", "tightbTagSFDown"}, tightbTagSFDown[AK4]},
+            {{"Jet", "looseDeepbTagSFUp"}, looseDeepbTagSFUp[AK4]},
+            {{"Jet", "looseDeepbTagSFDown"}, looseDeepbTagSFUp[AK4]},
+            {{"Jet", "mediumDeepbTagSFUp"}, mediumDeepbTagSFUp[AK4]},
+            {{"Jet", "mediumDeepbTagSFDown"}, mediumDeepbTagSFUp[AK4]},
+            {{"Jet", "tightDeepbTagSFUp"}, tightDeepbTagSFUp[AK4]},
+            {{"Jet", "tightDeepbTagSFDown"}, tightDeepbTagSFUp[AK4]},
+            {{"Jet", "looseCSVbTagSFUp"}, looseCSVbTagSFUp[AK4]},
+            {{"Jet", "looseCSVbTagSFDown"}, looseCSVbTagSFDown[AK4]},
+            {{"Jet", "mediumCSVbTagSFUp"}, mediumCSVbTagSFUp[AK4]},
+            {{"Jet", "mediumCSVbTagSFDown"}, mediumCSVbTagSFDown[AK4]},
+            {{"Jet", "tightCSVbTagSFUp"}, tightCSVbTagSFUp[AK4]},
+            {{"Jet", "tightCSVbTagSFDown"}, tightCSVbTagSFDown[AK4]},
         };
 
         variables.insert(SFvariations.begin(), SFvariations.end());   
@@ -410,10 +404,6 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool&
             tree->Branch((variable.first.first + "_" + variable.first.second).c_str(), &variable.second);
         }
 
-        for(std::pair<const std::string, std::vector<bool>&>& variable: bools){
-            tree->Branch(("Jet_" + variable.first).c_str(), &variable.second);
-        }
-
         tree->Branch("MET_Px", &metPx);
         tree->Branch("MET_Py", &metPy);
     }
@@ -422,10 +412,6 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool&
 void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
     //Clear variables vector
     for(std::pair<const std::pair<std::string, std::string>, std::vector<float>&>& variable: variables){
-        variable.second.clear();
-    }
-
-    for(std::pair<const std::string, std::vector<bool>&>& variable: bools){
         variable.second.clear();
     }
 
@@ -646,6 +632,7 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
             Pz[AK4].push_back(LV.Pz());
 
             //Check for btag
+            float CSVBValue = 0;
             float DeepBValue = 0;
 
             if(isNANO){ 
@@ -656,25 +643,40 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                 for(std::string disc: {"pfDeepFlavourJetTags:probb", "pfDeepFlavourJetTags:probbb","pfDeepFlavourJetTags:problepb"}){
                     DeepBValue +=  jets->at(i).bDiscriminator(disc);
                 }
+
+                for(std::string disc: {"pfDeepCSVJetTags:probb", "pfDeepCSVJetTags:probbb"}){
+                    CSVBValue +=  jets->at(i).bDiscriminator(disc);
+                }
             }
 
-            isLooseB.push_back(bTagCuts[AK4][era][0] < DeepBValue);
-            isMediumB.push_back(bTagCuts[AK4][era][1] < DeepBValue);
-            isTightB.push_back(bTagCuts[AK4][era][2] < DeepBValue);
+            if(!isData) TrueFlavour[AK4].push_back(jets->at(i).partonFlavour());
+            CSVScore[AK4].push_back(CSVBValue);
+            DeepScore[AK4].push_back(DeepBValue);
 
             if(!isData){
                 //btag SF
-                loosebTagSF[AK4].push_back(looseReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
-                mediumbTagSF[AK4].push_back(mediumReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
-                tightbTagSF[AK4].push_back(tightReader[AK4].eval_auto_bounds("central", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                looseCSVbTagSF[AK4].push_back(looseCSVReader.eval_auto_bounds("central", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                mediumCSVbTagSF[AK4].push_back(mediumCSVReader.eval_auto_bounds("central", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                tightCSVbTagSF[AK4].push_back(tightCSVReader.eval_auto_bounds("central", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+
+                looseDeepbTagSF[AK4].push_back(looseDeepReader.eval_auto_bounds("central", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                mediumDeepbTagSF[AK4].push_back(mediumDeepReader.eval_auto_bounds("central", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                tightDeepbTagSF[AK4].push_back(tightDeepReader.eval_auto_bounds("central", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
 
                 if(!isSyst){
-                    loosebTagSFUp[AK4].push_back(looseReader[AK4].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
-                    loosebTagSFDown[AK4].push_back(looseReader[AK4].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
-                    mediumbTagSFUp[AK4].push_back(mediumReader[AK4].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
-                    mediumbTagSFDown[AK4].push_back(mediumReader[AK4].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
-                    tightbTagSFUp[AK4].push_back(tightReader[AK4].eval_auto_bounds("up", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
-                    tightbTagSFDown[AK4].push_back(tightReader[AK4].eval_auto_bounds("down", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                    looseCSVbTagSFUp[AK4].push_back(looseCSVReader.eval_auto_bounds("up", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                    looseCSVbTagSFDown[AK4].push_back(looseCSVReader.eval_auto_bounds("down", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                    mediumCSVbTagSFUp[AK4].push_back(mediumCSVReader.eval_auto_bounds("up", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                    mediumCSVbTagSFDown[AK4].push_back(mediumCSVReader.eval_auto_bounds("down", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                    tightCSVbTagSFUp[AK4].push_back(tightCSVReader.eval_auto_bounds("up", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                    tightCSVbTagSFDown[AK4].push_back(tightCSVReader.eval_auto_bounds("down", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+
+                    looseDeepbTagSFUp[AK4].push_back(looseDeepReader.eval_auto_bounds("up", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                    looseDeepbTagSFDown[AK4].push_back(looseDeepReader.eval_auto_bounds("down", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                    mediumDeepbTagSFUp[AK4].push_back(mediumDeepReader.eval_auto_bounds("up", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                    mediumDeepbTagSFDown[AK4].push_back(mediumDeepReader.eval_auto_bounds("down", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                    tightDeepbTagSFUp[AK4].push_back(tightDeepReader.eval_auto_bounds("up", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
+                    tightDeepbTagSFDown[AK4].push_back(tightDeepReader.eval_auto_bounds("down", BTagEntry::FLAV_B, abs(LV.Eta()), LV.Pt()));
                 }
 
 
@@ -703,9 +705,9 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
 
     for(CutFlow& cutflow: cutflows){
         //Check if one combination of jet and fatjet number is fullfilled
-        if(E[AK4].size() - nSubJets >= cutflow.nMinJet and E[AK8].size() == cutflow.nMinFatjet){
-            if(cutflow.passed){
-                std::string cutName("N^{AK4}_{jet} >= " + std::to_string(cutflow.nMinJet) + " && N^{AK8}_{jet} == " + std::to_string(cutflow.nMinFatjet));
+        if(E[AK4].size() - nSubJets >= cutflow.nMinJet and E[AK8].size() >= cutflow.nMinFatjet){
+            if(cutflow.passed and (cutflow.nMinJet!=0 or cutflow.nMinFatjet!=0)){
+                std::string cutName("N^{AK4}_{jet} >= " + std::to_string(cutflow.nMinJet) + " && N^{AK8}_{jet} >= " + std::to_string(cutflow.nMinFatjet));
 
                 cutflow.hist->Fill(cutName.c_str(), cutflow.weight);
             }

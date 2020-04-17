@@ -32,14 +32,11 @@ class JetAnalyzer: public BaseAnalyzer{
         //Map for SF files
         std::map<int, std::vector<std::string>> JECMC, JECDATA;
         std::map<int, std::string> JECUNC, JMESF, JMEPtReso;
-        std::map<JetType, std::map<int, std::string>> bTagSF;
-
-        //Values for bTag cuts
-        std::map<JetType, std::map<int, std::vector<float>>> bTagCuts; 
+        std::map<int, std::string> DeepbTagSF, CSVbTagSF;
 
         //Classes for reading btag SF
-        std::map<JetType, BTagCalibration> calib;
-        std::map<JetType, BTagCalibrationReader> looseReader, mediumReader, tightReader;
+        BTagCalibration CSVcalib, Deepcalib;
+        BTagCalibrationReader looseCSVReader, mediumCSVReader, tightCSVReader, looseDeepReader, mediumDeepReader, tightDeepReader;
 
         //Classes for reading jet energy SF 
         JME::JetParameters jetParameter;
@@ -84,9 +81,7 @@ class JetAnalyzer: public BaseAnalyzer{
         std::map<std::pair<std::string, std::string>, std::vector<float>&> variables;
         std::map<std::string, std::vector<bool>&> bools;
 
-        std::map<JetType, std::vector<float>> Px, Py, Pz, E, Vx, Vy, Vz, Charge, FatJetIdx, isFromh, topVsHiggs, QCDVsHiggs, Njettiness1, Njettiness2, Njettiness3, loosebTagSF, loosebTagSFUp, loosebTagSFDown, mediumbTagSF, mediumbTagSFUp, mediumbTagSFDown, tightbTagSF, tightbTagSFUp, tightbTagSFDown;
-
-        std::vector<bool> isLooseB, isMediumB, isTightB;
+        std::map<JetType, std::vector<float>> Px, Py, Pz, E, Vx, Vy, Vz, TrueFlavour, Charge, FatJetIdx, isFromh, topVsHiggs, QCDVsHiggs, Njettiness1, Njettiness2, Njettiness3, looseCSVbTagSF, looseCSVbTagSFUp, looseCSVbTagSFDown, mediumCSVbTagSF, mediumCSVbTagSFUp, mediumCSVbTagSFDown, tightCSVbTagSF, tightCSVbTagSFUp, tightCSVbTagSFDown, looseDeepbTagSF, looseDeepbTagSFUp, looseDeepbTagSFDown, mediumDeepbTagSF, mediumDeepbTagSFUp, mediumDeepbTagSFDown, tightDeepbTagSF, tightDeepbTagSFUp, tightDeepbTagSFDown, DeepScore, CSVScore;
 
         //Get jet energy correction
         std::map<JetType, FactorizedJetCorrector*> jetCorrector;

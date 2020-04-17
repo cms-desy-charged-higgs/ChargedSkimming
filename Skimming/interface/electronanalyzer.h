@@ -36,9 +36,9 @@ class ElectronAnalyzer: public BaseAnalyzer {
         std::map<std::string, std::vector<float>&> variables;
         std::map<std::string, std::vector<bool>&> bools;
 
-        std::vector<float> Px, Py, Pz, E, Charge, recoSF, recoSFUp, recoSFDown, looseSF, looseSFUp, looseSFDown, mediumSF, mediumSFUp, mediumSFDown, tightSF, tightSFUp, tightSFDown;
+        std::vector<float> Px, Py, Pz, E, Charge, recoSF, recoSFUp, recoSFDown, looseSF, looseSFUp, looseSFDown, mediumSF, mediumSFUp, mediumSFDown, tightSF, tightSFUp, tightSFDown, Isolation;
 
-        std::vector<bool> isLoose, isMedium, isTight, isLooseIso, isMediumIso, isTightIso, isFromHPlus;
+        std::vector<bool> isLoose, isMedium, isTight, isFromHPlus;
 
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> elePt, eleEta, elePhi, eleIso;
