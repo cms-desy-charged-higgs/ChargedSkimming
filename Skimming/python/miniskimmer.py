@@ -11,7 +11,7 @@ import os
 
 ##Argument parsing
 options = VarParsing()
-options.register("channel", "mu2j1fj", VarParsing.multiplicity.list, VarParsing.varType.string,
+options.register("channel", "MuonIncl", VarParsing.multiplicity.list, VarParsing.varType.string,
 "Channel names")
 options.register("filename", "", VarParsing.multiplicity.list, VarParsing.varType.string,
 "Name of file for skimming")
