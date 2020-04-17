@@ -122,7 +122,6 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* e
     for(CutFlow& cutflow: cutflows){
         cutflow.weight = xSec*lumi;
         cutflow.hist->Fill("No cuts", cutflow.weight);
-        cutflow.passed *= true;
     }
 }
 
