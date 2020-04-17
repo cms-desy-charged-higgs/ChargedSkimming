@@ -19,7 +19,6 @@ def parser():
     parser.add_argument("--submit", action = "store_true", help = "Submit all the jobs")
     parser.add_argument("--monitor", action = "store_true", help = "Check if jobs only should be monitored")
     parser.add_argument("--get-output", action = "store_true", help = "Save list of all output files")
-    parser.add_argument("--merge", action = "store_true", help = "Merge output together")
     parser.add_argument("--process", action = "store", default = "all", help = "Merge output together")
 
     return parser.parse_args()
@@ -28,7 +27,7 @@ def crabConfig(dataSet, setName, outDir, systematics):
     isSignal = "HPlus" in setName
     isData = "Single" in setName
 
-    channels = ["mu4j", "e4j", "mu2j1fj", "e2j1fj", "mu2fj", "e2fj"]
+    channels = ["MuonIncl", "EleIncl"]
 
     outFiles = []
 
@@ -51,7 +50,6 @@ def crabConfig(dataSet, setName, outDir, systematics):
     crabConf.General.transferOutputs = True
     crabConf.General.transferLogs = False
 
-    crabConf.JobType.allowUndistributedCMSSW = True
     crabConf.JobType.pluginName = "Analysis"
     crabConf.JobType.psetName = "ChargedSkimming/Skimming/python/miniskimmer.py"
     crabConf.JobType.pyCfgParams = ["outname={}.root".format(setName), "channel={}".format(",".join(channels))]
@@ -62,7 +60,7 @@ def crabConfig(dataSet, setName, outDir, systematics):
     crabConf.Data.inputDataset = dataSet
     crabConf.Data.inputDBS = "global" if not isSignal else "phys03"
     crabConf.Data.splitting = "EventAwareLumiBased" if not isSignal else "FileBased"
-    crabConf.Data.unitsPerJob = 200000 if not isSignal else 2
+    crabConf.Data.unitsPerJob = 250000 if not isSignal else 2
     crabConf.Data.outLFNDirBase = "/store/user/dbrunner/skim"
 
     crabConf.Site.storageSite = "T2_DE_DESY"
@@ -147,53 +145,6 @@ def getOutput(crabJob):
         for f in files:
             fileList.write(f)
             fileList.write("\n")
-    
-
-def merge(crabJob, systematics):
-    ##Create output directories
-    crabDir = "{}/crab_{}".format(crabJob.General.workArea, crabJob.General.requestName)
-    subprocess.call(["mkdir", "-p", "{}/merged/".format(crabJob.General.workArea)])
-    setName = crabJob.General.workArea.split("/")[-1]
-    allFiles = []
-
-    with open("{}/outputFiles.txt".format(crabJob.General.workArea), "r") as fileList:
-        for line in fileList:
-            allFiles.append(line.replace("\n", ""))
-
-    print("Begin merging: {}".format(setName))
-
-    for systematic in systematics:
-        for shift in ["Up", "Down"]:
-            ##Get files for specific systematic + shift
-            if systematic == "":
-                files = [f for f in allFiles if not "Down" in f and not "Up" in f]
-                if shift == "Down":
-                    continue
-
-            else:
-                files = [f for f in allFiles if shift in f and systematic in f]
-
-            systName = "" if systematic == "" else "_{}{}".format(systematic, shift) 
-
-            ##Split files in chuncks
-            if(len(files) == 0):
-                return None
-            files =[list(l) for l in np.array_split(files, 1 if len(files) < 10 else int(len(files)/10.))]
-            
-            tmpOutput = []
-
-            for index, filesBunch in enumerate(files):
-                tmpFile = "{}/merged/tmpFile{}_{}.root".format(crabJob.General.workArea, systName, index) 
-                tmpOutput.append(tmpFile)
-
-                subprocess.check_output(["hadd", "-f", "-k", tmpFile] + filesBunch)
-
-            mergeOutput =  "{}/merged/{}{}.root".format(crabJob.General.workArea, setName, systName)
-            subprocess.check_output(["hadd", "-f", "-k", mergeOutput] + tmpOutput)
-
-            subprocess.check_output(["rm", "-f"] + tmpOutput)
-
-    print("Sucessfully merged: {}".format(setName)) 
 
 def main():
     ##Parser arguments
@@ -204,7 +155,7 @@ def main():
     fileName = "/filelist_{}_2017_MINI.txt"
     
     procType = ["bkg", "signal", "data"] if args.process == "all" else [args.process]
-    systematics = ["", "energyScale", "energySigma", "JECTotal", "JER"]
+    systematics = [""] #["", "energyScale", "energySigma", "JECTotal", "JER"]
 
     ##Create with each dataset a crab config
     crabJobs = {}
@@ -240,17 +191,6 @@ def main():
         for proc in procType:
             for crabJob in crabJobs[proc]:
                 getOutput(crabJob)
-
-    ##Merge output files
-    elif args.merge:
-        pool = Pool(processes=20)
-        mergeJobs = []
-
-        for proc in procType:
-            for crabJob in crabJobs[proc]:
-                mergeJobs.append(pool.apply_async(merge, (crabJob, systematics)))
-
-        [job.get() for job in mergeJobs]
 
     ##Just monitor crab jobs
     elif args.monitor:
