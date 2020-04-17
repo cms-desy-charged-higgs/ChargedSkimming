@@ -48,21 +48,17 @@ void MiniSkimmer::beginJob(){
     std::vector<genjToken> genjetTokens = {genjetToken, genfatjetToken};
 
     nMin = {
-            {"mu4j", {1, 0, 4, 0}},
-            {"e4j", {0, 1, 4, 0}},
-            {"mu2j1fj", {1, 0, 2, 1}},
-            {"e2j1fj", {0, 1, 2, 1}},
-            {"mu2fj", {1, 0, 0, 2}},
-            {"e2fj", {0, 1, 0, 2}},
+            {"MuonIncl", {1, 0, 0, 0}},
+            {"EleIncl", {0, 1, 0, 0}},
     };
 
     //Name of systematic uncertainties
     systNames = {
-                    {"", ""}, 
-                    {"energyScale", "e"}, 
-                    {"energySigma", "e"},
-                    {"JECTotal", "j"},
-                    {"JER", "j"},
+                {"", ""}, 
+            //        {"energyScale", "e"}, 
+            //        {"energySigma", "e"},
+            //{"JECTotal", "incl"},
+             //       {"JER", "incl"},
     };
 
     for(const std::pair<std::string, std::string>& systInfo: systNames){
@@ -102,6 +98,8 @@ void MiniSkimmer::beginJob(){
                 //Create output trees
                 TTree* tree = new TTree();
                 tree->SetName(channel.c_str());
+                tree->SetAutoSave(0);
+                tree->SetAutoFlush(0);
                 treesPerSyst.push_back(tree);
 
                 //Create cutflow histograms
@@ -127,8 +125,8 @@ void MiniSkimmer::beginJob(){
                 std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, {"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
                 std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
                 std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken, particle == "j" ? systName : "")),
-                std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 10., 2.4, muonToken, genParticleToken)),
-                std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 10., 2.4, eleToken, genParticleToken, particle == "e" ? systName : "")),
+                std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 15., 2.4, muonToken, genParticleToken)),
+                std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 15., 2.4, eleToken, genParticleToken, particle == "e" ? systName : "")),
                 std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
             };
 
@@ -149,21 +147,9 @@ void MiniSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     nEvents++;
 
     for(unsigned int i = 0; i < analyzers.size(); i++){
-        unsigned int nFailed = 0;
-
         //Call each analyzer
         for(unsigned int j = 0; j < analyzers[i].size(); j++){
-            nFailed = 0;
             analyzers[i][j]->Analyze(cutflows[i], &iEvent);
-
-            for(CutFlow &cutflow: cutflows[i]){
-                if(!cutflow.passed) nFailed++;
-            }
-
-            //If for all channels one analyzer fails, reject event
-            if(nFailed == cutflows.size()){
-                break;
-            }        
         }
 
         //Check individual for each channel, if event should be filled
@@ -194,7 +180,6 @@ void MiniSkimmer::endJob(){
             cutflow.hist->Write();
             delete cutflow.hist;
         }
-
 
         outputFiles[i]->Write();
         outputFiles[i]->Close();
