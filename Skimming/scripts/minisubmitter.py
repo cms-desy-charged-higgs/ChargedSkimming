@@ -56,6 +56,7 @@ def crabConfig(dataSet, setName, outDir, systematics):
     crabConf.JobType.outputFiles = outFiles
     crabConf.JobType.maxMemoryMB = 3500
     crabConf.JobType.maxJobRuntimeMin = 1440
+    crabConf.JobType.allowUndistributedCMSSW = True
 
     crabConf.Data.inputDataset = dataSet
     crabConf.Data.inputDBS = "global" if not isSignal else "phys03"
@@ -152,7 +153,7 @@ def main():
 
     ##Txt with dataset names
     filePath = "{}/src/ChargedSkimming/Skimming/data/filelists".format(os.environ["CMSSW_BASE"])
-    fileName = "/filelist_{}_2017_MINI.txt"
+    fileName = "/filelist_{}_2017_MINI.yaml"
     
     procType = ["bkg", "signal", "data"] if args.process == "all" else [args.process]
     systematics = [""] #["", "energyScale", "energySigma", "JECTotal", "JER"]
@@ -163,7 +164,7 @@ def main():
     
     for process in procType:
         with open(filePath + fileName.format(process)) as f:
-            datasets = [dataset for dataset in f.read().splitlines() if dataset != ""]
+            datasets = yaml.load(f, Loader=yaml.Loader)
 
             for dataset in datasets:
                 if "SIM" in dataset or "HPlus" in dataset:
