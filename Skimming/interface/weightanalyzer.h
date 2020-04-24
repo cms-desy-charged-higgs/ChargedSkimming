@@ -20,7 +20,7 @@ class WeightAnalyzer : public BaseAnalyzer {
         float xSec;
     
         //Values for branch
-        float lumi = 1., genWeight = 1., eventNumber = 1., nTrueInt = 1.;
+        float genWeight = 1., eventNumber = 1., nTrueInt = 1.;
         std::vector<float> prefireWeights, pdfWeights, scaleWeights;
 
         //Lumi information
@@ -43,10 +43,10 @@ class WeightAnalyzer : public BaseAnalyzer {
         std::unique_ptr<TTreeReaderValue<ULong64_t>> evtNumber;
 
     public:
-        WeightAnalyzer(const float era, const float xSec, TTreeReader &reader);
-        WeightAnalyzer(const float era, const float xSec, puToken &pileupToken, genToken &geninfoToken, const std::vector<edm::EDGetTokenT<double>> prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken);
-        void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
-        void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
+        WeightAnalyzer(const float& era, const float& xSec, TTreeReader &reader);
+        WeightAnalyzer(const float& era, const float& xSec, puToken &pileupToken, genToken &geninfoToken, const std::vector<edm::EDGetTokenT<double>>& prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken);
+        void BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst=false);
+        void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };
 

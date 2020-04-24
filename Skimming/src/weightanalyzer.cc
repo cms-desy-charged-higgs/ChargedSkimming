@@ -1,12 +1,12 @@
 #include <ChargedSkimming/Skimming/interface/weightanalyzer.h>
 
-WeightAnalyzer::WeightAnalyzer(const float era, const float xSec, TTreeReader &reader):
+WeightAnalyzer::WeightAnalyzer(const float& era, const float& xSec, TTreeReader& reader):
     BaseAnalyzer(&reader),
     era(era),
     xSec(xSec)
     {}
 
-WeightAnalyzer::WeightAnalyzer(const float era, const float xSec, puToken &pileupToken, genToken &geninfoToken, const std::vector<edm::EDGetTokenT<double>> prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken):
+WeightAnalyzer::WeightAnalyzer(const float& era, const float& xSec, puToken& pileupToken, genToken& geninfoToken, const std::vector<edm::EDGetTokenT<double>>& prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken):
     BaseAnalyzer(),
     era(era),
     xSec(xSec),
@@ -17,7 +17,7 @@ WeightAnalyzer::WeightAnalyzer(const float era, const float xSec, puToken &pileu
     pdfToken(pdfToken)
     {}
 
-void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
+void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst){
     //Set lumi map
     lumis = {{2016, 35.92*1e3}, {2017, 41.53*1e3}};
 
@@ -43,8 +43,6 @@ void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bo
 
     //Branches for output tree
     for(TTree* tree: trees){
-        tree->Branch("Weight_lumi", &lumi);
-        tree->Branch("Weight_xsec", &xSec);
         tree->Branch("Weight_genWeight", &genWeight);
         tree->Branch("Weight_prefireWeight", &prefireWeights[0]);
         tree->Branch("Misc_TrueInteraction", &nTrueInt);
@@ -59,7 +57,7 @@ void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bo
     }
 }
 
-void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
+void WeightAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event){
     edm::Handle<std::vector<PileupSummaryInfo>> pileUp; 
     edm::Handle<GenEventInfoProduct> genInfo;
     std::vector<edm::Handle<double>> prefire;
@@ -81,7 +79,6 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* e
 
     //Set values if not data
     if(!this->isData){
-        lumi = lumis[era];
         nTrueInt = isNANO ? *nPU->Get() : 1.;
         genWeight = isNANO ? *genWeightValue->Get() : genInfo->weight();
 
@@ -103,7 +100,7 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* e
 
             //Get true number of interaction https://twiki.cern.ch/twiki/bin/view/CMS/PileupSystematicErrors
             for(PileupSummaryInfo puInfo: *pileUp) {
-                int BX = puInfo.getBunchCrossing();
+                const int& BX = puInfo.getBunchCrossing();
 
                 if(BX == 0) { 
                     nTrueInt = puInfo.getTrueNumInteractions();
@@ -120,7 +117,7 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* e
     eventNumber = isNANO ? *evtNumber->Get() : event->id().event();
 
     for(CutFlow& cutflow: cutflows){
-        cutflow.weight = xSec*lumi;
+        cutflow.weight = xSec*lumis[era];
         cutflow.hist->Fill("No cuts", cutflow.weight);
     }
 }
@@ -149,8 +146,18 @@ void WeightAnalyzer::EndJob(TFile* file){
             }
         }
 
+        TH1F* forXSec = new TH1F("xSec", "xSec", 1, 0, 1);
+        forXSec->SetBinContent(1, xSec);
+        forXSec->Write();
+
+        TH1F* forLumi = new TH1F("Lumi", "Lumi", 1, 0, 1);
+        forLumi->SetBinContent(1, lumis[era]);
+        forLumi->Write();
+
         delete puMC;
         delete nGenHist;
         delete nGenWeightedHist;
+        delete forXSec;
+        delete forLumi;
     }
 }
