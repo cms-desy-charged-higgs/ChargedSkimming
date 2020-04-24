@@ -33,24 +33,25 @@ class ElectronAnalyzer: public BaseAnalyzer {
         std::string energyCorrection;
 
         //Vector with output varirables of the output tree
-        std::map<std::string, std::vector<float>&> variables;
-        std::map<std::string, std::vector<bool>&> bools;
+        std::map<std::string, std::vector<float>&> floatVar;
+        std::map<std::string, std::vector<char>&> intVar;
 
-        std::vector<float> Px, Py, Pz, E, Charge, recoSF, recoSFUp, recoSFDown, looseSF, looseSFUp, looseSFDown, mediumSF, mediumSFUp, mediumSFDown, tightSF, tightSFUp, tightSFDown, Isolation;
+        std::vector<float> Pt, Eta, Phi, recoSF, recoSFUp, recoSFDown, looseSF, looseSFUp, looseSFDown, mediumSF, mediumSFUp, mediumSFDown, tightSF, tightSFUp, tightSFDown, Isolation;
 
-        std::vector<bool> isLoose, isMedium, isTight, isFromHPlus;
+        std::vector<char> ID, Charge, isFromHPlus;
+
+        char nElectrons;
 
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> elePt, eleEta, elePhi, eleIso;
-        std::unique_ptr<TTreeReaderArray<int>> eleCharge;
-        std::unique_ptr<TTreeReaderArray<int>> eleID;
+        std::unique_ptr<TTreeReaderArray<int>> eleCharge, eleID;
 
     public:
-        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, eToken& eleToken, genPartToken& genParticleToken, const std::string& systematic="");
-        ElectronAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
+        ElectronAnalyzer(const int& era, const float& ptCut, const float& etaCut, eToken& eleToken, genPartToken& genParticleToken, const std::string& systematic="");
+        ElectronAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader& reader);
 
-        void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
-        void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
+        void BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst=false);
+        void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };
 

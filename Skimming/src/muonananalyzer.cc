@@ -1,13 +1,13 @@
 #include <ChargedSkimming/Skimming/interface/muonanalyzer.h>
 
-MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader &reader):
+MuonAnalyzer::MuonAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader &reader):
     BaseAnalyzer(&reader),    
     era(era),
     ptCut(ptCut),
     etaCut(etaCut)
     {}
 
-MuonAnalyzer::MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, muToken& muonToken, genPartToken& genParticleToken):
+MuonAnalyzer::MuonAnalyzer(const int& era, const float& ptCut, const float& etaCut, muToken& muonToken, genPartToken& genParticleToken):
     BaseAnalyzer(), 
     era(era),
     ptCut(ptCut),
@@ -69,12 +69,10 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool
     }
 
     //Variable name mapping to branch name
-    variables = {
-            {"E", E},
-            {"Px", Px},
-            {"Py", Py},
-            {"Pz", Pz},
-            {"Charge", Charge},
+    floatVar = {
+            {"Pt", Pt},
+            {"Eta", Eta},
+            {"Phi", Phi},
             {"triggerSF", triggerSF},
             {"looseSF", looseSF},
             {"mediumSF", mediumSF},
@@ -86,13 +84,10 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool
             {"tightIsoTightSF", tightIsoTightSF},
     };
 
-    bools = {
-            {"isLoose", isLoose},
-            {"isMedium", isMedium},
-            {"isTight", isTight},
-            {"isLooseIso", isLooseIso}, 
-            {"isMediumIso", isMediumIso}, 
-            {"isTightIso", isTightIso},
+    intVar = {
+            {"Charge", Charge},
+            {"ID", ID},
+            {"isoID", isoID},
             {"isFromHPlus", isFromHPlus},
     };
 
@@ -118,29 +113,31 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool
             {"tightIsoTightSFUp", tightIsoTightSFUp}
         };
 
-        variables.insert(SFvariations.begin(), SFvariations.end());   
+        floatVar.insert(SFvariations.begin(), SFvariations.end());   
     }
 
     //Set Branches of output tree
     for(TTree* tree: trees){
-        for(std::pair<const std::string, std::vector<float>&>& variable: variables){
-            tree->Branch(("Muon_" + variable.first).c_str(), &variable.second);
+        tree->Branch("Muon_Size", &nMuons);
+
+        for(std::pair<const std::string, std::vector<float>&>& var: floatVar){
+            tree->Branch(("Muon_" + var.first).c_str(), &var.second);
         }
 
-        for(std::pair<const std::string, std::vector<bool>&>& variable: bools){
-            tree->Branch(("Muon_" + variable.first).c_str(), &variable.second);
+        for(std::pair<const std::string, std::vector<char>&>& var: intVar){
+            tree->Branch(("Muon_" + var.first).c_str(), &var.second);
         }
     }
 }
 
-void MuonAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
+void MuonAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event){
     //Clear variables vector
-    for(std::pair<const std::string, std::vector<float>&>& variable: variables){
-        variable.second.clear();
+    for(std::pair<const std::string, std::vector<float>&>& var: floatVar){
+        var.second.clear();
     }
 
-    for(std::pair<const std::string, std::vector<bool>&>& variable: bools){
-        variable.second.clear();
+    for(std::pair<const std::string, std::vector<char>&>& var: intVar){
+        var.second.clear();
     }
 
     //Get Event info is using MINIAOD
@@ -151,48 +148,47 @@ void MuonAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* eve
         event->getByToken(muonToken, muons);
     }
 
-    float muSize = isNANO ? muonPt->GetSize() : muons->size();
+    const char& muSize = isNANO ? muonPt->GetSize() : muons->size();
 
     //Loop over all electrons
-    for(unsigned int i = 0; i < muSize; i++){
-        float pt = isNANO ? muonPt->At(i) : muons->at(i).pt();
-        float eta = isNANO ? muonEta->At(i) : muons->at(i).eta();
-        float phi = isNANO ? muonPhi->At(i) : muons->at(i).phi();
+    for(int i = 0; i < muSize; i++){
+        const float& pt = isNANO ? muonPt->At(i) : muons->at(i).pt();
+        const float& eta = isNANO ? muonEta->At(i) : muons->at(i).eta();
+        const float& phi = isNANO ? muonPhi->At(i) : muons->at(i).phi();
 
         if(pt > ptCut && abs(eta) < etaCut){
-            ROOT::Math::PtEtaPhiMVector LV(pt, eta, phi, 105.658*1e-3);
-
             //Muon four momentum components
-            E.push_back(LV.E());
-            Px.push_back(LV.Px());
-            Py.push_back(LV.Py());
-            Pz.push_back(LV.Pz());
+            Pt.push_back(pt);
+            Eta.push_back(eta);
+            Phi.push_back(phi);
 
             //ID
-            isLoose.push_back(isNANO ? muonLooseID->At(i) : muons->at(i).passed(reco::Muon::MvaLoose));
-            isMedium.push_back(isNANO ? muonMediumID->At(i) : muons->at(i).passed(reco::Muon::MvaMedium));
-            isTight.push_back(isNANO ? muonTightID->At(i) : muons->at(i).passed(reco::Muon::MvaTight));
+            if(isNANO ? muonTightID->At(i) : muons->at(i).passed(reco::Muon::MvaTight)) ID.push_back(3);
+            else if(isNANO ? muonMediumID->At(i) : muons->at(i).passed(reco::Muon::MvaMedium)) ID.push_back(2);
+            else if(isNANO ? muonLooseID->At(i) : muons->at(i).passed(reco::Muon::MvaLoose)) ID.push_back(1);
+            else ID.push_back(0);
 
             //Isolation
-            isLooseIso.push_back(isNANO ? muonIso->At(i) < 0.25 : muons->at(i).passed(reco::Muon::PFIsoLoose));
-            isMediumIso.push_back(isNANO ? muonIso->At(i) < 0.2 : muons->at(i).passed(reco::Muon::PFIsoMedium));
-            isTightIso.push_back(isNANO ? muonIso->At(i) < 0.15 : muons->at(i).passed(reco::Muon::PFIsoTight));
+            if(isNANO ? muonIso->At(i) < 0.15 : muons->at(i).passed(reco::Muon::PFIsoTight)) isoID.push_back(3);
+            else if(isNANO ? muonIso->At(i) < 0.2 : muons->at(i).passed(reco::Muon::PFIsoMedium)) isoID.push_back(2);
+            else if(isNANO ? muonIso->At(i) < 0.25 : muons->at(i).passed(reco::Muon::PFIsoLoose)) isoID.push_back(1);
+            else isoID.push_back(0);
 
             //Charge
             Charge.push_back(isNANO ? muonCharge->At(i) : muons->at(i).charge());
             
             if(!isData){
                 //Scale factors
-                Int_t looseIsoLooseIDBin = IsoHist[0]->FindBin(pt, abs(eta));
-                Int_t looseIsoMediumIDBin = IsoHist[1]->FindBin(pt, abs(eta));
-                Int_t looseIsoTightIDBin = IsoHist[2]->FindBin(pt, abs(eta));
-                Int_t tightIsoMediumIDBin = IsoHist[3]->FindBin(pt, abs(eta));
-                Int_t tightIsoTightIDBin = IsoHist[4]->FindBin(pt, abs(eta));
+                const Int_t& looseIsoLooseIDBin = IsoHist[0]->FindBin(pt, abs(eta));
+                const Int_t& looseIsoMediumIDBin = IsoHist[1]->FindBin(pt, abs(eta));
+                const Int_t& looseIsoTightIDBin = IsoHist[2]->FindBin(pt, abs(eta));
+                const Int_t& tightIsoMediumIDBin = IsoHist[3]->FindBin(pt, abs(eta));
+                const Int_t& tightIsoTightIDBin = IsoHist[4]->FindBin(pt, abs(eta));
 
-                Int_t looseIDBin = IDHist[0]->FindBin(pt, abs(eta));
-                Int_t mediumIDBin = IDHist[1]->FindBin(pt, abs(eta));
-                Int_t tightIDBin = IDHist[2]->FindBin(pt, abs(eta));
-                Int_t triggerBin = triggerSFhist->FindBin(pt, abs(eta));
+                const Int_t& looseIDBin = IDHist[0]->FindBin(pt, abs(eta));
+                const Int_t& mediumIDBin = IDHist[1]->FindBin(pt, abs(eta));
+                const Int_t& tightIDBin = IDHist[2]->FindBin(pt, abs(eta));
+                const Int_t& triggerBin = triggerSFhist->FindBin(pt, abs(eta));
 
                 looseIsoLooseSF.push_back(IsoHist[0]->GetBinContent(looseIsoLooseIDBin));
                 looseIsoMediumSF.push_back(IsoHist[1]->GetBinContent(looseIsoMediumIDBin));
@@ -228,18 +224,20 @@ void MuonAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* eve
                 }
 
                 //Save gen particle information
-                if(isNANO) isFromHPlus.push_back(SetGenParticles(LV, i, 13));
+                if(isNANO) isFromHPlus.push_back(SetGenParticles(pt, eta, phi, i, 13));
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    isFromHPlus.push_back(SetGenParticles(LV, i, 13, *genParts));
+                    isFromHPlus.push_back(SetGenParticles(pt, eta, phi, i, 13, *genParts));
                 }
              }
         }
     }
 
+    nMuons = Pt.size();
+
     //Check if event has enough electrons
     for(CutFlow &cutflow: cutflows){
-        if(cutflow.nMinMu <= E.size()){
+        if(cutflow.nMinMu <= Pt.size()){
             if(cutflow.nMinMu!=0 and cutflow.passed){
                 std::string cutName("N_{#mu} >= " + std::to_string(cutflow.nMinMu) + " (no iso/ID req)");
                 cutflow.hist->Fill(cutName.c_str(), cutflow.weight);

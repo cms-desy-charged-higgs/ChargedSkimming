@@ -17,13 +17,15 @@
 #include <DataFormats/PatCandidates/interface/MET.h>
 #include <DataFormats/JetReco/interface/GenJet.h>
 
+#include <TH2F.h>
+
 typedef edm::EDGetTokenT<std::vector<pat::Jet>> jToken;
 typedef edm::EDGetTokenT<std::vector<reco::GenJet>> genjToken;
 typedef edm::EDGetTokenT<std::vector<pat::MET>> mToken;
 typedef edm::EDGetTokenT<std::vector<reco::VertexCompositePtrCandidate>> secvtxToken;
 
 class JetAnalyzer: public BaseAnalyzer{
-    enum JetType {AK4, AK8, PF, VTX};
+    enum JetType {SUBAK4, AK4, AK8, PF, VTX};
 
     private:
         //Bool for checking if data file
@@ -37,6 +39,11 @@ class JetAnalyzer: public BaseAnalyzer{
         //Classes for reading btag SF
         BTagCalibration CSVcalib, Deepcalib;
         BTagCalibrationReader looseCSVReader, mediumCSVReader, tightCSVReader, looseDeepReader, mediumDeepReader, tightDeepReader;
+
+        std::vector<TH2F*> bTagEffLoose;
+        std::vector<TH2F*> bTagEffMedium;
+        std::vector<TH2F*> bTagEffTight;
+        TH2F* bTotal;
 
         //Classes for reading jet energy SF 
         JME::JetParameters jetParameter;
@@ -74,33 +81,37 @@ class JetAnalyzer: public BaseAnalyzer{
         std::unique_ptr<TTreeReaderValue<float>> metPhi, metPt, jetRho;
 
         //Parameter for HT
-        float metPx, metPy;
+        float metPT, metPHI;
         int runNumber;
 
         //Vector with output varirables of the output tree
-        std::map<std::pair<std::string, std::string>, std::vector<float>&> variables;
-        std::map<std::string, std::vector<bool>&> bools;
+        std::map<std::pair<std::string, std::string>, std::vector<float>&> floatVar;
+        std::map<std::pair<std::string, std::string>, std::vector<char>&> intVar;
 
-        std::map<JetType, std::vector<float>> Px, Py, Pz, E, Vx, Vy, Vz, TrueFlavour, Charge, FatJetIdx, isFromh, topVsHiggs, QCDVsHiggs, Njettiness1, Njettiness2, Njettiness3, looseCSVbTagSF, looseCSVbTagSFUp, looseCSVbTagSFDown, mediumCSVbTagSF, mediumCSVbTagSFUp, mediumCSVbTagSFDown, tightCSVbTagSF, tightCSVbTagSFUp, tightCSVbTagSFDown, looseDeepbTagSF, looseDeepbTagSFUp, looseDeepbTagSFDown, mediumDeepbTagSF, mediumDeepbTagSFUp, mediumDeepbTagSFDown, tightDeepbTagSF, tightDeepbTagSFUp, tightDeepbTagSFDown, DeepScore, CSVScore;
+        std::map<JetType, std::vector<float>> Pt, Eta, Phi, Mass, Vx, Vy, Vz, topVsHiggs, QCDVsHiggs, Njettiness1, Njettiness2, Njettiness3, looseCSVbTagSF, looseCSVbTagSFUp, looseCSVbTagSFDown, mediumCSVbTagSF, mediumCSVbTagSFUp, mediumCSVbTagSFDown, tightCSVbTagSF, tightCSVbTagSFUp, tightCSVbTagSFDown, looseDeepbTagSF, looseDeepbTagSFUp, looseDeepbTagSFDown, mediumDeepbTagSF, mediumDeepbTagSFUp, mediumDeepbTagSFDown, tightDeepbTagSF, tightDeepbTagSFUp, tightDeepbTagSFDown, DeepScore, CSVScore;
+
+        std::map<JetType, std::vector<char>> TrueFlavour, Charge, FatJetIdx, isFromh;
+
+        char nJets, nSubJets, nFatJets;
 
         //Get jet energy correction
         std::map<JetType, FactorizedJetCorrector*> jetCorrector;
         void SetCorrector(const JetType &type, const int& runNumber);
-        float CorrectEnergy(const ROOT::Math::PtEtaPhiMVector &jet, const float &rho, const float &area, const JetType &type);
+        float CorrectEnergy(const float& pt, const float& eta, const float& rho, const float& area, const JetType& type);
 
         //Get JER smear factor
-        float SmearEnergy(const ROOT::Math::PtEtaPhiMVector &jet, const float &rho, const float &coneSize, const JetType &type, const std::vector<reco::GenJet> &genJets = {});
+        float SmearEnergy(const float& pt, const float& eta, const float& phi, const float& rho, const float& coneSize, const JetType& type, const std::vector<reco::GenJet> &genJets = {});
 
         //Set Gen particle information
         std::map<JetType, ROOT::Math::PtEtaPhiMVector> genJet; 
-        int SetGenParticles(ROOT::Math::PtEtaPhiMVector& validJet, const int &i, const int &pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle={});
+        int SetGenParticles(const int& i, const int& pdgID, const JetType& type, const std::vector<reco::GenParticle>& genParticle={});
 
     public:
-        JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
-        JetAnalyzer(const int &era, const float &ptCut, const float &etaCut, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken, genPartToken& genParticleToken, secvtxToken& vertexToken, const std::string& systematic = "");
+        JetAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader& reader);
+        JetAnalyzer(const int& era, const float& ptCut, const float& etaCut, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double>& rhoToken, genPartToken& genParticleToken, secvtxToken& vertexToken, const std::string& systematic = "");
 
-        void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
-        void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
+        void BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst=false);
+        void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };
 

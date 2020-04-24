@@ -24,12 +24,14 @@ class MuonAnalyzer: public BaseAnalyzer{
         float ptCut, etaCut;
 
         //Vector with output varirables of the output tree
-        std::map<std::string, std::vector<float>&> variables;
-        std::map<std::string, std::vector<bool>&> bools;
+        std::map<std::string, std::vector<float>&> floatVar;
+        std::map<std::string, std::vector<char>&> intVar;
 
-        std::vector<float> Px, Py, Pz, E, Charge, Isolation, triggerSF, triggerSFUp, triggerSFDown, looseSF, looseSFUp, looseSFDown, mediumSF, mediumSFUp, mediumSFDown, tightSF, tightSFUp, tightSFDown, looseIsoLooseSF, looseIsoLooseSFDown, looseIsoLooseSFUp, looseIsoMediumSF, looseIsoMediumSFDown, looseIsoMediumSFUp, looseIsoTightSF, looseIsoTightSFDown, looseIsoTightSFUp, tightIsoMediumSF, tightIsoMediumSFDown, tightIsoMediumSFUp, tightIsoTightSF, tightIsoTightSFDown, tightIsoTightSFUp;
+        std::vector<float> Pt, Eta, Phi, Isolation, triggerSF, triggerSFUp, triggerSFDown, looseSF, looseSFUp, looseSFDown, mediumSF, mediumSFUp, mediumSFDown, tightSF, tightSFUp, tightSFDown, looseIsoLooseSF, looseIsoLooseSFDown, looseIsoLooseSFUp, looseIsoMediumSF, looseIsoMediumSFDown, looseIsoMediumSFUp, looseIsoTightSF, looseIsoTightSFDown, looseIsoTightSFUp, tightIsoMediumSF, tightIsoMediumSFDown, tightIsoMediumSFUp, tightIsoTightSF, tightIsoTightSFDown, tightIsoTightSFUp;
 
-        std::vector<bool> isLoose, isMedium, isTight, isLooseIso, isMediumIso, isTightIso, isFromHPlus;
+        std::vector<char> ID, isoID, Charge, isFromHPlus;
+
+        char nMuons;
 
         //EDM Token for MINIAOD analysis
         muToken muonToken;
@@ -42,11 +44,11 @@ class MuonAnalyzer: public BaseAnalyzer{
         std::unique_ptr<TTreeReaderArray<int>> muonGenIdx;
 
     public:
-        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, TTreeReader& reader);
-        MuonAnalyzer(const int &era, const float &ptCut, const float &etaCut, muToken &muonToken, genPartToken& genParticleToken);
+        MuonAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader& reader);
+        MuonAnalyzer(const int& era, const float& ptCut, const float& etaCut, muToken& muonToken, genPartToken& genParticleToken);
 
-        void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
-        void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
+        void BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst=false);
+        void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };
 
