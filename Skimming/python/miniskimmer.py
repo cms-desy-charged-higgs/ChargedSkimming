@@ -26,7 +26,7 @@ xSec = 1.
 
 for key in xSecFile.keys():
     if key in options.outname:
-        xSec = xSecFile[key]["xsec"]
+        xSec = xSecFile[key]
 
 ##Check if file is true data file
 isData = True in [name in options.outname for name in ["Electron", "Muon", "MET"]]
