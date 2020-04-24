@@ -3,6 +3,10 @@
 BaseAnalyzer::BaseAnalyzer(): isNANO(false){}
 BaseAnalyzer::BaseAnalyzer(TTreeReader* reader): reader(reader), isNANO(true){}
 
+float BaseAnalyzer::DeltaR(const float& eta1, const float& phi1, const float& eta2, const float& phi2){
+    return std::sqrt(std::pow(phi1 - phi2, 2) + std::pow(eta1 - eta2, 2)); 
+}
+
 void BaseAnalyzer::SetCollection(bool &isData){
     if(!isData){
         genPt = std::make_unique<TTreeReaderArray<float>>(*reader, "GenPart_pt");
@@ -24,7 +28,6 @@ void BaseAnalyzer::SetCollection(bool &isData){
     trigObjID = std::make_unique<TTreeReaderArray<int>>(*reader, "TrigObj_id");
     trigObjFilterBit = std::make_unique<TTreeReaderArray<int>>(*reader, "TrigObj_filterBits");
 }
-
 
 const reco::Candidate* BaseAnalyzer::FirstCopy(const reco::GenParticle& part, const int& pdgID){
     const reco::Candidate* daughter = &part;
@@ -62,36 +65,33 @@ int BaseAnalyzer::FirstCopy(const int& index, const int& pdgID){
     return daughterIdx; 
 }
 
-bool BaseAnalyzer::SetGenParticles(ROOT::Math::PtEtaPhiMVector &validLepton, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle){
+bool BaseAnalyzer::SetGenParticles(const float& pt, const float& eta, const float& phi, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle){
     const reco::GenParticle* matchedLep=NULL;
 
     if(!isNANO){
-        for(const reco::GenParticle &part: genParticle){
+        for(const reco::GenParticle& part: genParticle){
             if(part.isPromptFinalState()){
-                if(0.5 > std::sqrt(std::pow(part.eta() - validLepton.Eta(), 2) + std::pow(part.phi() - validLepton.Phi(), 2)) and abs(validLepton.Pt()-part.pt())/validLepton.Pt() < 0.5){
+                if(0.5 > BaseAnalyzer::DeltaR(part.eta(), part.phi(), eta, phi) and abs(pt-part.pt())/pt < 0.5){
                     matchedLep = &part;
                 }
             }
         }
     }  
-;
 
     std::map<int, int> genIndex;
     if(isNANO) genIndex = {{11, eleGenIdx->At(i)}, {13, muonGenIdx->At(i)}};
 
     bool isgenMatched = isNANO ? genIndex[pdgID] != -1 : matchedLep!=NULL;
 
-
     //Check if gen matched particle exist
     if(isgenMatched){
         const reco::Candidate* lepton=NULL;
         int index=0;
             
-
         if(isNANO) index = FirstCopy(genIndex[pdgID], pdgID);
         else lepton = FirstCopy(matchedLep, pdgID);
 
-        int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(lepton->mother()->pdgId()); 
+        const int& motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(lepton->mother()->pdgId()); 
 
         if(motherID == 24){
             const reco::Candidate* WBoson=NULL;
@@ -99,7 +99,7 @@ bool BaseAnalyzer::SetGenParticles(ROOT::Math::PtEtaPhiMVector &validLepton, con
             if(isNANO) index = FirstCopy(genMotherIdx->At(index), 24);
             else WBoson = FirstCopy(lepton->mother(), 24);
 
-            int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(WBoson->mother()->pdgId());     
+            const int& motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(WBoson->mother()->pdgId());     
 
             if(motherID == 37){
                 return true;

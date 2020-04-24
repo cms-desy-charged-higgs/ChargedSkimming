@@ -32,10 +32,10 @@ struct CutFlow {
     TH1F* hist;
     Float_t weight = 1.;
 
-    unsigned int nMinEle=0;
-    unsigned int nMinMu=0;
-    unsigned int nMinJet=0;
-    unsigned int nMinFatjet=0;
+    unsigned char nMinEle=0;
+    unsigned char nMinMu=0;
+    unsigned char nMinJet=0;
+    unsigned char nMinFatjet=0;
     
     bool passed = true;
 };
@@ -77,14 +77,16 @@ class BaseAnalyzer {
         int FirstCopy(const int& index, const int& pdgID); //NANOAOD
 
         //Match Reco to gen particles
-        bool SetGenParticles(ROOT::Math::PtEtaPhiMVector &lepton, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle={});
+        bool SetGenParticles(const float& Pt, const float& Eta, const float& Phi, const int &i, const int& pdgID, const std::vector<reco::GenParticle>& genParticle={});
 
     public:
         virtual ~BaseAnalyzer(){};
         BaseAnalyzer();
         BaseAnalyzer(TTreeReader* reader);
-        virtual void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false) = 0;
-        virtual void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event = NULL) = 0;
+        virtual void BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst=false) = 0;
+        virtual void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event = NULL) = 0;
         virtual void EndJob(TFile* file) = 0;
+
+        static float DeltaR(const float& eta1, const float& phi1, const float& eta2, const float& phi2);
 };
 #endif
