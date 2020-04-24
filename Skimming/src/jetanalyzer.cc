@@ -272,14 +272,6 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
 
         //Set TTreeReader for genpart and trigger obj from baseanalyzer
         SetCollection(this->isData);
-
-        bTotal = new TH2F("TotalB", "TotalB", 20, ptCut, 400, 20, -etaCut, etaCut);
-
-        for(const std::string& taggerName :  {"Deep", "CSV"}){
-            bTagEffLoose.push_back(new TH2F(("eff" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
-            bTagEffMedium.push_back(new TH2F(("eff" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
-            bTagEffTight.push_back(new TH2F(("eff" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
-        }
     }
 
     //Set configuration for bTagSF reader  ##https://twiki.cern.ch/twiki/bin/view/CMS/BTagCalibration
@@ -300,7 +292,17 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
 
     looseDeepReader.load(Deepcalib,  BTagEntry::FLAV_B, "comb");  
     mediumDeepReader.load(Deepcalib,  BTagEntry::FLAV_B, "comb");
-    tightDeepReader.load(Deepcalib,  BTagEntry::FLAV_B, "comb");  
+    tightDeepReader.load(Deepcalib,  BTagEntry::FLAV_B, "comb");
+
+    if(!isData){
+        bTotal = new TH2F("nTrueB", "TotalB", 20, ptCut, 400, 20, -etaCut, etaCut);
+
+        for(const std::string& taggerName :  {"Deep", "CSV"}){
+            bTagEffLoose.push_back(new TH2F(("nLoose" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
+            bTagEffMedium.push_back(new TH2F(("nMedium" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
+            bTagEffTight.push_back(new TH2F(("nTight" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
+        }
+    }
     
     for(JetType type: {AK4, AK8}){    
         //Set configuration for JER tools
@@ -400,6 +402,18 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
             {{"Jet", "mediumCSVbTagSFDown"}, mediumCSVbTagSFDown[AK4]},
             {{"Jet", "tightCSVbTagSFUp"}, tightCSVbTagSFUp[AK4]},
             {{"Jet", "tightCSVbTagSFDown"}, tightCSVbTagSFDown[AK4]},
+            {{"SubJet", "looseDeepbTagSFUp"}, looseDeepbTagSFUp[SUBAK4]},
+            {{"SubJet", "looseDeepbTagSFDown"}, looseDeepbTagSFUp[SUBAK4]},
+            {{"SubJet", "mediumDeepbTagSFUp"}, mediumDeepbTagSFUp[SUBAK4]},
+            {{"SubJet", "mediumDeepbTagSFDown"}, mediumDeepbTagSFUp[SUBAK4]},
+            {{"SubJet", "tightDeepbTagSFUp"}, tightDeepbTagSFUp[SUBAK4]},
+            {{"SubJet", "tightDeepbTagSFDown"}, tightDeepbTagSFUp[SUBAK4]},
+            {{"SubJet", "looseCSVbTagSFUp"}, looseCSVbTagSFUp[SUBAK4]},
+            {{"SubJet", "looseCSVbTagSFDown"}, looseCSVbTagSFDown[SUBAK4]},
+            {{"SubJet", "mediumCSVbTagSFUp"}, mediumCSVbTagSFUp[SUBAK4]},
+            {{"SubJet", "mediumCSVbTagSFDown"}, mediumCSVbTagSFDown[SUBAK4]},
+            {{"SubJet", "tightCSVbTagSFUp"}, tightCSVbTagSFUp[SUBAK4]},
+            {{"SubJet", "tightCSVbTagSFDown"}, tightCSVbTagSFDown[SUBAK4]},
         };
 
         floatVar.insert(SFvariations.begin(), SFvariations.end());   
@@ -672,12 +686,12 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                 if(abs(jets->at(i).partonFlavour()) == 5){
                     bTotal->Fill(pt, eta);
                 
-                   if(DeepBValue > 0.0521) bTagEffLoose[0]->Fill(pt, eta);
-                   if(DeepBValue > 0.3033) bTagEffMedium[0]->Fill(pt, eta);
-                   if(DeepBValue > 0.7489) bTagEffTight[0]->Fill(pt, eta);
-                   if(CSVBValue > 0.1522) bTagEffLoose[1]->Fill(pt, eta);
-                   if(CSVBValue > 0.4941) bTagEffMedium[1]->Fill(pt, eta);
-                   if(CSVBValue > 0.8001) bTagEffTight[1]->Fill(pt, eta);
+                    if(DeepBValue > 0.0521) bTagEffLoose[0]->Fill(pt, eta);
+                    if(DeepBValue > 0.3033) bTagEffMedium[0]->Fill(pt, eta);
+                    if(DeepBValue > 0.7489) bTagEffTight[0]->Fill(pt, eta);
+                    if(CSVBValue > 0.1522) bTagEffLoose[1]->Fill(pt, eta);
+                    if(CSVBValue > 0.4941) bTagEffMedium[1]->Fill(pt, eta);
+                    if(CSVBValue > 0.8001) bTagEffTight[1]->Fill(pt, eta);
                 }
             }
    
@@ -721,6 +735,42 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
     metPT = std::sqrt(std::pow(metPx, 2) + std::pow(metPy, 2));
     metPHI = std::atan2(metPy, metPx);
 
+    //Resort because of change PT order due to JEC
+    if(!isData){
+        std::map<std::string, JetType> jetNames = {{"Jet", AK4}, {"SubJet", SUBAK4}, {"FatJet", AK8}};
+
+        for(std::pair<const std::string, JetType>& jet : jetNames){
+            std::vector<int> idx(Pt[jet.second].size());
+            std::iota(idx.begin(), idx.end(), 0);
+
+            std::stable_sort(idx.begin(), idx.end(), [&](int i1, int i2) {return Pt[jet.second][i1] > Pt[jet.second][i2];});
+
+            for(std::pair<const std::pair<std::string, std::string>, std::vector<float>&>& var: floatVar){
+                if(jet.first == var.first.first){
+                    std::vector<float> tmp(var.second.size());
+
+                    for(unsigned int l = 0; l < idx.size(); l++){
+                        tmp[l] = var.second.at(idx[l]);
+                    }
+
+                    var.second = std::move(tmp);
+                }
+            }
+
+            for(std::pair<const std::pair<std::string, std::string>, std::vector<char>&>& var: intVar){
+                if(jet.first == var.first.first){
+                    std::vector<char> tmp(var.second.size());
+
+                    for(unsigned int l = 0; l < idx.size(); l++){
+                        tmp[l] = var.second.at(idx[l]);
+                    }
+
+                    var.second = std::move(tmp);
+                }
+            }
+        }
+    }
+
     for(CutFlow& cutflow: cutflows){
         //Check if one combination of jet and fatjet number is fullfilled
         if(Pt[AK4].size() >= cutflow.nMinJet and Pt[AK8].size() >= cutflow.nMinFatjet){
@@ -745,12 +795,12 @@ void JetAnalyzer::EndJob(TFile* file){
     if(!isData){
         for(int i = 0; i < 2; i++){
             for(const std::vector<TH2F*> eff : {bTagEffLoose, bTagEffMedium, bTagEffTight}){
-                eff[i]->Divide(bTotal);
                 eff[i]->Write();
                 delete eff[i];
             }
         }
 
+        bTotal->Write();
         delete bTotal;
     }
 }
