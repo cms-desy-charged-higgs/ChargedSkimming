@@ -20,14 +20,13 @@ def parser():
     parser.add_argument("--monitor", action = "store_true", help = "Check if jobs only should be monitored")
     parser.add_argument("--get-output", action = "store_true", help = "Save list of all output files")
     parser.add_argument("--process", action = "store", default = "all", help = "Merge output together")
+    parser.add_argument("--channels", nargs='+', default = ["MuonIncl", "EleIncl"], help = "Merge output together")
 
     return parser.parse_args()
 
-def crabConfig(dataSet, setName, outDir, systematics):
+def crabConfig(dataSet, setName, outDir, systematics, channels):
     isSignal = "HPlus" in setName
-    isData = "Single" in setName
-
-    channels = ["MuonIncl", "EleIncl"]
+    isData = "Single" in setName or "JetHT" in setName
 
     outFiles = []
 
@@ -176,7 +175,7 @@ def main():
                 else: 
                     name = dataset.split("/")[1] + "_" + dataset.split("/")[2]
 
-                crabJobs.setdefault(process, []).append(crabConfig(dataset, name, "{}/{}".format(args.skim_dir, name), systematics))
+                crabJobs.setdefault(process, []).append(crabConfig(dataset, name, "{}/{}".format(args.skim_dir, name), systematics, args.channels))
 
     ##Submit all crab jobs
     if args.submit:
