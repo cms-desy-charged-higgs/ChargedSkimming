@@ -88,7 +88,9 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool
             {"Charge", Charge},
             {"ID", ID},
             {"isoID", isoID},
-            {"isFromHPlus", isFromHPlus},
+            {"ParticleID", partID},
+            {"MotherID", mothID},
+            {"GrandMotherID", grandID},
     };
 
     if(!isSyst){
@@ -224,10 +226,21 @@ void MuonAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* eve
                 }
 
                 //Save gen particle information
-                if(isNANO) isFromHPlus.push_back(SetGenParticles(pt, eta, phi, i, 13));
+                std::tuple<int, int, int> IDs;
+
+                if(isNANO){
+                    IDs = SetGenParticles(pt, eta, phi, i, 13);
+                    partID.push_back(std::get<0>(IDs));
+                    mothID.push_back(std::get<1>(IDs));
+                    grandID.push_back(std::get<2>(IDs));
+                }
+    
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    isFromHPlus.push_back(SetGenParticles(pt, eta, phi, i, 13, *genParts));
+                    IDs = SetGenParticles(pt, eta, phi, i, 13, *genParts);
+                    partID.push_back(std::get<0>(IDs));
+                    mothID.push_back(std::get<1>(IDs));
+                    grandID.push_back(std::get<2>(IDs));
                 }
              }
         }

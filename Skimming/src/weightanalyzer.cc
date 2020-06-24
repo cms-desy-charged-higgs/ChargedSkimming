@@ -117,7 +117,7 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* e
     eventNumber = isNANO ? *evtNumber->Get() : event->id().event();
 
     for(CutFlow& cutflow: cutflows){
-        cutflow.weight = xSec*lumis[era];
+        cutflow.weight = isData ? 1. : xSec*lumis[era];
         cutflow.hist->Fill("No cuts", cutflow.weight);
     }
 }

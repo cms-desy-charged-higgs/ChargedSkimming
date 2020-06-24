@@ -33,6 +33,8 @@ const reco::Candidate* BaseAnalyzer::FirstCopy(const reco::GenParticle& part, co
     const reco::Candidate* daughter = &part;
     const reco::Candidate* mother = daughter->mother();
 
+    if(mother == nullptr) return daughter;
+
     while(abs(mother->pdgId()) == pdgID){
         daughter = mother;
         mother = daughter->mother();
@@ -44,6 +46,8 @@ const reco::Candidate* BaseAnalyzer::FirstCopy(const reco::GenParticle& part, co
 const reco::Candidate* BaseAnalyzer::FirstCopy(const reco::Candidate* part, const int& pdgID){
     const reco::Candidate* daughter = part;
     const reco::Candidate* mother = daughter->mother();
+        
+    if(mother == nullptr) return daughter;
 
     while(abs(mother->pdgId()) == pdgID){
         daughter = mother;
@@ -65,8 +69,9 @@ int BaseAnalyzer::FirstCopy(const int& index, const int& pdgID){
     return daughterIdx; 
 }
 
-bool BaseAnalyzer::SetGenParticles(const float& pt, const float& eta, const float& phi, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle){
-    const reco::GenParticle* matchedLep=NULL;
+std::tuple<int, int, int> BaseAnalyzer::SetGenParticles(const float& pt, const float& eta, const float& phi, const int &i, const int &pdgID, const std::vector<reco::GenParticle>& genParticle){
+    const reco::GenParticle* matchedLep=nullptr;
+    std::tuple<int, int, int> IDs = std::make_tuple(-99., -99., -99.);
 
     if(!isNANO){
         for(const reco::GenParticle& part: genParticle){
@@ -81,35 +86,26 @@ bool BaseAnalyzer::SetGenParticles(const float& pt, const float& eta, const floa
     std::map<int, int> genIndex;
     if(isNANO) genIndex = {{11, eleGenIdx->At(i)}, {13, muonGenIdx->At(i)}};
 
-    bool isgenMatched = isNANO ? genIndex[pdgID] != -1 : matchedLep!=NULL;
+    bool isgenMatched = isNANO ? genIndex[pdgID] != -1 : matchedLep!=nullptr;
 
     //Check if gen matched particle exist
     if(isgenMatched){
-        const reco::Candidate* lepton=NULL;
-        int index=0;
+        const reco::Candidate* lepton=nullptr;
+        const reco::Candidate* leptonMother=nullptr;
+        int index=0, motherIdx=0;
             
         if(isNANO) index = FirstCopy(genIndex[pdgID], pdgID);
         else lepton = FirstCopy(matchedLep, pdgID);
 
-        const int& motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(lepton->mother()->pdgId()); 
+        const int& motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(lepton->mother()->pdgId());
 
-        if(motherID == 24){
-            const reco::Candidate* WBoson=NULL;
-                
-            if(isNANO) index = FirstCopy(genMotherIdx->At(index), 24);
-            else WBoson = FirstCopy(lepton->mother(), 24);
+        if(isNANO) motherIdx = FirstCopy(genMotherIdx->At(index), motherID);
+        else leptonMother = FirstCopy(lepton->mother(), motherID);
 
-            const int& motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(WBoson->mother()->pdgId());     
-
-            if(motherID == 37){
-                return true;
-            }
-
-            return false;
-        }
-
-        return false;
+        const int& grandMotherID = isNANO ? abs(genID->At(genMotherIdx->At(motherIdx))) : leptonMother->mother() != nullptr ? abs(leptonMother->mother()->pdgId()) : -99.;  
+    
+        IDs = std::make_tuple(pdgID, motherID, grandMotherID);
     }
 
-    return false;
+    return IDs;
 }

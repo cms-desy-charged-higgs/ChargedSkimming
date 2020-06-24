@@ -1,12 +1,14 @@
 #include <ChargedSkimming/Skimming/interface/genpartanalyzer.h>
 
-GenPartAnalyzer::GenPartAnalyzer(genPartToken& genParticleToken):
+GenPartAnalyzer::GenPartAnalyzer(genPartToken& genParticleToken, const std::vector<std::string>& particleNames):
     BaseAnalyzer(),
-    genParticleToken(genParticleToken)
+    genParticleToken(genParticleToken),
+    particleNames(particleNames)
     {}
 
-GenPartAnalyzer::GenPartAnalyzer(TTreeReader& reader):
-    BaseAnalyzer(&reader){}
+GenPartAnalyzer::GenPartAnalyzer(TTreeReader& reader, const std::vector<std::string>& particleNames):
+    BaseAnalyzer(&reader),
+    particleNames(particleNames){}
 
 void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
     //Set data bool
@@ -14,41 +16,50 @@ void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const b
     
     //Set TTreeReader for genpart and trigger obj from baseanalyzer
     if(isNANO) SetCollection(this->isData);
+    
+    //Convert particle names to ID
+    std::map<std::string, int> convert = {
+        {"HPlus", 37}, 
+        {"higgs", 25}, 
+        {"top", 6}, 
+        {"b", 5}, 
+        {"W", 24},
+        {"b", 23}, 
+    };
 
-    floatNames = {"E", "Px", "Py", "Pz"};
-    leptonVariables = std::vector<std::vector<float>>(floatNames.size(), std::vector<float>(2, -999.));
-    h1Variables = std::vector<std::vector<float>>(floatNames.size(), std::vector<float>());
-    h2Variables = std::vector<std::vector<float>>(floatNames.size(), std::vector<float>());
+    for(std::string& name : particleNames) particleIDs.push_back(convert.at(name));
 
+    floatVar = {
+            {"Pt", Pt},
+            {"Eta", Eta},
+            {"Phi", Phi},
+            {"Mass", Mass},
+    };
+
+    intVar = {
+            {"ParticleID", partID},
+            {"MotherID", mothID},
+    };
     //Set Branches of output tree
     for(TTree* tree: trees){
-        for(unsigned int i=0; i<floatNames.size(); i++){
-            tree->Branch(("GenLepton_" + floatNames[i]).c_str(), &leptonVariables[i]);
+        for(std::pair<const std::string, std::vector<float>&>& var: floatVar){
+            tree->Branch(("GenParticle_" + var.first).c_str(), &var.second);
         }
 
-        for(unsigned int i=0; i<floatNames.size(); i++){
-            tree->Branch(("GenPartFromh1_" + floatNames[i]).c_str(), &h1Variables[i]);
-        }
-
-       for(unsigned int i=0; i<floatNames.size(); i++){
-            tree->Branch(("GenPartFromh2_" + floatNames[i]).c_str(), &h2Variables[i]);
+        for(std::pair<const std::string, std::vector<char>&>& var: intVar){
+            tree->Branch(("GenParticle_" + var.first).c_str(), &var.second);
         }
     }
 }
 
-
 void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
-    //Clear vectors
-    for(std::vector<float>& variable: leptonVariables){
-        variable = std::vector<float>(2, -999.);
+    //Clear variables vector
+    for(std::pair<const std::string, std::vector<float>&>& var: floatVar){
+        var.second.clear();
     }
 
-    for(std::vector<float>& variable: h1Variables){
-        variable.clear();
-    }
-
-    for(std::vector<float>& variable: h2Variables){
-        variable.clear();
+    for(std::pair<const std::string, std::vector<char>&>& var: intVar){
+        var.second.clear();
     }
 
     //Get Event info is using MINIAOD
@@ -58,21 +69,31 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
         if(!isNANO){
             event->getByToken(genParticleToken, genParts);
         }
-
+    
+        std::vector<int> alreadySeenNANO;
+        std::vector<const reco::Candidate*> alreadySeenMINI;
         int size = isNANO ? genID->GetSize() : genParts->size();
 
         //Fill 4 four vectors
         for(int i = 0; i < size; i++){
             int ID = isNANO ? abs(genID->At(i)) : abs(genParts->at(i).pdgId());  
 
-           // std::cout << ID << std::endl;
-
-            if(ID == 11 or ID == 12 or ID == 13 or ID == 14){
+            if(std::find(particleIDs.begin(), particleIDs.end(), ID) != particleIDs.end()){
                 const reco::Candidate* part=NULL;
                 int index=0;
 
                 if(isNANO) index = FirstCopy(i, ID);
                 else part = FirstCopy(genParts->at(i), ID);
+
+                if(isNANO){
+                    if(std::find(alreadySeenNANO.begin(), alreadySeenNANO.end(), index) != alreadySeenNANO.end()) continue; 
+                    else alreadySeenNANO.push_back(index);
+                }
+
+                else{
+                    if(std::find(alreadySeenMINI.begin(), alreadySeenMINI.end(), part) != alreadySeenMINI.end()) continue; 
+                    else alreadySeenMINI.push_back(part);
+                }
 
                 int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId()); 
 
@@ -82,72 +103,14 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                 eta = isNANO ? genEta->At(index) : part->eta();
                 m = isNANO ? genMass->At(index) : part->mass();
 
-                ROOT::Math::PtEtaPhiMVector LV(pt, eta, phi, m);
-
-                if(motherID == 24){
-                    if(isNANO) index = FirstCopy(genMotherIdx->At(index), 24);
-                    else part = FirstCopy(part->mother(), 24);
-
-                    int motherID = isNANO ? abs(genMotherIdx->At(index)) : abs(part->mother()->pdgId()); 
-
-                    if(motherID == 37){
-                        //Lepton four momentum components
-                        leptonVariables[0][ID%2==0 ? 0 : 1] = LV.E();   //Energy
-                        leptonVariables[1][ID%2==0 ? 0 : 1] = LV.Px();  //Px
-                        leptonVariables[2][ID%2==0 ? 0 : 1] = LV.Py();  //Py
-                        leptonVariables[3][ID%2==0 ? 0 : 1] = LV.Pz();  //Pz
-                    }
-                }
-            } 
-
-            if(ID == 5){
-                const reco::Candidate* part=NULL;
-                int index=0;
-
-                if(isNANO) index = FirstCopy(i, ID);
-                else part = FirstCopy(genParts->at(i), ID);
-
-                int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId());
-
-                float pt, eta, phi, m;
-                pt = isNANO ? genPt->At(index) : part->pt();
-                phi = isNANO ? genPhi->At(index) : part->phi();
-                eta = isNANO ? genEta->At(index) : part->eta();
-                m = isNANO ? genMass->At(index) : part->mass();
-
-                ROOT::Math::PtEtaPhiMVector LV(pt, eta, phi, m);
-
-                if(motherID == 25){             
-                    if(isNANO) index = FirstCopy(genMotherIdx->At(index), 25);
-                    else part = FirstCopy(part->mother(), 25);
-
-                    int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId()); 
-
-                    if(motherID == 37 and h1Variables[0].size() < 2){
-                        //Quark four momentum components
-                        h1Variables[0].push_back(LV.E());   //Energy
-                        h1Variables[1].push_back(LV.Px());  //Px
-                        h1Variables[2].push_back(LV.Py());  //Py
-                        h1Variables[3].push_back(LV.Pz());  //Pz
-                    }
+                Pt.push_back(pt);
+                Eta.push_back(eta);
+                Phi.push_back(phi);
+                Mass.push_back(m);
             
-                    else if(h2Variables[0].size() < 2){
-                        //Quark four momentum components
-                        h2Variables[0].push_back(LV.E());   //Energy
-                        h2Variables[1].push_back(LV.Px());  //Px
-                        h2Variables[2].push_back(LV.Py());  //Py
-                        h2Variables[3].push_back(LV.Pz());  //Pz
-                    }
-                }
+                partID.push_back(ID);
+                mothID.push_back(motherID);
             }
-        }
-
-        if(!h1Variables[0].empty() and !h2Variables[0].empty()){
-            //Sort b quarks for pt
-            std::function<bool(std::vector<float>, std::vector<float>)> sortFunc = [&](std::vector<float> b1, std::vector<float> b2){return std::pow(b1[1], 2) + std::pow(b1[2], 2) > std::pow(b2[1], 2) + std::pow(b2[2], 2);};
-
-            std::sort(h1Variables.begin(), h1Variables.end(), sortFunc);
-            std::sort(h2Variables.begin(), h2Variables.end(), sortFunc);
         }
     }
 }

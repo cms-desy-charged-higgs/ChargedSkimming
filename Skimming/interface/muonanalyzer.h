@@ -29,7 +29,7 @@ class MuonAnalyzer: public BaseAnalyzer{
 
         std::vector<float> Pt, Eta, Phi, Isolation, triggerSF, triggerSFUp, triggerSFDown, looseSF, looseSFUp, looseSFDown, mediumSF, mediumSFUp, mediumSFDown, tightSF, tightSFUp, tightSFDown, looseIsoLooseSF, looseIsoLooseSFDown, looseIsoLooseSFUp, looseIsoMediumSF, looseIsoMediumSFDown, looseIsoMediumSFUp, looseIsoTightSF, looseIsoTightSFDown, looseIsoTightSFUp, tightIsoMediumSF, tightIsoMediumSFDown, tightIsoMediumSFUp, tightIsoTightSF, tightIsoTightSFDown, tightIsoTightSFUp;
 
-        std::vector<char> ID, isoID, Charge, isFromHPlus;
+        std::vector<char> ID, isoID, Charge, partID, mothID, grandID;
 
         char nMuons;
 

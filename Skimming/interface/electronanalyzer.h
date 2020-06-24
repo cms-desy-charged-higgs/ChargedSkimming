@@ -38,7 +38,7 @@ class ElectronAnalyzer: public BaseAnalyzer {
 
         std::vector<float> Pt, Eta, Phi, recoSF, recoSFUp, recoSFDown, looseSF, looseSFUp, looseSFDown, mediumSF, mediumSFUp, mediumSFDown, tightSF, tightSFUp, tightSFDown, Isolation;
 
-        std::vector<char> ID, Charge, isFromHPlus;
+        std::vector<char> ID, Charge, partID, mothID, grandID;
 
         char nElectrons;
 

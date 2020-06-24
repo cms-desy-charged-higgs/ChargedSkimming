@@ -10,16 +10,19 @@ class GenPartAnalyzer: public BaseAnalyzer{
 
         //EMD Token for MINIAOD
         genPartToken genParticleToken;
+        std::vector<std::string> particleNames;
+        std::vector<int> particleIDs;
 
         //Set output names
-        std::vector<std::string> floatNames;
-        std::vector<std::vector<float>> leptonVariables;
-        std::vector<std::vector<float>> h1Variables;
-        std::vector<std::vector<float>> h2Variables;
+        std::map<std::string, std::vector<float>&> floatVar;
+        std::map<std::string, std::vector<char>&> intVar;
+
+        std::vector<float> Pt, Eta, Phi, Mass;
+        std::vector<char> partID, mothID;
 
     public:
-        GenPartAnalyzer(genPartToken& genParticleToken);
-        GenPartAnalyzer(TTreeReader &reader);
+        GenPartAnalyzer(genPartToken& genParticleToken, const std::vector<std::string>& particleNames);
+        GenPartAnalyzer(TTreeReader &reader, const std::vector<std::string>& particleNames);
         void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
         void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);

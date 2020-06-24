@@ -77,7 +77,7 @@ class BaseAnalyzer {
         int FirstCopy(const int& index, const int& pdgID); //NANOAOD
 
         //Match Reco to gen particles
-        bool SetGenParticles(const float& Pt, const float& Eta, const float& Phi, const int &i, const int& pdgID, const std::vector<reco::GenParticle>& genParticle={});
+        std::tuple<int, int, int> SetGenParticles(const float& Pt, const float& Eta, const float& Phi, const int &i, const int& pdgID, const std::vector<reco::GenParticle>& genParticle={});
 
     public:
         virtual ~BaseAnalyzer(){};

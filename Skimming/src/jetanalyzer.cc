@@ -75,25 +75,39 @@ float JetAnalyzer::CorrectEnergy(const float& pt, const float& eta, const float&
 //https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetResolution#Smearing_procedures
 //https://github.com/cms-sw/cmssw/blob/CMSSW_8_0_25/PhysicsTools/PatUtils/interface/SmearedJetProducerT.h#L203-L263
 float JetAnalyzer::SmearEnergy(const float& pt, const float& eta, const float& phi, const float& rho, const float& coneSize, const JetType& type, const std::vector<reco::GenJet>& genJets){
-    //Configure jet SF reader
     jetParameter.setJetPt(pt).setJetEta(eta).setRho(rho);
 
-    const float& reso = resolution[type].getResolution(jetParameter);
-    const float& resoSF = !isJERsyst ? resolution_sf[type].getScaleFactor(jetParameter) : resolution_sf[type].getScaleFactor(jetParameter, isUp ? Variation::UP : Variation::DOWN);
+    float reso = resolution[type].getResolution(jetParameter);
+    float resoSF; 
+    if(!isJERsyst) resoSF = resolution_sf[type].getScaleFactor(jetParameter);
+    else resoSF = resolution_sf[type].getScaleFactor(jetParameter, isUp ? Variation::UP : Variation::DOWN);
         
     float smearFac = 1.; 
     float dR;
+    float genPt, genPhi, genEta, genMass;
+    unsigned int size;
     bool isMatched = false;
-    const char& size = isNANO ? (type == AK4 ? genJetPt->GetSize(): genFatJetPt->GetSize()) : genJets.size();
+
+    if(isNANO) size = (type == AK4) ? genJetPt->GetSize(): genFatJetPt->GetSize();
+    else size = genJets.size();
 
     //Loop over all gen jets and find match
-    for(int i = 0; i < size; i++){
-        const float& genPt = isNANO ? (type == AK4 ? genJetPt->At(i): genFatJetPt->At(i)) : genJets.at(i).pt();
-        const float& genPhi = isNANO ? (type == AK4 ? genJetPhi->At(i): genFatJetPhi->At(i)) : genJets.at(i).phi();
-        const float& genEta = isNANO ? (type == AK4 ? genJetEta->At(i): genFatJetEta->At(i)) : genJets.at(i).eta();
-        const float& genMass = isNANO ? (type == AK4 ? genJetMass->At(i): genFatJetMass->At(i)) : genJets.at(i).mass();
-        
-        dR = BaseAnalyzer::DeltaR(eta, phi, genEta, genPhi);
+    for(unsigned int i = 0; i < size; i++){
+        if(isNANO){
+            genPt = (type == AK4) ? genJetPt->At(i): genFatJetPt->At(i);
+            genPhi = (type == AK4) ? genJetPhi->At(i): genFatJetPhi->At(i);
+            genEta = (type == AK4) ? genJetEta->At(i): genFatJetEta->At(i);
+            genMass = (type == AK4) ? genJetMass->At(i): genFatJetMass->At(i);
+        }
+
+        else{
+            genPt = genJets.at(i).pt();
+            genPhi = genJets.at(i).phi();
+            genEta = genJets.at(i).eta();
+            genMass = genJets.at(i).mass();
+        }
+
+        dR = std::sqrt(std::pow(phi-genPhi, 2) + std::pow(eta-genEta, 2));
 
         //Check if jet and gen jet are matched
         if(dR < coneSize/2. and abs(pt - genPt) < 3.*reso*pt){
@@ -105,7 +119,7 @@ float JetAnalyzer::SmearEnergy(const float& pt, const float& eta, const float& p
 
     //If you found gen matched 
     if(isMatched){
-        smearFac = 1.+(resoSF-1)*(pt - genJet[type].Pt())/pt; 
+        smearFac = 1.+(resoSF-1)*(pt - genPt)/pt; 
     }
 
     //If no match, smear with gaussian pdf
@@ -125,71 +139,66 @@ float JetAnalyzer::SmearEnergy(const float& pt, const float& eta, const float& p
     return smearFac;
 }
 
-int JetAnalyzer::SetGenParticles(const int& i, const int& pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle){
-    int nParton=0;
-    bool isFromh1 = true, isFromh2 = true;
+void JetAnalyzer::SetGenParticles(const int& i, const float& pt, const float& eta, const float& phi, const std::vector<int>& pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle){
     float dR;
 
+    partID.at(type).push_back(-99.);
+    mothID.at(type).push_back(-99.);
+    grandID.at(type).push_back(-99.);
+
+    float bestDR = 30.; float bestPt = 100.;
+
     //Check if gen matched particle exist
-    if(genJet[type].Pt() != 0){
+    if(true){
         //Find Gen particle to gen Jet
         const char& size = isNANO ? genPt->GetSize() : genParticle.size();
 
         for(int i=0; i < size; i++){
-            const reco::Candidate* parton=NULL;
+            const reco::Candidate* parton=nullptr;
             int index=0;
 
-            const int& ID = isNANO ? abs(genID->At(i)) : abs(genParticle.at(i).pdgId());
-    
-            if(ID == pdgID){
-                if(isNANO) index = FirstCopy(i, pdgID);
-                else parton = FirstCopy(genParticle.at(i), pdgID);
+            const int ID = isNANO ? abs(genID->At(i)) : abs(genParticle.at(i).pdgId());
+
+            if(std::find(pdgID.begin(), pdgID.end(), ID) != pdgID.end()){
+                if(isNANO) index = FirstCopy(i, ID);
+                else parton = FirstCopy(genParticle.at(i), ID);
             }
     
             else continue;
 
-            const float& phi = isNANO ? genPhi->At(index) : parton->phi();
-            const float& eta = isNANO ? genEta->At(index) : parton->eta();
+            const float& ptGen = isNANO ? genPt->At(index) : parton->pt();
+            const float& phiGen = isNANO ? genPhi->At(index) : parton->phi();
+            const float& etaGen = isNANO ? genEta->At(index) : parton->eta();
 
-            dR = BaseAnalyzer::DeltaR(genJet[type].Eta(), genJet[type].Phi(), eta, phi);
-            const float& rMin = type == AK4 ? 0.3 : 0.4;
+            dR = BaseAnalyzer::DeltaR(etaGen, phiGen, eta, phi);
+            const float& rMin = type == AK4 ? 0.2 : 0.4;
+            const float& dPt = abs((pt - ptGen)/pt);
 
-            if(dR <  rMin){
-                const int& motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(parton->mother()->pdgId());
-
-                if(motherID == 25){
-                    const reco::Candidate* hBoson=NULL;
-
-                    nParton++;
-                                
-                    if(isNANO) index = FirstCopy(genMotherIdx->At(index), 25);
-                    else hBoson = FirstCopy(parton->mother(), 25);
-
-                    const int& motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(hBoson->mother()->pdgId());  
-
-                    if(motherID == 37){
-                        isFromh1 = isFromh1 && true;
-                        isFromh2 = isFromh2 && true;
-                    }
-
-                    else{
-                        isFromh1 = isFromh1 && false;
-                        isFromh2 = isFromh2 && true;
-                    }
+            if(dR <  rMin and dPt < (type == AK4) ? 0.1 : 0.2){
+                if(dPt < bestPt and dR < bestDR){
+                    bestPt = dPt;
+                    bestDR = dR;
                 }
-            }
 
-            if(nParton==1 and type==AK4){
-                return !isFromh1 and !isFromh2 ? -1  : isFromh1 ? 1 : 2;
-            }
+                else continue;
+    
+                const reco::Candidate* motherPart=nullptr;
+                int motherIdx=0;
 
-            if(nParton==2 and type==AK8){
-                return !isFromh1 and !isFromh2 ? -1  : isFromh1 ? 1 : 2;
+                const int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(parton->mother()->pdgId());
+
+                if(isNANO) motherIdx = FirstCopy(genMotherIdx->At(index), motherID);
+                else motherPart = FirstCopy(parton->mother(), motherID);
+
+                const int grandMotherID = isNANO ? abs(genID->At(genMotherIdx->At(motherIdx))) : motherPart->mother() != nullptr ? abs(motherPart->mother()->pdgId()) : -99.; 
+
+                partID.at(type).back() = ID;
+                mothID.at(type).back() = motherID;
+                grandID.at(type).back() = grandMotherID;
+                break;
             }
         }
     }
-
-    return -1.;
 }
 
 void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst){
@@ -331,6 +340,8 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
         {{"Jet", "Eta"}, Eta[AK4]},
         {{"Jet", "Phi"}, Phi[AK4]},
         {{"Jet", "Mass"}, Mass[AK4]},
+        {{"Jet", "corrJEC"}, corrJEC[AK4]},
+        {{"Jet", "corrJER"}, corrJER[AK4]},
         {{"Jet", "looseCSVbTagSF"}, looseCSVbTagSF[AK4]},
         {{"Jet", "mediumCSVbTagSF"}, mediumCSVbTagSF[AK4]},
         {{"Jet", "tightCSVbTagSF"}, tightCSVbTagSF[AK4]},
@@ -343,6 +354,8 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
         {{"SubJet", "Eta"}, Eta[SUBAK4]},
         {{"SubJet", "Phi"}, Phi[SUBAK4]},
         {{"SubJet", "Mass"}, Mass[SUBAK4]},
+        {{"SubJet", "corrJEC"}, corrJEC[SUBAK4]},
+        {{"SubJet", "corrJER"}, corrJER[SUBAK4]},
         {{"SubJet", "looseCSVbTagSF"}, looseCSVbTagSF[SUBAK4]},
         {{"SubJet", "mediumCSVbTagSF"}, mediumCSVbTagSF[SUBAK4]},
         {{"SubJet", "tightCSVbTagSF"}, tightCSVbTagSF[SUBAK4]},
@@ -355,11 +368,14 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
         {{"FatJet", "Eta"}, Eta[AK8]},
         {{"FatJet", "Phi"}, Phi[AK8]},
         {{"FatJet", "Mass"}, Mass[AK8]},
+        {{"FatJet", "corrJEC"}, corrJEC[AK8]},
+        {{"FatJet", "corrJER"}, corrJER[AK8]},
         {{"FatJet", "Njettiness1"}, Njettiness1[AK8]},
         {{"FatJet", "Njettiness2"}, Njettiness2[AK8]},
         {{"FatJet", "Njettiness3"}, Njettiness3[AK8]},
         {{"FatJet", "topVsHiggs"}, topVsHiggs[AK8]},
         {{"FatJet", "QCDVsHiggs"}, QCDVsHiggs[AK8]},
+        {{"FatJet", "WVsHiggs"}, WVsHiggs[AK8]},
         {{"JetParticle", "Pt"}, Pt[PF]},
         {{"JetParticle", "Eta"}, Eta[PF]},
         {{"JetParticle", "Phi"}, Phi[PF]},
@@ -378,14 +394,20 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
 
     intVar = {
         {{"Jet", "TrueFlavour"}, TrueFlavour[AK4]},
-        {{"Jet", "isFromh"}, isFromh[AK4]},
+        {{"Jet", "ParticleID"}, partID[AK4]},
+        {{"Jet", "MotherID"}, mothID[AK4]},
+        {{"Jet", "GrandMotherID"}, grandID[AK4]},
         {{"SubJet", "TrueFlavour"}, TrueFlavour[SUBAK4]},
-        {{"SubJet", "isFromh"}, isFromh[SUBAK4]},
         {{"SubJet", "FatJetIdx"}, FatJetIdx[SUBAK4]},
-        {{"FatJet", "isFromh"}, isFromh[AK8]},
+        {{"SubJet", "ParticleID"}, partID[SUBAK4]},
+        {{"SubJet", "MotherID"}, mothID[SUBAK4]},
+        {{"SubJet", "GrandMotherID"}, grandID[SUBAK4]},
         {{"JetParticle", "Charge"}, Charge[PF]},
         {{"JetParticle", "FatJetIdx"}, FatJetIdx[PF]},
         {{"SecondaryVertex", "FatJetIdx"}, FatJetIdx[VTX]},
+        {{"FatJet", "ParticleID"}, partID[AK8]},
+        {{"FatJet", "MotherID"}, mothID[AK8]},
+        {{"FatJet", "GrandMotherID"}, grandID[AK8]},
     };
 
     if(!isSyst){
@@ -465,7 +487,7 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
     edm::Handle<std::vector<reco::VertexCompositePtrCandidate>> secVtx;
 
     //Set necessary parameter
-    float CSVBValue = 0, DeepBValue = 0, smearFac = 1., corrFac = 1., hScore = 0, topScore = 0;
+    float CSVBValue = 0, DeepBValue = 0, smearFac = 1., corrFac = 1., hScore = 0, topScore = 0, WScore = 0;
     int FatIdx = -1.;
     float metPx = 0, metPy;
 
@@ -494,10 +516,10 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         //JER smearing
         smearFac = 1., corrFac = 1.;
 
-        const float& fatPt = isNANO ? fatJetPt->At(i) : fatJets->at(i).pt();
-        const float& fatEta = isNANO ? fatJetEta->At(i) : fatJets->at(i).eta();
-        const float& fatPhi = isNANO ? fatJetPhi->At(i) : fatJets->at(i).phi();
-        const float& fatMass = isNANO ? fatJetMass->At(i) : fatJets->at(i).mass();
+        const float fatPt = isNANO ? fatJetPt->At(i) : fatJets->at(i).pt();
+        const float fatEta = isNANO ? fatJetEta->At(i) : fatJets->at(i).eta();
+        const float fatPhi = isNANO ? fatJetPhi->At(i) : fatJets->at(i).phi();
+        const float fatMass = isNANO ? fatJetMass->At(i) : fatJets->at(i).mass();
     
         corrFac = isNANO ? CorrectEnergy(fatPt, fatEta, *jetRho->Get(), fatJetArea->At(i), AK8) : CorrectEnergy(fatPt, fatEta, *rho, fatJets->at(i).jetArea(), AK8);
 
@@ -515,21 +537,31 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         }
 
         if(smearFac*corrFac*fatPt > 170. and smearFac*corrFac*fatMass > 40. and abs(fatEta) < etaCut){
-            hScore = fatJets->at(i).bDiscriminator("pfDeepBoostedJetTags:probHbb");
-            topScore = 0.;
+            if(!isNANO){
+                hScore = fatJets->at(i).bDiscriminator("pfDeepBoostedJetTags:probHbb");
+                topScore = 0.;
+                WScore = 0.;
 
-            for(const std::string& name : {"pfDeepBoostedJetTags:probTbcq", "pfDeepBoostedJetTags:probTbqq", "pfDeepBoostedJetTags:probTbc", "pfDeepBoostedJetTags:probTbq"}){
-                topScore += fatJets->at(i).bDiscriminator(name);
+                for(const std::string& name : {"pfDeepBoostedJetTags:probTbcq", "pfDeepBoostedJetTags:probTbqq", "pfDeepBoostedJetTags:probTbc", "pfDeepBoostedJetTags:probTbq"}){
+                    topScore += fatJets->at(i).bDiscriminator(name);
+                }
+
+                for(const std::string& name : {"pfDeepBoostedJetTags:probWcq", "pfDeepBoostedJetTags:probWqq"}){
+                    WScore += fatJets->at(i).bDiscriminator(name);
+                }
+
+                topVsHiggs[AK8].push_back(hScore/(hScore + topScore));
+                WVsHiggs[AK8].push_back(hScore/(hScore + WScore));
+                QCDVsHiggs[AK8].push_back(fatJets->at(i).bDiscriminator("pfDeepBoostedDiscriminatorsJetTags:HbbvsQCD"));
             }
-
-            topVsHiggs[AK8].push_back(hScore/(hScore + topScore));
-            QCDVsHiggs[AK8].push_back(fatJets->at(i).bDiscriminator("pfDeepBoostedDiscriminatorsJetTags:HbbvsQCD"));
     
             //Fatjet four momentum components
             Pt[AK8].push_back(smearFac*corrFac*fatPt);
             Eta[AK8].push_back(fatEta);  
             Phi[AK8].push_back(fatPhi);  
-            Mass[AK8].push_back(smearFac*corrFac*fatMass);  
+            Mass[AK8].push_back(smearFac*corrFac*fatMass);
+            corrJEC[AK8].push_back(corrFac);
+            if(!isData) corrJER[AK8].push_back(smearFac);
 
             //Nsubjettiness
             Njettiness1[AK8].push_back(isNANO ? fatJetTau1->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau1"));
@@ -537,10 +569,10 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
             Njettiness3[AK8].push_back(isNANO ? fatJetTau3->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau3"));
 
             if(!isData){
-                if(isNANO) isFromh[AK8].push_back(SetGenParticles(i, 5, AK8));
+                if(isNANO) SetGenParticles(i, Pt[AK8].back(), Eta[AK8].back(), Phi[AK8].back(), {24, 25, 23, 6}, AK8);
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    isFromh[AK8].push_back(SetGenParticles(i, 5, AK8, *genParts));
+                    SetGenParticles(i, Pt[AK8].back(), Eta[AK8].back(), Phi[AK8].back(), {24, 25, 23, 6}, AK8, *genParts);
                 }
             }
 
@@ -614,10 +646,10 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         //JER smearing
         smearFac = 1., corrFac = 1.;
 
-        const float& pt = isNANO ? jetPt->At(i) : jets->at(i).pt();
-        const float& eta = isNANO ? jetEta->At(i) : jets->at(i).eta();
-        const float& phi = isNANO ? jetPhi->At(i) : jets->at(i).phi();
-        const float& mass = isNANO ? jetMass->At(i) : jets->at(i).mass();
+        const float pt = isNANO ? jetPt->At(i) : jets->at(i).pt();
+        const float eta = isNANO ? jetEta->At(i) : jets->at(i).eta();
+        const float phi = isNANO ? jetPhi->At(i) : jets->at(i).phi();
+        const float mass = isNANO ? jetMass->At(i) : jets->at(i).mass();
 
         //Define here already jet, because of smearing of 4-vec
         corrFac = isNANO ? CorrectEnergy(pt, eta,  *jetRho->Get(), jetArea->At(i), AK4) : CorrectEnergy(pt, eta, *rho, jets->at(i).jetArea(), AK4);
@@ -626,7 +658,7 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         if(jecUnc[AK4] !=  NULL){
             jecUnc[AK4]->setJetPt(corrFac*pt);
             jecUnc[AK4]->setJetEta(eta);
-            const float& unc = jecUnc[AK4]->getUncertainty(isUp);
+            const float unc = jecUnc[AK4]->getUncertainty(isUp);
             corrFac *= isUp ? 1 + unc : 1 - unc;
         }
 
@@ -654,10 +686,12 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
             Eta[type].push_back(eta);
             Phi[type].push_back(phi);
             Mass[type].push_back(smearFac*corrFac*mass);
+            corrJEC[type].push_back(corrFac);
+            if(!isData) corrJER[type].push_back(smearFac);
 
             //Correct met
             metPx += pt*std::cos(phi) - Pt[type].back()*std::cos(Phi[type].back());
-            metPy += pt*std::cos(phi) - Pt[type].back()*std::sin(Phi[type].back());
+            metPy += pt*std::sin(phi) - Pt[type].back()*std::sin(Phi[type].back());
 
             //Check for btag
             CSVBValue = 0, DeepBValue = 0;
@@ -722,10 +756,10 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                 }
 
 
-                if(isNANO) isFromh[type].push_back(SetGenParticles(i, 5, AK4));
+                if(isNANO) SetGenParticles(i, Pt[type].back(), Eta[type].back(), Phi[type].back(), {5}, AK4);
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    isFromh[type].push_back(SetGenParticles(i, 5, AK4, *genParts));
+                    SetGenParticles(i, Pt[type].back(), Eta[type].back(), Phi[type].back(), {5}, AK4, *genParts);
                 }
             }
         } 
@@ -736,37 +770,39 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
     metPHI = std::atan2(metPy, metPx);
 
     //Resort because of change PT order due to JEC
-    if(!isData){
-        std::map<std::string, JetType> jetNames = {{"Jet", AK4}, {"SubJet", SUBAK4}, {"FatJet", AK8}};
+    std::map<std::string, JetType> jetNames = {{"Jet", AK4}, {"SubJet", SUBAK4}, {"FatJet", AK8}};
 
-        for(std::pair<const std::string, JetType>& jet : jetNames){
-            std::vector<int> idx(Pt[jet.second].size());
-            std::iota(idx.begin(), idx.end(), 0);
+    for(std::pair<const std::string, JetType>& jet : jetNames){
+        std::vector<int> idx(Pt[jet.second].size());
+        std::iota(idx.begin(), idx.end(), 0);
 
-            std::stable_sort(idx.begin(), idx.end(), [&](int i1, int i2) {return Pt[jet.second][i1] > Pt[jet.second][i2];});
+        std::stable_sort(idx.begin(), idx.end(), [&](int i1, int i2) {return Pt[jet.second][i1] > Pt[jet.second][i2];});
 
-            for(std::pair<const std::pair<std::string, std::string>, std::vector<float>&>& var: floatVar){
-                if(jet.first == var.first.first){
-                    std::vector<float> tmp(var.second.size());
+        for(std::pair<const std::pair<std::string, std::string>, std::vector<float>&>& var: floatVar){
+            if(var.second.size() == 0) continue;
 
-                    for(unsigned int l = 0; l < idx.size(); l++){
-                        tmp[l] = var.second.at(idx[l]);
-                    }
+            if(jet.first == var.first.first){
+                std::vector<float> tmp(var.second.size());
 
-                    var.second = std::move(tmp);
+                for(unsigned int l = 0; l < idx.size(); l++){
+                    tmp[l] = var.second.at(idx[l]);
                 }
+
+                var.second = std::move(tmp);
             }
+        }
 
-            for(std::pair<const std::pair<std::string, std::string>, std::vector<char>&>& var: intVar){
-                if(jet.first == var.first.first){
-                    std::vector<char> tmp(var.second.size());
+        for(std::pair<const std::pair<std::string, std::string>, std::vector<char>&>& var: intVar){
+            if(var.second.size() == 0) continue;
 
-                    for(unsigned int l = 0; l < idx.size(); l++){
-                        tmp[l] = var.second.at(idx[l]);
-                    }
+            if(jet.first == var.first.first){
+                std::vector<char> tmp(var.second.size());
 
-                    var.second = std::move(tmp);
+                for(unsigned int l = 0; l < idx.size(); l++){
+                    tmp[l] = var.second.at(idx[l]);
                 }
+
+                var.second = std::move(tmp);
             }
         }
     }

@@ -8,18 +8,18 @@
 class TriggerAnalyzer : public BaseAnalyzer {
     private:
         //Trigger strings and vector with values
-        std::vector<std::string> muPaths, elePaths;
-        std::vector<std::unique_ptr<TTreeReaderValue<bool>>> triggerEle, triggerMu;
+        std::vector<std::string> muPaths, elePaths, jetPaths;
+        std::vector<std::unique_ptr<TTreeReaderValue<bool>>> triggerEle, triggerMu, triggerJet;
 
         //EDM Token for MINIAOD analysis
         trigToken triggerToken;
         
         //Vector with triger results
-        std::vector<int> muResults, eleResults;
+        std::vector<int> muResults, eleResults, jetResults;
 
     public:
-        TriggerAnalyzer(const std::vector<std::string> &muPaths, const std::vector<std::string> &elePaths, TTreeReader &reader);
-        TriggerAnalyzer(const std::vector<std::string> &muPaths, const std::vector<std::string> &elePaths, trigToken& triggerToken);
+        TriggerAnalyzer(const std::vector<std::string> &muPaths, const std::vector<std::string> &elePaths, const std::vector<std::string> &jetPaths, TTreeReader &reader);
+        TriggerAnalyzer(const std::vector<std::string> &muPaths, const std::vector<std::string> &elePaths, const std::vector<std::string> &jetPaths, trigToken& triggerToken);
         void BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst=false);
         void Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event);
         void EndJob(TFile* file);

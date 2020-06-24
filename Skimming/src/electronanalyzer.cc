@@ -81,7 +81,9 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const 
     intVar = {
             {"Charge", Charge},
             {"ID", ID},
-            {"isFromHPlus", isFromHPlus},
+            {"ParticleID", partID},
+            {"MotherID", mothID},
+            {"GrandMotherID", grandID},
     };
 
     if(!isSyst){
@@ -185,10 +187,21 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event*
                 }
 
                 //Save gen particle information
-                if(isNANO) isFromHPlus.push_back(SetGenParticles(pt, eta, phi, i, 11));
+                std::tuple<int, int, int> IDs;
+
+                if(isNANO){
+                    IDs = SetGenParticles(pt, eta, phi, i, 13);
+                    partID.push_back(std::get<0>(IDs));
+                    mothID.push_back(std::get<1>(IDs));
+                    grandID.push_back(std::get<2>(IDs));
+                }
+    
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    isFromHPlus.push_back(SetGenParticles(pt, eta, phi, i, 11, *genParts));
+                    IDs = SetGenParticles(pt, eta, phi, i, 13, *genParts);
+                    partID.push_back(std::get<0>(IDs));
+                    mothID.push_back(std::get<1>(IDs));
+                    grandID.push_back(std::get<2>(IDs));
                 }
             }
         } 

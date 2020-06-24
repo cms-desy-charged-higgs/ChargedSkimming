@@ -3,6 +3,7 @@
 
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
 
+#include <cmath>
 #include <random>
 
 #include <CondFormats/BTauObjects/interface/BTagCalibration.h>
@@ -88,9 +89,9 @@ class JetAnalyzer: public BaseAnalyzer{
         std::map<std::pair<std::string, std::string>, std::vector<float>&> floatVar;
         std::map<std::pair<std::string, std::string>, std::vector<char>&> intVar;
 
-        std::map<JetType, std::vector<float>> Pt, Eta, Phi, Mass, Vx, Vy, Vz, topVsHiggs, QCDVsHiggs, Njettiness1, Njettiness2, Njettiness3, looseCSVbTagSF, looseCSVbTagSFUp, looseCSVbTagSFDown, mediumCSVbTagSF, mediumCSVbTagSFUp, mediumCSVbTagSFDown, tightCSVbTagSF, tightCSVbTagSFUp, tightCSVbTagSFDown, looseDeepbTagSF, looseDeepbTagSFUp, looseDeepbTagSFDown, mediumDeepbTagSF, mediumDeepbTagSFUp, mediumDeepbTagSFDown, tightDeepbTagSF, tightDeepbTagSFUp, tightDeepbTagSFDown, DeepScore, CSVScore;
+        std::map<JetType, std::vector<float>> Pt, Eta, Phi, Mass, Vx, Vy, Vz, topVsHiggs, QCDVsHiggs, WVsHiggs, Njettiness1, Njettiness2, Njettiness3, looseCSVbTagSF, looseCSVbTagSFUp, looseCSVbTagSFDown, mediumCSVbTagSF, mediumCSVbTagSFUp, mediumCSVbTagSFDown, tightCSVbTagSF, tightCSVbTagSFUp, tightCSVbTagSFDown, looseDeepbTagSF, looseDeepbTagSFUp, looseDeepbTagSFDown, mediumDeepbTagSF, mediumDeepbTagSFUp, mediumDeepbTagSFDown, tightDeepbTagSF, tightDeepbTagSFUp, tightDeepbTagSFDown, DeepScore, CSVScore, corrJEC, corrJER;
 
-        std::map<JetType, std::vector<char>> TrueFlavour, Charge, FatJetIdx, isFromh;
+        std::map<JetType, std::vector<char>> TrueFlavour, Charge, FatJetIdx, partID, mothID, grandID;
 
         char nJets, nSubJets, nFatJets;
 
@@ -104,7 +105,7 @@ class JetAnalyzer: public BaseAnalyzer{
 
         //Set Gen particle information
         std::map<JetType, ROOT::Math::PtEtaPhiMVector> genJet; 
-        int SetGenParticles(const int& i, const int& pdgID, const JetType& type, const std::vector<reco::GenParticle>& genParticle={});
+        void SetGenParticles(const int& i, const float& pt, const float& eta, const float& phi, const std::vector<int>& pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle = {});
 
     public:
         JetAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader& reader);
