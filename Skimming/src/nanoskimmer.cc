@@ -45,7 +45,7 @@ void NanoSkimmer::Configure(const float &xSec, TTreeReader& reader){
         std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, reader)),
         std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 25., 2.4, reader)),
         std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 20., 2.4, reader)),
-        std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(reader))
+        std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(reader, {}))
     };
 }
 
