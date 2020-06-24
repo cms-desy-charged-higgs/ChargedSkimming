@@ -50,6 +50,7 @@ void MiniSkimmer::beginJob(){
     nMin = {
             {"MuonIncl", {1, 0, 0, 0}},
             {"EleIncl", {0, 1, 0, 0}},
+            {"DoubleBJet", {0, 0, 1, 1}},
     };
 
     //Name of systematic uncertainties
@@ -122,12 +123,12 @@ void MiniSkimmer::beginJob(){
 
             analyzerPerSyst = {
                 std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken, {prefireToken, prefireTokenUp, prefireTokenDown}, pdfToken, scaleToken)),
-                std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, {"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
+                std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, {"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, {"HLT_AK8PFJet500"}, triggerToken)),
                 std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
                 std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken, particle == "j" ? systName : "")),
                 std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 15., 2.4, muonToken, genParticleToken)),
                 std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 15., 2.4, eleToken, genParticleToken, particle == "e" ? systName : "")),
-                std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken)),
+                std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken, {"HPlus", "higgs", "b", "W", "top"})),
             };
 
             //Begin jobs for all analyzers
