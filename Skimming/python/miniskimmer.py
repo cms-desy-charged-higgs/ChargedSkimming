@@ -29,7 +29,7 @@ for key in xSecFile.keys():
         xSec = xSecFile[key]
 
 ##Check if file is true data file
-isData = True in [name in options.outname for name in ["Electron", "Muon", "MET"]]
+isData = True in [name in options.outname for name in ["Electron", "Muon", "MET", "JetHT"]]
 isSignal = "HPlus" in options.outname
 
 process = cms.Process("MiniSkimming")
@@ -51,6 +51,12 @@ process.GlobalTag = GlobalTag(process.GlobalTag, tag, '')
 ##Input file
 process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring(["file:{}".format(f) for f in options.filename]))
 process.source.duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
+
+"""
+process.maxEvents = cms.untracked.PSet(
+  input = cms.untracked.int32(1),
+)
+"""
 
 ##Calculate deep flavour discriminator
 updateJetCollection(
@@ -82,6 +88,8 @@ updateJetCollection(
         "pfDeepBoostedJetTags:probTbqq",
         "pfDeepBoostedJetTags:probTbc",
         "pfDeepBoostedJetTags:probTbq",
+        "pfDeepBoostedJetTags:probWcq",
+        "pfDeepBoostedJetTags:probWqq", 
         "pfDeepBoostedDiscriminatorsJetTags:HbbvsQCD", 
     ],
     postfix='AK8WithDeepTags',
