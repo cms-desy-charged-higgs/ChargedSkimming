@@ -73,7 +73,7 @@ class JetAnalyzer: public BaseAnalyzer{
         std::unique_ptr<TTreeReaderArray<float>> fatJetPt, fatJetEta, fatJetPhi, fatJetMass, fatJetArea, fatJetCSV;
         std::unique_ptr<TTreeReaderArray<float>> fatJetTau1, fatJetTau2, fatJetTau3;
 
-        std::unique_ptr<TTreeReaderArray<int>> jetGenIdx;
+        std::unique_ptr<TTreeReaderArray<int>> jetGenIdx, jetFlavour;
         std::unique_ptr<TTreeReaderArray<float>> jetMass, jetPt, jetEta, jetPhi, jetArea, jetDeepBValue;
 
         std::unique_ptr<TTreeReaderArray<float>> genJetPt, genJetEta, genJetPhi, genJetMass;

@@ -275,7 +275,8 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
             genFatJetEta = std::make_unique<TTreeReaderArray<float>>(*reader, "GenJetAK8_eta");
             genFatJetPhi = std::make_unique<TTreeReaderArray<float>>(*reader, "GenJetAK8_phi");
             genFatJetMass = std::make_unique<TTreeReaderArray<float>>(*reader, "GenJetAK8_mass");
-            
+
+            jetFlavour = std::make_unique<TTreeReaderArray<int>>(*reader, "Jet_partonFlavour");    
             jetGenIdx = std::make_unique<TTreeReaderArray<int>>(*reader, "Jet_genJetIdx");
         }
 
@@ -715,9 +716,9 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
 
             //True Flavour of Jet
             if(!isData){
-                TrueFlavour[type].push_back(jets->at(i).partonFlavour());
+                TrueFlavour[type].push_back(isNANO ? jetFlavour->At(i) : jets->at(i).partonFlavour());
 
-                if(abs(jets->at(i).partonFlavour()) == 5){
+                if(abs(isNANO ? jetFlavour->At(i) : jets->at(i).partonFlavour()) == 5){
                     bTotal->Fill(pt, eta);
                 
                     if(DeepBValue > 0.0521) bTagEffLoose[0]->Fill(pt, eta);
