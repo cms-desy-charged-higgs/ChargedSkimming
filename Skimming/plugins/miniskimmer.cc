@@ -56,10 +56,10 @@ void MiniSkimmer::beginJob(){
     //Name of systematic uncertainties
     systNames = {
                 {"", ""}, 
-            //        {"energyScale", "e"}, 
-            //        {"energySigma", "e"},
-            //{"JECTotal", "incl"},
-             //       {"JER", "incl"},
+                {"energyScale", "e"}, 
+                {"energySigma", "e"},
+                {"JECTotal", "j"},
+                {"JER", "j"},
     };
 
     for(const std::pair<std::string, std::string>& systInfo: systNames){
@@ -128,7 +128,7 @@ void MiniSkimmer::beginJob(){
                 std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken, particle == "j" ? systName : "")),
                 std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 15., 2.4, muonToken, genParticleToken)),
                 std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 15., 2.4, eleToken, genParticleToken, particle == "e" ? systName : "")),
-                std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken, {"HPlus", "higgs", "b", "W", "top"})),
+                std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken, {"HPlus", "higgs", "b", "W", "top", "Z"})),
             };
 
             //Begin jobs for all analyzers

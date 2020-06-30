@@ -59,8 +59,8 @@ def crabConfig(dataSet, setName, outDir, systematics, channels):
 
     crabConf.Data.inputDataset = dataSet
     crabConf.Data.inputDBS = "global" if not isSignal else "phys03"
-    crabConf.Data.splitting = "EventAwareLumiBased" if not isSignal else "FileBased"
-    crabConf.Data.unitsPerJob = 250000 if not isSignal else 2
+    crabConf.Data.splitting = "EventAwareLumiBased"
+    crabConf.Data.unitsPerJob = 250000
     crabConf.Data.outLFNDirBase = "/store/user/dbrunner/skim"
 
     crabConf.Site.storageSite = "T2_DE_DESY"
@@ -155,7 +155,7 @@ def main():
     fileName = "/filelist_{}_2017_MINI.yaml"
     
     procType = ["bkg", "signal", "data"] if args.process == "all" else [args.process]
-    systematics = [""] #["", "energyScale", "energySigma", "JECTotal", "JER"]
+    systematics = ["", "energyScale", "energySigma", "JECTotal", "JER"]
 
     ##Create with each dataset a crab config
     crabJobs = {}
