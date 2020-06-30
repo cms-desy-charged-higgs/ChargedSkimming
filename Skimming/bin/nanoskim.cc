@@ -24,8 +24,6 @@ int main(int argc, char* argv[]){
     float xSec = std::stof(std::string(argv[4]));
     std::string outName = std::string(argv[5]);
 
-    std::cout << channels[0] << "\t" << channels[1] << std::endl;
-
     NanoSkimmer skimmer(fileName, isData);
     skimmer.EventLoop(channels, xSec);
     skimmer.WriteOutput(outName);
