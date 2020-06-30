@@ -30,7 +30,6 @@ for key in xSecFile.keys():
 
 ##Check if file is true data file
 isData = True in [name in options.outname for name in ["Electron", "Muon", "MET", "JetHT"]]
-isSignal = "HPlus" in options.outname
 
 process = cms.Process("MiniSkimming")
 
@@ -50,7 +49,6 @@ process.GlobalTag = GlobalTag(process.GlobalTag, tag, '')
 
 ##Input file
 process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring(["file:{}".format(f) for f in options.filename]))
-process.source.duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
 
 """
 process.maxEvents = cms.untracked.PSet(
@@ -109,7 +107,7 @@ setupEgammaPostRecoSeq(process, era='2017-Nov17ReReco')
 
 ##Producer to get pdf weights
 process.pdfweights = cms.EDProducer("PDFWeights",
-                                    LHE = cms.InputTag("externalLHEProducer" if not isSignal else "source"),
+                                    LHE = cms.InputTag("externalLHEProducer"),
                                     LHAID=cms.int32(306000),
                                     isData = cms.bool(isData),
 )
