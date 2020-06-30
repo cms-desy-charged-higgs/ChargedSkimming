@@ -24,7 +24,7 @@ void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const b
         {"top", 6}, 
         {"b", 5}, 
         {"W", 24},
-        {"b", 23}, 
+        {"Z", 23}, 
     };
 
     for(std::string& name : particleNames) particleIDs.push_back(convert.at(name));
@@ -79,7 +79,7 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
             int ID = isNANO ? abs(genID->At(i)) : abs(genParts->at(i).pdgId());  
 
             if(std::find(particleIDs.begin(), particleIDs.end(), ID) != particleIDs.end()){
-                const reco::Candidate* part=NULL;
+                const reco::Candidate* part=nullptr;
                 int index=0;
 
                 if(isNANO) index = FirstCopy(i, ID);
@@ -114,7 +114,6 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
         }
     }
 }
-
 
 void GenPartAnalyzer::EndJob(TFile* file){
 }
