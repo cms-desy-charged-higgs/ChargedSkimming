@@ -2,12 +2,11 @@
 #define JETANALYZER_H
 
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/btagcsvreader.h>
 
 #include <cmath>
 #include <random>
 
-#include <CondFormats/BTauObjects/interface/BTagCalibration.h>
-#include <CondTools/BTau/interface/BTagCalibrationReader.h>
 #include <JetMETCorrections/Modules/interface/JetResolution.h>
 #include <JetMETCorrections/Modules/interface/JetCorrectionProducer.h>
 #include <CondFormats/JetMETObjects/interface/JetCorrectorParameters.h>
@@ -38,8 +37,7 @@ class JetAnalyzer: public BaseAnalyzer{
         std::map<int, std::string> DeepbTagSF, CSVbTagSF;
 
         //Classes for reading btag SF
-        BTagCalibration CSVcalib, Deepcalib;
-        BTagCalibrationReader looseCSVReader, mediumCSVReader, tightCSVReader, looseDeepReader, mediumDeepReader, tightDeepReader;
+        BTagCSVReader CSVReader, DeepReader;
 
         std::vector<TH2F*> bTagEffLoose;
         std::vector<TH2F*> bTagEffMedium;
@@ -105,6 +103,9 @@ class JetAnalyzer: public BaseAnalyzer{
 
         //Set Gen particle information
         std::map<JetType, ROOT::Math::PtEtaPhiMVector> genJet; 
+        std::vector<int> alreadySeenNANO;
+        std::vector<const reco::Candidate*> alreadySeenMINI;
+
         void SetGenParticles(const int& i, const float& pt, const float& eta, const float& phi, const std::vector<int>& pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle = {});
 
     public:

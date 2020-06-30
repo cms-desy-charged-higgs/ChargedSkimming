@@ -147,41 +147,45 @@ void JetAnalyzer::SetGenParticles(const int& i, const float& pt, const float& et
     grandID.at(type).push_back(-99.);
 
     float bestDR = 30.; float bestPt = 100.;
+    const reco::Candidate* parton=nullptr;
+    int index=-1;
 
     //Check if gen matched particle exist
-    if(true){
+    if(genJet[type].Pt() != 0){
         //Find Gen particle to gen Jet
         const char& size = isNANO ? genPt->GetSize() : genParticle.size();
 
         for(int i=0; i < size; i++){
-            const reco::Candidate* parton=nullptr;
-            int index=0;
-
             const int ID = isNANO ? abs(genID->At(i)) : abs(genParticle.at(i).pdgId());
 
             if(std::find(pdgID.begin(), pdgID.end(), ID) != pdgID.end()){
                 if(isNANO) index = FirstCopy(i, ID);
                 else parton = FirstCopy(genParticle.at(i), ID);
-            }
-    
+            }    
+
             else continue;
 
             const float& ptGen = isNANO ? genPt->At(index) : parton->pt();
             const float& phiGen = isNANO ? genPhi->At(index) : parton->phi();
             const float& etaGen = isNANO ? genEta->At(index) : parton->eta();
 
-            dR = BaseAnalyzer::DeltaR(etaGen, phiGen, eta, phi);
-            const float& rMin = type == AK4 ? 0.2 : 0.4;
-            const float& dPt = abs((pt - ptGen)/pt);
+            dR = BaseAnalyzer::DeltaR(etaGen, phiGen, genJet[type].Eta(), genJet[type].Phi());
+            const float& dPt = abs((genJet[type].Pt() - ptGen)/genJet[type].Pt());
 
-            if(dR <  rMin and dPt < (type == AK4) ? 0.1 : 0.2){
-                if(dPt < bestPt and dR < bestDR){
-                    bestPt = dPt;
-                    bestDR = dR;
+            if(dR <  bestDR and dPt <  bestPt){
+                if(isNANO){
+                    if(std::find(alreadySeenNANO.begin(), alreadySeenNANO.end(), index) != alreadySeenNANO.end()) continue; 
+                    else alreadySeenNANO.push_back(index);
                 }
 
-                else continue;
-    
+                else{
+                    if(std::find(alreadySeenMINI.begin(), alreadySeenMINI.end(), parton) != alreadySeenMINI.end()) continue; 
+                    else alreadySeenMINI.push_back(parton);
+                }
+
+                bestDR = dR;    
+                bestPt = dPt;
+
                 const reco::Candidate* motherPart=nullptr;
                 int motherIdx=0;
 
@@ -199,6 +203,9 @@ void JetAnalyzer::SetGenParticles(const int& i, const float& pt, const float& et
             }
         }
     }
+
+    if(isNANO and index != -1) alreadySeenNANO.push_back(index);
+    if(!isNANO and parton != nullptr) alreadySeenMINI.push_back(parton);
 }
 
 void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst){
@@ -231,7 +238,7 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
 
 
     DeepbTagSF = {
-        {2017, filePath + "/btagSF/DeepFlavour_94XSF_V1_B_F.csv"},
+        {2017, filePath + "/btagSF/DeepFlavour_94XSF_V4_B_F.csv"},
     };
 
     CSVbTagSF = {
@@ -284,25 +291,11 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
         SetCollection(this->isData);
     }
 
-    //Set configuration for bTagSF reader  ##https://twiki.cern.ch/twiki/bin/view/CMS/BTagCalibration
-    CSVcalib = BTagCalibration("CSV", CSVbTagSF[era]);
-    Deepcalib = BTagCalibration("CSV", DeepbTagSF[era]);
+    BTagCSVReader btagReader(CSVbTagSF[era]);
 
-    looseCSVReader = BTagCalibrationReader(BTagEntry::OP_LOOSE, "central", {"up", "down"});
-    mediumCSVReader = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central", {"up", "down"});  
-    tightCSVReader = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central", {"up", "down"});  
-
-    looseCSVReader.load(CSVcalib,  BTagEntry::FLAV_B, "comb");  
-    mediumCSVReader.load(CSVcalib,  BTagEntry::FLAV_B, "comb");
-    tightCSVReader.load(CSVcalib,  BTagEntry::FLAV_B, "comb");  
-
-    looseDeepReader = BTagCalibrationReader(BTagEntry::OP_LOOSE, "central", {"up", "down"});
-    mediumDeepReader = BTagCalibrationReader(BTagEntry::OP_MEDIUM, "central", {"up", "down"});  
-    tightDeepReader = BTagCalibrationReader(BTagEntry::OP_TIGHT, "central", {"up", "down"});  
-
-    looseDeepReader.load(Deepcalib,  BTagEntry::FLAV_B, "comb");  
-    mediumDeepReader.load(Deepcalib,  BTagEntry::FLAV_B, "comb");
-    tightDeepReader.load(Deepcalib,  BTagEntry::FLAV_B, "comb");
+    //Set configuration for bTagSF reader  
+    CSVReader=BTagCSVReader(CSVbTagSF[era]);
+    DeepReader=BTagCSVReader(DeepbTagSF[era]);
 
     if(!isData){
         bTotal = new TH2F("nTrueB", "TotalB", 20, ptCut, 400, 20, -etaCut, etaCut);
@@ -470,6 +463,9 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
     for(std::pair<const std::pair<std::string, std::string>, std::vector<char>&>& var: intVar){
         var.second.clear();
     }
+
+    alreadySeenNANO.clear();
+    alreadySeenMINI.clear();
 
     runNumber = isNANO ? *run->Get() : event->eventAuxiliary().id().run(); 
 
@@ -656,7 +652,7 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         corrFac = isNANO ? CorrectEnergy(pt, eta,  *jetRho->Get(), jetArea->At(i), AK4) : CorrectEnergy(pt, eta, *rho, jets->at(i).jetArea(), AK4);
 
         //Get jet uncertainty
-        if(jecUnc[AK4] !=  NULL){
+        if(jecUnc[AK4] !=  nullptr){
             jecUnc[AK4]->setJetPt(corrFac*pt);
             jecUnc[AK4]->setJetEta(eta);
             const float unc = jecUnc[AK4]->getUncertainty(isUp);
@@ -729,33 +725,32 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                     if(CSVBValue > 0.8001) bTagEffTight[1]->Fill(pt, eta);
                 }
             }
-   
+    
             if(!isData){
                 //btag SF
-                looseCSVbTagSF[type].push_back(looseCSVReader.eval_auto_bounds("central", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                mediumCSVbTagSF[type].push_back(mediumCSVReader.eval_auto_bounds("central", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                tightCSVbTagSF[type].push_back(tightCSVReader.eval_auto_bounds("central", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
+                looseCSVbTagSF[type].push_back(CSVReader.Get(Pt[type].back(), 0));
+                mediumCSVbTagSF[type].push_back(CSVReader.Get(Pt[type].back(), 1));
+                tightCSVbTagSF[type].push_back(CSVReader.Get(Pt[type].back(), 2));
 
-                looseDeepbTagSF[type].push_back(looseDeepReader.eval_auto_bounds("central", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                mediumDeepbTagSF[type].push_back(mediumDeepReader.eval_auto_bounds("central", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                tightDeepbTagSF[type].push_back(tightDeepReader.eval_auto_bounds("central", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
+                looseDeepbTagSF[type].push_back(DeepReader.Get(Pt[type].back(), 0));
+                mediumDeepbTagSF[type].push_back(DeepReader.Get(Pt[type].back(), 1));
+                tightDeepbTagSF[type].push_back(DeepReader.Get(Pt[type].back(), 2));
 
                 if(!isSyst){
-                    looseCSVbTagSFUp[type].push_back(looseCSVReader.eval_auto_bounds("up", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                    looseCSVbTagSFDown[type].push_back(looseCSVReader.eval_auto_bounds("down", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                    mediumCSVbTagSFUp[type].push_back(mediumCSVReader.eval_auto_bounds("up", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                    mediumCSVbTagSFDown[type].push_back(mediumCSVReader.eval_auto_bounds("down", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                    tightCSVbTagSFUp[type].push_back(tightCSVReader.eval_auto_bounds("up", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                    tightCSVbTagSFDown[type].push_back(tightCSVReader.eval_auto_bounds("down", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
+                    looseCSVbTagSFUp[type].push_back(CSVReader.GetUp(Pt[type].back(), 0));
+                    looseCSVbTagSFDown[type].push_back(CSVReader.GetDown(Pt[type].back(), 0));
+                    mediumCSVbTagSFUp[type].push_back(CSVReader.GetUp(Pt[type].back(), 1));
+                    mediumCSVbTagSFDown[type].push_back(CSVReader.GetDown(Pt[type].back(), 1));
+                    tightCSVbTagSFUp[type].push_back(CSVReader.GetUp(Pt[type].back(), 2));
+                    tightCSVbTagSFDown[type].push_back(CSVReader.GetDown(Pt[type].back(), 2));
 
-                    looseDeepbTagSFUp[type].push_back(looseDeepReader.eval_auto_bounds("up", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                    looseDeepbTagSFDown[type].push_back(looseDeepReader.eval_auto_bounds("down", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                    mediumDeepbTagSFUp[type].push_back(mediumDeepReader.eval_auto_bounds("up", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                    mediumDeepbTagSFDown[type].push_back(mediumDeepReader.eval_auto_bounds("down", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                    tightDeepbTagSFUp[type].push_back(tightDeepReader.eval_auto_bounds("up", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
-                    tightDeepbTagSFDown[type].push_back(tightDeepReader.eval_auto_bounds("down", BTagEntry::FLAV_B, abs(Eta[type].back()), Pt[type].back()));
+                    looseDeepbTagSFUp[type].push_back(DeepReader.GetUp(Pt[type].back(), 0));
+                    looseDeepbTagSFDown[type].push_back(DeepReader.GetDown(Pt[type].back(), 0));
+                    mediumDeepbTagSFUp[type].push_back(DeepReader.GetUp(Pt[type].back(), 1));
+                    mediumDeepbTagSFDown[type].push_back(DeepReader.GetDown(Pt[type].back(), 1));
+                    tightDeepbTagSFUp[type].push_back(DeepReader.GetUp(Pt[type].back(), 2));
+                    tightDeepbTagSFDown[type].push_back(DeepReader.GetDown(Pt[type].back(), 2));
                 }
-
 
                 if(isNANO) SetGenParticles(i, Pt[type].back(), Eta[type].back(), Phi[type].back(), {5}, AK4);
                 else{
@@ -823,6 +818,7 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         }
     }
 }
+
 
 void JetAnalyzer::EndJob(TFile* file){
     for(const JetType& type: {AK4, AK8}){
