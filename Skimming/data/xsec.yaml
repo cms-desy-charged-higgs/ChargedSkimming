@@ -90,6 +90,9 @@ ST_t-channel_antitop_4f_inclusiveDecays_TuneCP5_13TeV-powhegV2-madspin-pythia8:
 ST_t-channel_top_4f_inclusiveDecays_TuneCP5_13TeV-powhegV2-madspin-pythia8:
     136.02
 
+DYJetsToQQ_HT180_13TeV_TuneCP5-madgraphMLM-pythia8:
+    1728.0
+
 DYJetsToLL_M-10to50_TuneCP5_13TeV-madgraphMLM-pythia8:
     21658.0
 
