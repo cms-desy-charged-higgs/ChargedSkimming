@@ -39,8 +39,7 @@ void NanoSkimmer::ProgressBar(const int &progress){
 void NanoSkimmer::Configure(const float &xSec, TTreeReader& reader){
     analyzers = {
         std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, reader)),
-//        std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, triggerToken)),
-  //      std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, triggerToken)),
+        std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, {"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, {}, reader)),
         std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, reader)),
         std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, reader)),
         std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 25., 2.4, reader)),
