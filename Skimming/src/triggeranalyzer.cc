@@ -111,6 +111,8 @@ void TriggerAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
 
     for(CutFlow& cutflow: cutflows){
         if(cutflow.nMinMu>=1){
+            if(muPaths.empty()) return;
+
             if(std::find(muResults.begin(), muResults.end(), 1) != muResults.end()){
                 if(cutflow.passed){
                     std::string cutName = muPaths[0];
@@ -122,6 +124,8 @@ void TriggerAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
         }
 
         if(cutflow.nMinEle>=1){
+            if(elePaths.empty()) return;
+
             if(std::find(eleResults.begin(), eleResults.end(), 1) != eleResults.end()){
                 if(cutflow.passed){
                     std::string cutName = elePaths[0];
@@ -133,6 +137,8 @@ void TriggerAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
         }
 
         if(cutflow.nMinJet>=1 or cutflow.nMinFatjet>=1){
+            if(jetPaths.empty()) return;
+
             if(std::find(jetResults.begin(), jetResults.end(), 1) != jetResults.end()){
                 if(cutflow.passed){
                     std::string cutName = jetPaths[0];
