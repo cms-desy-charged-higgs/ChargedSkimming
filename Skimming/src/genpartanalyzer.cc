@@ -25,6 +25,10 @@ void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const b
         {"b", 5}, 
         {"W", 24},
         {"Z", 23}, 
+        {"e", 11},
+        {"nu_e", 12},
+        {"muon", 13},
+        {"nu_muon", 14},
     };
 
     for(std::string& name : particleNames) particleIDs.push_back(convert.at(name));
@@ -95,7 +99,8 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                     else alreadySeenMINI.push_back(part);
                 }
 
-                int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId()); 
+                int motherID = isNANO ? abs(genID->At(genMotherIdx->At(index))) : abs(part->mother()->pdgId());
+                if(motherID > 100) continue;
 
                 float pt, eta, phi, m;
                 pt = isNANO ? genPt->At(index) : part->pt();
