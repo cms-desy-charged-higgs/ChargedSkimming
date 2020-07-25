@@ -8,6 +8,7 @@ CHANNEL=$3
 XSEC=$4
 OUT=$5
 JOB=$6
+SKIMDIR=$7
 
 ##Copy file from DAS
 xrdcp $1 nanoFile.root
@@ -17,5 +18,5 @@ NanoSkim nanoFile.root $ISDATA "$CHANNEL" $XSEC ${OUT}_${JOB}.root
 rm nanoFile.root
 
 ##Move output to base dir
-mkdir -p $CHDIR/Skim2/$OUT/output/
-mv ${OUT}_${JOB}.root $CHDIR/Skim2/$OUT/output
+mkdir -p $SKIMDIR/$OUT/output/
+mv ${OUT}_${JOB}.root $SKIMDIR/$OUT/output

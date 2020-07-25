@@ -14,12 +14,13 @@ def parser():
     parser.add_argument("--channel", nargs='+', default = ["mu4j", "e4j"], help = "Channel to be analyzed")
     parser.add_argument("--merge", action = "store_true", help = "Merge output together")
     parser.add_argument("--process", action = "store", default = "all", help = "Type of process to be analyzed")
+    parser.add_argument("--skim-dir", action = "store", default = "Skim", help = "Type of process to be analyzed")
 
     return parser.parse_args()
 
 
-def submit(jobInfo, channel):
-    skimDir = "{}/Skim".format(os.environ["CHDIR"])
+def submit(jobInfo, channel, dirName):
+    skimDir = "{}/{}".format(os.environ["CHDIR"], dirName)
 
     for d in ["out", "log", "err"]:
         subprocess.call(["mkdir", "-p", "{}/{}".format(skimDir, d)])
@@ -27,7 +28,7 @@ def submit(jobInfo, channel):
     condorSub = [
             "universe = vanilla",
             "executable = {}/src/ChargedSkimming/Skimming/batch/produceSkim.sh".format(os.environ["CMSSW_BASE"]),
-            "arguments = $(fileName) $(isData) '{}' $(xSec) $(outName) $(job)".format(" ".join(channel)),
+            "arguments = $(fileName) $(isData) '{}' $(xSec) $(outName) $(job) $(skimDir)".format(" ".join(channel)),
             "log = {}/log/$(outName)_$(job).log".format(skimDir),
             "error = {}/err/$(outName)_$(job).err".format(skimDir),
             "getenv = True",
@@ -38,18 +39,18 @@ def submit(jobInfo, channel):
         for line in condorSub:
             condFile.write(line + "\n")
             
-        condFile.write("queue fileName isData xSec outName job from (\n")
+        condFile.write("queue fileName isData xSec outName job skimDir from (\n")
         
         for job in jobInfo:
-            condFile.write("{} {} {} {} {}\n".format(job[0], str(job[1]), str(job[2]), job[3], str(job[4])))
+            condFile.write("{} {} {} {} {} {}\n".format(job[0], str(job[1]), str(job[2]), job[3], str(job[4]), skimDir))
 
         condFile.write(")")
 
     subprocess.call(["condor_submit", "{}/condor.sub".format(skimDir)])
 
 
-def merge():
-    skimDir = "{}/Skim".format(os.environ["CHDIR"])
+def merge(dirName):
+    skimDir = "{}/{}".format(os.environ["CHDIR"], dirName)
     procDir = [d for d in os.listdir(skimDir) if d not in ['condor.sub', 'log', 'err', 'out']]
 
     for dir in procDir:
@@ -105,7 +106,7 @@ def main():
 
                     for key in xSecFile.keys():
                         if key in name:
-                            xSec = xSecFile[key]["xsec"]
+                            xSec = xSecFile[key]
 
                     ##Check if file is true data file
                     isData = True in [n in name for n in ["Electron", "Muon", "MET"]]
@@ -115,10 +116,10 @@ def main():
                     for i, fileName in enumerate(fileNames):
                         jobInfo.append((fileName, isData, xSec, name, i))
 
-        submit(jobInfo, args.channel)
+        submit(jobInfo, args.channel, args.skim_dir)
 
     if args.merge:
-        merge()
+        merge(args.skim_dir)
 
 if __name__ == "__main__":
     main()
