@@ -45,7 +45,7 @@ JetAnalyzer::JetAnalyzer(const int& era, const float& ptCut, const float& etaCut
 void JetAnalyzer::SetCorrector(const JetType& type, const int& runNumber){
     std::vector<JetCorrectorParameters> corrVec;
 
-    for(std::string fileName: isData? JECDATA[era] : JECMC[era]){
+    for(std::string fileName: isData? JECDATA : JECMC){
         if(fileName.find("@") != std::string::npos){
             for(std::pair<std::string, std::pair<int, int>> eraNames: runEras[era]){
                 if(eraNames.second.first <= runNumber and runNumber <= eraNames.second.second){
@@ -55,10 +55,11 @@ void JetAnalyzer::SetCorrector(const JetType& type, const int& runNumber){
         }
 
         fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");
+        fileName = filePath + fileName;
 
         corrVec.push_back(JetCorrectorParameters(fileName));
     }
-  
+
     jetCorrector[type] = new FactorizedJetCorrector(corrVec);
 }
 
@@ -209,41 +210,13 @@ void JetAnalyzer::SetGenParticles(const int& i, const float& pt, const float& et
 }
 
 void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst){
-    JECMC = {
-                {2017, {filePath + "/JEC/Fall17_17Nov2017_V32_MC_L1FastJet_&PFchs.txt", 
-                        filePath + "/JEC/Fall17_17Nov2017_V32_MC_L2Relative_&PFchs.txt",
-                        filePath + "/JEC/Fall17_17Nov2017_V32_MC_L3Absolute_&PFchs.txt"}},
-                            
-    };
+    //Read in json config with sf files
+    boost::property_tree::ptree sf; 
+    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/config/sf.json", sf);
 
-    JECDATA = {
-                {2017, {filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L1FastJet_&PFchs.txt", 
-                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L2Relative_&PFchs.txt",
-                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L3Absolute_&PFchs.txt",
-                        filePath + "/JEC/Fall17_17Nov2017@_V32_DATA_L2L3Residual_&PFchs.txt"}},
-             
-    };
-
-    JECUNC = {
-                {2017, filePath + "/JEC/Fall17_17Nov2017_V32_MC_UncertaintySources_&PFchs.txt"},
-    };
-
-    JMESF = {
-                {2017, filePath + "/JME/Fall17_V3_MC_SF_&PFchs.txt"},     
-    };
-
-    JMEPtReso = {
-                {2017, filePath + "/JME/Fall17_V3_MC_PtResolution_&PFchs.txt"},    
-    };
-
-
-    DeepbTagSF = {
-        {2017, filePath + "/btagSF/DeepFlavour_94XSF_V4_B_F.csv"},
-    };
-
-    CSVbTagSF = {
-        {2017, filePath + "/btagSF/DeepCSV_94XSF_V5_B_F.csv"},
-    };
+    //Get for JEC files names
+    JECMC = Util::GetVector<std::string>(sf, "Jet.JEC.MC." + std::to_string(era));
+    JECDATA = Util::GetVector<std::string>(sf, "Jet.JEC.DATA." + std::to_string(era));
 
     //Set data bool
     this->isData = isData;
@@ -291,11 +264,17 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
         SetCollection(this->isData);
     }
 
-    BTagCSVReader btagReader(CSVbTagSF[era]);
-
     //Set configuration for bTagSF reader  
-    CSVReader=BTagCSVReader(CSVbTagSF[era]);
-    DeepReader=BTagCSVReader(DeepbTagSF[era]);
+    CSVReader=BTagCSVReader(filePath + sf.get<std::string>("Jet.BTag.CSV." + std::to_string(era)));
+    DeepReader=BTagCSVReader(filePath +sf.get<std::string>("Jet.BTag.DeepJet." + std::to_string(era)));
+
+    //Cut Values for b tagging
+    CSVLoose = {{2016, 0.2217}, {2017, 0.1522}, {2018, 0.1241}};
+    CSVMedium = {{2016, 0.6321}, {2017, 0.4941}, {2018, 0.4184}};
+    CSVTight = {{2016, 0.8953}, {2017, 0.8001}, {2018, 0.7527}};
+    DeepLoose = {{2016, 0.0614}, {2017, 0.0521}, {2018, 0.0494}};
+    DeepMedium = {{2016, 0.3093}, {2017, 0.3033}, {2018, 0.2770}};
+    DeepTight = {{2016, 0.7221}, {2017, 0.7489}, {2018, 0.7264}};
 
     if(!isData){
         bTotal = new TH2F("nTrueB", "TotalB", 20, ptCut, 400, 20, -etaCut, etaCut);
@@ -309,23 +288,23 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
     
     for(JetType type: {AK4, AK8}){    
         //Set configuration for JER tools
-        std::string fileName = JMEPtReso[era];
+        std::string fileName = filePath + sf.get<std::string>("Jet.JMEPtReso." + std::to_string(era));
         fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");
         resolution[type] = JME::JetResolution(fileName);
 
-        fileName = JMESF[era];
+        fileName = filePath + sf.get<std::string>("Jet.JME." + std::to_string(era));
         fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");
         resolution_sf[type] = JME::JetResolutionScaleFactor(fileName);
 
         //Set object to get JEC uncertainty
         if(jecSyst != ""){
-            std::string fileName = JECUNC[era];
+            std::string fileName = filePath + sf.get<std::string>("Jet.JECUNC." + std::to_string(era));
             fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");  
 
             jecUnc[type] = new JetCorrectionUncertainty(JetCorrectorParameters(fileName, "Total"));
         }
 
-        else jecUnc[type] = NULL;
+        else jecUnc[type] = nullptr;
     }
 
     //Set output names
@@ -717,12 +696,12 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                 if(abs(isNANO ? jetFlavour->At(i) : jets->at(i).partonFlavour()) == 5){
                     bTotal->Fill(pt, eta);
                 
-                    if(DeepBValue > 0.0521) bTagEffLoose[0]->Fill(pt, eta);
-                    if(DeepBValue > 0.3033) bTagEffMedium[0]->Fill(pt, eta);
-                    if(DeepBValue > 0.7489) bTagEffTight[0]->Fill(pt, eta);
-                    if(CSVBValue > 0.1522) bTagEffLoose[1]->Fill(pt, eta);
-                    if(CSVBValue > 0.4941) bTagEffMedium[1]->Fill(pt, eta);
-                    if(CSVBValue > 0.8001) bTagEffTight[1]->Fill(pt, eta);
+                    if(DeepBValue > DeepLoose[era]) bTagEffLoose[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepMedium[era]) bTagEffMedium[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepTight[era]) bTagEffTight[0]->Fill(pt, eta);
+                    if(CSVBValue > CSVLoose[era]) bTagEffLoose[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVMedium[era]) bTagEffMedium[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVTight[era]) bTagEffTight[1]->Fill(pt, eta);
                 }
             }
     

@@ -12,9 +12,6 @@ class MuonAnalyzer: public BaseAnalyzer{
         //Check if data
         bool isData;
 
-        //Map for SF files
-        std::map<int, std::string> isoSFfiles, triggerSFfiles, IDSFfiles;
-
         //Hist with scale factors
         TH2F* triggerSFhist;
         std::vector<TH2F*> IsoHist, IDHist;

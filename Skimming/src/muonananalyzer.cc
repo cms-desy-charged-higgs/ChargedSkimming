@@ -17,37 +17,29 @@ MuonAnalyzer::MuonAnalyzer(const int& era, const float& ptCut, const float& etaC
     {}
 
 void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
-    isoSFfiles = {
-        {2017, filePath + "/muonSF/RunBCDEF_SF_ISO.root"},
-    };
-
-    triggerSFfiles = {
-        {2017, filePath + "/muonSF/EfficienciesAndSF_RunBtoF_Nov17Nov2017.root"},
-    };
-
-    IDSFfiles = {
-        {2017, filePath + "/muonSF/RunBCDEF_SF_ID.root"},
-    };
+    //Read in json config with sf files
+    boost::property_tree::ptree sf; 
+    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/config/sf.json", sf);
 
     //Set data bool
     this->isData = isData;
     this->isSyst = isSyst;
 
     //Hist with scale factors
-    TFile* triggerSFfile = TFile::Open(triggerSFfiles[era].c_str());
-    triggerSFhist = (TH2F*)triggerSFfile->Get("IsoMu27_PtEtaBins/pt_abseta_ratio");
+    TFile* triggerSFfile = TFile::Open((filePath + sf.get<std::string>("Muon.Trigger.File." + std::to_string(era))).c_str());
+    triggerSFhist = (TH2F*)triggerSFfile->Get(sf.get<std::string>("Muon.Trigger.Histogram." + std::to_string(era)).c_str());
 
-    TFile* isoSFfile = TFile::Open(isoSFfiles[era].c_str());
+    TFile* isoSFfile = TFile::Open((filePath +sf.get<std::string>("Muon.Isolation." + std::to_string(era))).c_str());
     IsoHist.push_back((TH2F*)isoSFfile->Get("NUM_LooseRelIso_DEN_LooseID_pt_abseta"));
     IsoHist.push_back((TH2F*)isoSFfile->Get("NUM_LooseRelIso_DEN_MediumID_pt_abseta"));
     IsoHist.push_back((TH2F*)isoSFfile->Get("NUM_LooseRelIso_DEN_TightIDandIPCut_pt_abseta"));
     IsoHist.push_back((TH2F*)isoSFfile->Get("NUM_TightRelIso_DEN_MediumID_pt_abseta"));
     IsoHist.push_back((TH2F*)isoSFfile->Get("NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta"));
 
-    TFile* IDSFfile = TFile::Open(IDSFfiles[era].c_str());
-    IDHist.push_back((TH2F*)IDSFfile->Get("NUM_LooseID_DEN_genTracks_pt_abseta"));
-    IDHist.push_back((TH2F*)IDSFfile->Get("NUM_MediumID_DEN_genTracks_pt_abseta"));
-    IDHist.push_back((TH2F*)IDSFfile->Get("NUM_TightID_DEN_genTracks_pt_abseta"));
+    TFile* IDSFfile = TFile::Open((filePath +sf.get<std::string>("Muon.ID.File." + std::to_string(era))).c_str());
+    IDHist.push_back((TH2F*)IDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Loose." + std::to_string(era)).c_str()));
+    IDHist.push_back((TH2F*)IDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Medium." + std::to_string(era)).c_str()));
+    IDHist.push_back((TH2F*)IDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Tight." + std::to_string(era)).c_str()));
 
     if(isNANO){
         //Initiliaze TTreeReaderValues

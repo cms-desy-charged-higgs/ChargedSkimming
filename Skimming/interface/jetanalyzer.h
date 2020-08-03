@@ -3,6 +3,7 @@
 
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
 #include <ChargedSkimming/Skimming/interface/btagcsvreader.h>
+#include <ChargedSkimming/Skimming/interface/util.h>
 
 #include <cmath>
 #include <random>
@@ -32,17 +33,17 @@ class JetAnalyzer: public BaseAnalyzer{
         bool isData;
 
         //Map for SF files
-        std::map<int, std::vector<std::string>> JECMC, JECDATA;
-        std::map<int, std::string> JECUNC, JMESF, JMEPtReso;
-        std::map<int, std::string> DeepbTagSF, CSVbTagSF;
+        std::vector<std::string> JECMC, JECDATA;
 
         //Classes for reading btag SF
         BTagCSVReader CSVReader, DeepReader;
 
-        std::vector<TH2F*> bTagEffLoose;
-        std::vector<TH2F*> bTagEffMedium;
-        std::vector<TH2F*> bTagEffTight;
+        std::vector<TH2F*> bTagEffLoose, bTagEffMedium, bTagEffTight;
         TH2F* bTotal;
+
+        //Cut values for btag disc.
+        std::map<int, float> CSVLoose, CSVMedium, CSVTight;
+        std::map<int, float> DeepLoose, DeepMedium, DeepTight;
 
         //Classes for reading jet energy SF 
         JME::JetParameters jetParameter;

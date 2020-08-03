@@ -12,9 +12,6 @@ class ElectronAnalyzer: public BaseAnalyzer {
         //Check if data
         bool isData;
 
-        //Map for SF files
-        std::map<int, std::string> looseSFfiles, mediumSFfiles, tightSFfiles, recoSFfiles;
-
         //Hist with scale factors
         TH2F* looseSFhist;
         TH2F* mediumSFhist;

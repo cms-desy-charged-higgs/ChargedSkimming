@@ -8,7 +8,12 @@ ElectronAnalyzer::ElectronAnalyzer(const int& era, const float& ptCut, const flo
     eleToken(eleToken),
     genParticleToken(genParticleToken)
     {
-        energyCorrection = systematic == "" ? "ecalTrkEnergyPostCorr" : systematic; 
+        std::vector<std::string> validSystematics = {"energyScaleUp", "energyScaleDown", "energySigmaUp", "energySigmaDown"};
+    
+        if(std::find(validSystematics.begin(), validSystematics.end(), systematic) != validSystematics.end()){
+            energyCorrection = systematic;
+        }
+        else energyCorrection = "ecalTrkEnergyPostCorr";
     }
 
 ElectronAnalyzer::ElectronAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader& reader):
@@ -19,38 +24,25 @@ ElectronAnalyzer::ElectronAnalyzer(const int& era, const float& ptCut, const flo
     {}
 
 void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
-    //SF files
-    looseSFfiles = {
-                    {2017, filePath + "eleSF/2017_ElectronLoose.root"},
-    };
-
-    mediumSFfiles = {
-                    {2017, filePath + "eleSF/2017_ElectronMedium.root"},
-    };
-
-    tightSFfiles = {
-                    {2017, filePath + "eleSF/2017_ElectronTight.root"},
-    };
-
-    recoSFfiles = {
-                    {2017, filePath + "eleSF/egammaEffi.txt_EGM2D_runBCDEF_passingRECO.root"},
-    };
+    //Read in json config with sf files
+    boost::property_tree::ptree sf; 
+    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/config/sf.json", sf);
 
     //Set data bool
     this->isData = isData;
     this->isSyst = isSyst;
 
     //Hist with scale factors
-    TFile* recoSFfile = TFile::Open(recoSFfiles[era].c_str());
+    TFile* recoSFfile = TFile::Open((filePath +sf.get<std::string>("Electron.Reco." + std::to_string(era))).c_str());
     recoSFhist = (TH2F*)recoSFfile->Get("EGamma_SF2D");
 
-    TFile* looseSFfile = TFile::Open(looseSFfiles[era].c_str());
+    TFile* looseSFfile = TFile::Open((filePath +sf.get<std::string>("Electron.ID.Loose." + std::to_string(era))).c_str());
     looseSFhist = (TH2F*)looseSFfile->Get("EGamma_SF2D");
 
-    TFile* mediumSFfile = TFile::Open(mediumSFfiles[era].c_str());
+    TFile* mediumSFfile = TFile::Open((filePath +sf.get<std::string>("Electron.ID.Medium." + std::to_string(era))).c_str());
     mediumSFhist = (TH2F*)mediumSFfile->Get("EGamma_SF2D");
 
-    TFile* tightSFfile = TFile::Open(tightSFfiles[era].c_str());
+    TFile* tightSFfile = TFile::Open((filePath +sf.get<std::string>("Electron.ID.Tight." + std::to_string(era))).c_str());
     tightSFhist = (TH2F*)tightSFfile->Get("EGamma_SF2D");
 
     //Initiliaze TTreeReaderValues then using NANO AOD
