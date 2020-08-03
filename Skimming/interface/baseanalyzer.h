@@ -7,6 +7,9 @@
 #include <cmath>
 #include <bitset>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 #include <TFile.h>
 #include <TH1F.h>
 #include <TH2F.h>
@@ -31,6 +34,7 @@ typedef edm::EDGetTokenT<std::vector<reco::GenParticle>> genPartToken;
 struct CutFlow {
     TH1F* hist;
     Float_t weight = 1.;
+    std::string channel;
 
     unsigned char nMinEle=0;
     unsigned char nMinMu=0;
@@ -46,6 +50,13 @@ class BaseAnalyzer {
         std::string filePath = std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/";
 
         std::map<int, std::map<std::string, std::pair<int, int>>> runEras = {
+              {2016, {
+                        {"BCD", {272007, 276811}}, 
+                        {"EF", {276831, 278808}}, 
+                        {"GH", {278820, 284044}},
+                     }
+              },
+
               {2017, {
                         {"B", {297046, 299329}}, 
                         {"C", {299368, 302029}}, 
@@ -53,10 +64,18 @@ class BaseAnalyzer {
                         {"F", {305040, 306462}}, 
                      }
               },
+
+              {2018, {
+                        {"A", {315252, 316995}}, 
+                        {"B", {316998, 319312}}, 
+                        {"C", {319313, 320393}},
+                        {"D", {320394, 325273}}, 
+                     }
+              },
         };
 
         //Collection which are used in several analyzers if NANO AOD is analyzed
-        TTreeReader* reader = NULL;
+        TTreeReader* reader = nullptr;
         bool isNANO;
 
         std::unique_ptr<TTreeReaderValue<unsigned int>> run;
