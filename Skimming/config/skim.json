@@ -10,8 +10,7 @@
 
             "Trigger": {
                 "2016": [
-                    "HLT_IsoMu24", 
-                    "HLT_IsoTkMu24"
+                    "HLT_IsoMu24"
                 ],
 
                 "2017": [
@@ -118,6 +117,52 @@
                 "2017": 2.4, 
                 "2018": 2.4
             }           
+        },
+
+        "METFilter": {
+            "2016": [
+                "Flag_goodVertices",
+                "Flag_globalSuperTightHalo2016Filter",
+                "Flag_HBHENoiseFilter",
+                "Flag_HBHENoiseIsoFilter",
+                "Flag_EcalDeadCellTriggerPrimitiveFilter",
+                "Flag_BadPFMuonFilter",
+                "Flag_eeBadScFilter"
+            ], 
+
+            "2017": [
+                "Flag_goodVertices",
+                "Flag_globalSuperTightHalo2016Filter",
+                "Flag_HBHENoiseFilter",
+                "Flag_HBHENoiseIsoFilter",
+                "Flag_EcalDeadCellTriggerPrimitiveFilter",
+                "Flag_BadPFMuonFilter",
+                "Flag_eeBadScFilter"
+            ],
+
+            "2018": [
+                "Flag_goodVertices",
+                "Flag_globalSuperTightHalo2016Filter",
+                "Flag_HBHENoiseFilter",
+                "Flag_HBHENoiseIsoFilter",
+                "Flag_EcalDeadCellTriggerPrimitiveFilter",
+                "Flag_BadPFMuonFilter",
+                "Flag_eeBadScFilter"
+            ]
+        },
+
+        "Weight": {
+            "Lumi": {
+                "2016": 35.92, 
+                "2017": 41.53, 
+                "2018": 59.74
+            },
+
+            "PileUp": {
+                "2016": "/pileUp/2016/pileUp@.root", 
+                "2017": "/pileUp/2017/pileUp@.root", 
+                "2018": "/pileUp/2018/pileUp@.root"
+            }
         },
 
         "Gen" : ["HPlus", "higgs", "b", "W", "top", "Z", "e", "nu_e", "muon", "nu_muon"]
