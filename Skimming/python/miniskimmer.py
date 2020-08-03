@@ -13,6 +13,8 @@ import os
 options = VarParsing()
 options.register("channel", "MuonIncl", VarParsing.multiplicity.list, VarParsing.varType.string,
 "Channel names")
+options.register("era", 2017, VarParsing.multiplicity.singleton, VarParsing.varType.int,
+"Channel names")
 options.register("filename", "", VarParsing.multiplicity.list, VarParsing.varType.string,
 "Name of file for skimming")
 options.register("outname", "outputSkim.root", VarParsing.multiplicity.singleton, VarParsing.varType.string, "Name of file for output")
@@ -43,8 +45,10 @@ process.load("Configuration.StandardSequences.GeometryRecoDB_cff")
 process.load("Configuration.StandardSequences.MagneticField_cff")
 process.load("Geometry.CaloEventSetup.CaloTopology_cfi")
 
-##Global tag
-tag = "102X_dataRun2_v12" if isData else "102X_mc2017_realistic_v7"
+##Global tag https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVAnalysisSummaryTable
+tags = {2016: "102X_mcRun2_asymptotic_v8", 2017: "102X_mc2017_realistic_v8", 2018: "102X_upgrade2018_realistic_v21"}
+
+tag = "102X_dataRun2_v13" if isData else tags[options.era]
 process.GlobalTag = GlobalTag(process.GlobalTag, tag, '')
 
 ##Input file
@@ -95,15 +99,17 @@ updateJetCollection(
 )
 
 ##Prefiring weight https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1ECALPrefiringWeightRecipe
+tags = {2016: "2016BtoH", 2017: "2017BtoF", 2018: ""}
 process.prefiringweight = l1ECALPrefiringWeightProducer.clone(
-                            DataEra = cms.string("2017BtoF"), #Use 2016BtoH for 2016
+                            DataEra = cms.string(tags[options.era]),
                             UseJetEMPt = cms.bool(False),
                             PrefiringRateSystematicUncty = cms.double(0.2),
                             SkipWarnings = False
 )
 
 ##https://twiki.cern.ch/twiki/bin/view/CMS/EgammaMiniAODV2#2017_MiniAOD_V2
-setupEgammaPostRecoSeq(process, era='2017-Nov17ReReco')
+tags = {2016: "2016-Legacy", 2017: "2017-Nov17ReReco", 2018: "2018-Prompt"}
+setupEgammaPostRecoSeq(process, era= tags[options.era])
 
 ##Producer to get pdf weights
 process.pdfweights = cms.EDProducer("PDFWeights",
@@ -131,6 +137,7 @@ process.skimmer = cms.EDAnalyzer("MiniSkimmer",
                                 scale = cms.InputTag("pdfweights", "scaleVariations"),
                                 channels = cms.vstring(options.channel),
                                 xSec = cms.double(xSec),
+                                era = cms.int32(options.era),
                                 outFile = cms.string(options.outname),
                                 isData = cms.bool(isData)
 )
@@ -158,7 +165,7 @@ process.p = cms.Path(
                      process.selectedUpdatedPatJetsAK8WithDeepTags *
 
                      process.egammaPostRecoSeq*
-                     process.prefiringweight*
+                     (process.prefiringweight if options.era != 2018 else cms.Sequence())*
                      process.pdfweights*
                      process.skimmer
 )
