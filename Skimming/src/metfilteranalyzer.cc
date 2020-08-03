@@ -11,22 +11,16 @@ MetFilterAnalyzer::MetFilterAnalyzer(const int &era, trigToken& triggerToken):
     {}
 
 void MetFilterAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
+    //Read in json config with sf files
+    boost::property_tree::ptree sf; 
+    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/config/skim.json", sf);
+
     //Set Filter names for each era
-    filterNames = {
-                {2017, {"Flag_goodVertices",
-                        "Flag_globalSuperTightHalo2016Filter",
-                        "Flag_HBHENoiseFilter",
-                        "Flag_HBHENoiseIsoFilter",
-                        "Flag_EcalDeadCellTriggerPrimitiveFilter",
-                        "Flag_BadPFMuonFilter",
-                        "Flag_eeBadScFilter",
-                        }
-                 },
-    };
+    filterNames = Util::GetVector<std::string>(sf, "Analyzer.METFilter." + std::to_string(era));
 
     if(isNANO){
         //Set TTreeReaderValues
-        for(std::string filterName: filterNames[era]){
+        for(std::string filterName: filterNames){
             filterValues.push_back(std::make_unique<TTreeReaderValue<bool>>(*reader, filterName.c_str()));
         }
     }
@@ -43,7 +37,7 @@ void MetFilterAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event
         const edm::TriggerNames &names = event->triggerNames(*triggers);
 
         //Find result with given filter name with MINIAOD
-        for(std::string filterName: filterNames[era]){
+        for(std::string filterName: filterNames){
             std::vector<int> filterVersion; 
 
             for(unsigned int i = 0; i < names.size(); i++){

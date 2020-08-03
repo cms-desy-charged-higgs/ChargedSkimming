@@ -1,12 +1,12 @@
 #include <ChargedSkimming/Skimming/interface/weightanalyzer.h>
 
-WeightAnalyzer::WeightAnalyzer(const float& era, const float& xSec, TTreeReader& reader):
+WeightAnalyzer::WeightAnalyzer(const int& era, const float& xSec, TTreeReader& reader):
     BaseAnalyzer(&reader),
     era(era),
     xSec(xSec)
     {}
 
-WeightAnalyzer::WeightAnalyzer(const float& era, const float& xSec, puToken& pileupToken, genToken& geninfoToken, const std::vector<edm::EDGetTokenT<double>>& prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken):
+WeightAnalyzer::WeightAnalyzer(const int& era, const float& xSec, puToken& pileupToken, genToken& geninfoToken, const std::vector<edm::EDGetTokenT<double>>& prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken):
     BaseAnalyzer(),
     era(era),
     xSec(xSec),
@@ -18,9 +18,6 @@ WeightAnalyzer::WeightAnalyzer(const float& era, const float& xSec, puToken& pil
     {}
 
 void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst){
-    //Set lumi map
-    lumis = {{2016, 35.92*1e3}, {2017, 41.53*1e3}};
-
     //Set data bool
     this->isData = isData;
     this->isSyst = isSyst;
@@ -72,7 +69,7 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* e
 
         for(unsigned int i = 0; i < prefireTokens.size(); i ++){
             edm::Handle<double> fireHandle;
-            event->getByToken(prefireTokens[i], fireHandle);
+            if(era != 2018) event->getByToken(prefireTokens[i], fireHandle);
             prefire.push_back(fireHandle);
         }
     }
@@ -89,13 +86,13 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* e
                 pdfWeights = *pdfVariations;
 
                 //Fill prefire weight
-                for(unsigned int i = 0; i < prefire.size(); i ++){
-                    prefireWeights.push_back(*(prefire[i]));
+                for(unsigned int i = 0; i < 3; i ++){
+                    prefireWeights.push_back(era != 2018 ? *(prefire[i]) : 1.);
                 }
             }
 
             else{
-                prefireWeights.push_back(*(prefire[0]));
+                prefireWeights.push_back(era != 2018 ? *(prefire[0]) : 1.);
             }
 
             //Get true number of interaction https://twiki.cern.ch/twiki/bin/view/CMS/PileupSystematicErrors
@@ -124,6 +121,10 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* e
 
 void WeightAnalyzer::EndJob(TFile* file){
     if(!this->isData){
+        //Read in json config with info
+        boost::property_tree::ptree parser; 
+        boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/config/skim.json", parser);
+
         if(!file->GetListOfKeys()->Contains("nGen")){
             nGenHist->Write();
             nGenWeightedHist->Write();
@@ -131,9 +132,8 @@ void WeightAnalyzer::EndJob(TFile* file){
 
             //Also get measured PU distributions https://twiki.cern.ch/twiki/bin/view/CMS/PileupJSONFileforData
             for(const std::string& syst: {"", "Up", "Down"}){
-                std::string filename = filePath + "/pileUp/pileUp@!.root";
-                filename.replace(filename.find("@"), 1, std::to_string(int(era)));
-                filename.replace(filename.find("!"), 1, syst);
+                std::string filename = filePath + parser.get<std::string>("Analyzer.Weight.PileUp." + std::to_string(era));
+                filename.replace(filename.find("@"), 1, syst);
 
                 TFile* pileFile = TFile::Open(filename.c_str(), "READ");
                 TH1F* realPile = (TH1F*)pileFile->Get("pileup");
@@ -151,7 +151,7 @@ void WeightAnalyzer::EndJob(TFile* file){
         forXSec->Write();
 
         TH1F* forLumi = new TH1F("Lumi", "Lumi", 1, 0, 1);
-        forLumi->SetBinContent(1, lumis[era]);
+        forLumi->SetBinContent(1, parser.get<float>("Analyzer.Weight.Lumi." + std::to_string(era))*1e3);
         forLumi->Write();
 
         delete puMC;

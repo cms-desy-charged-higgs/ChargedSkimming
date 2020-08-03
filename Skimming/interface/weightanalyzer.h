@@ -14,7 +14,7 @@ class WeightAnalyzer : public BaseAnalyzer {
     private:
         //Bool for data
         bool isData;
-        float era;    
+        int era;    
 
         //xSec information
         float xSec;
@@ -22,9 +22,6 @@ class WeightAnalyzer : public BaseAnalyzer {
         //Values for branch
         float genWeight = 1., eventNumber = 1., nTrueInt = 1.;
         std::vector<float> prefireWeights, pdfWeights, scaleWeights;
-
-        //Lumi information
-        std::map<int, float> lumis;
 
         //Token for MINIAOD
         puToken pileupToken;
@@ -43,8 +40,8 @@ class WeightAnalyzer : public BaseAnalyzer {
         std::unique_ptr<TTreeReaderValue<ULong64_t>> evtNumber;
 
     public:
-        WeightAnalyzer(const float& era, const float& xSec, TTreeReader &reader);
-        WeightAnalyzer(const float& era, const float& xSec, puToken &pileupToken, genToken &geninfoToken, const std::vector<edm::EDGetTokenT<double>>& prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken);
+        WeightAnalyzer(const int& era, const float& xSec, TTreeReader &reader);
+        WeightAnalyzer(const int& era, const float& xSec, puToken &pileupToken, genToken &geninfoToken, const std::vector<edm::EDGetTokenT<double>>& prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken);
         void BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst=false);
         void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event);
         void EndJob(TFile* file);

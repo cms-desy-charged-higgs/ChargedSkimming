@@ -2,6 +2,7 @@
 #define METFILTERANALYZER_H
 
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/util.h>
 
 #include <numeric>
 
@@ -10,8 +11,8 @@ class MetFilterAnalyzer : public BaseAnalyzer {
         //Era
         int era;
 
-        //Map with TTreeReaderValues for each era
-        std::map<int, std::vector<std::string>> filterNames;
+        //Vector with filter names
+        std::vector<std::string> filterNames;
 
         //EDM Token for MINIAOD analysis
         trigToken triggerToken;
