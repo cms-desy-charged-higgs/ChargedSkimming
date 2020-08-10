@@ -25,6 +25,7 @@ MiniSkimmer::MiniSkimmer(const edm::ParameterSet& iConfig):
       channels(iConfig.getParameter<std::vector<std::string>>("channels")),
       xSec(iConfig.getParameter<double>("xSec")),
       outFile(iConfig.getParameter<std::string>("outFile")),
+      era(iConfig.getParameter<int>("era")),
       isData(iConfig.getParameter<bool>("isData")){
 
         start = std::chrono::steady_clock::now();
@@ -33,44 +34,25 @@ MiniSkimmer::MiniSkimmer(const edm::ParameterSet& iConfig):
 MiniSkimmer::~MiniSkimmer(){
     end = std::chrono::steady_clock::now();
     std::cout << "Finished event loop (in seconds): " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << std::endl;
-
-    //Print stats
-    for(unsigned int i = 0; i < analyzers.size(); i++){
-        for(TTree* tree: outputTrees[i]){
-            std::cout << tree->GetName() << " analysis: Selected " << tree->GetEntries() << " events of " << nEvents << " (" << 100*(float)tree->GetEntries()/nEvents << "%)" << std::endl;
-        }
-    }
 }
 
 void MiniSkimmer::beginJob(){
+    //Read in json config
+    boost::property_tree::ptree parser; 
+    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/skim.json", parser);
+
     //Set analyzer modules for each final state
     std::vector<jToken> jetTokens = {jetToken, fatjetToken};
     std::vector<genjToken> genjetTokens = {genjetToken, genfatjetToken};
+    std::vector<edm::EDGetTokenT<double>> prefireTokens = {prefireToken, prefireTokenUp, prefireTokenDown};
 
-    nMin = {
-            {"MuonIncl", {1, 0, 0, 0}},
-            {"EleIncl", {0, 1, 0, 0}},
-            {"DoubleBJet", {0, 0, 1, 1}},
-    };
+    for(std::pair<std::string, boost::property_tree::ptree> syst : parser.get_child("Systematics")){
+        std::string systematic = syst.first;
 
-    //Name of systematic uncertainties
-    systNames = {
-                {"", ""}, 
-                {"energyScale", "e"}, 
-                {"energySigma", "e"},
-                {"JECTotal", "j"},
-                {"JER", "j"},
-    };
-
-    for(const std::pair<std::string, std::string>& systInfo: systNames){
         //Dont do systematics for data
-        if(isData and systInfo.first != "") continue;
+        if(isData and systematic != "") continue;
 
         for(const std::string& shift: {"Up", "Down"}){
-            //Get systematic name and relevant particle
-            std::string systematic, particle;
-            std::tie(systematic, particle) = systInfo;
-
             //Check if nominal analysis
             bool isNomi = systematic == "" ? true : false;
             std::string systName = isNomi ? "" : systematic + shift;
@@ -86,6 +68,7 @@ void MiniSkimmer::beginJob(){
             } 
 
             TFile* outFile = TFile::Open(outname.c_str(), "RECREATE"); 
+            std::cout << "Open output file: " << outname << std::endl;
 
             //Vector of objects (One object for each channel)
             std::vector<TTree*> treesPerSyst;
@@ -94,45 +77,66 @@ void MiniSkimmer::beginJob(){
 
             for(const std::string &channel: channels){
                 //Check channel has relevant particle for the systematic
-                if(channel.find(particle) == std::string::npos) continue;
+                bool useSystematic = false;
+                for(std::pair<std::string, boost::property_tree::ptree> channelName: syst.second){
+                    if(channel == channelName.second.get_value<std::string>()) useSystematic = true;
+                }
+    
+                if(!useSystematic) continue;
 
                 //Create output trees
-                TTree* tree = new TTree();
-                tree->SetName(channel.c_str());
-                tree->SetAutoSave(0);
-                tree->SetAutoFlush(0);
+                TTree* tree = new TTree(channel.c_str(), channel.c_str());
+                tree->SetAutoFlush(1000);
                 treesPerSyst.push_back(tree);
 
                 //Create cutflow histograms
                 CutFlow cutflow;
 
-                cutflow.hist = new TH1F();
+                cutflow.channel = channel;
+                cutflow.hist = std::make_shared<TH1F>();
                 cutflow.hist->SetName(("cutflow_" + channel).c_str());
                 cutflow.hist->SetName(("cutflow_" + channel).c_str());
                 cutflow.hist->GetYaxis()->SetName("Events");
-
-                cutflow.nMinMu=nMin[channel][0];
-                cutflow.nMinEle=nMin[channel][1];
-                cutflow.nMinJet=nMin[channel][2];
-                cutflow.nMinFatjet=nMin[channel][3];
+    
+                cutflow.nMinMu = parser.get<int>("Channel." + channel + ".Selection.nMinMuon");
+                cutflow.nMinEle = parser.get<int>("Channel." + channel + ".Selection.nMinElectron");
+                cutflow.nMinJet = parser.get<int>("Channel." + channel + ".Selection.nMinJet");
+                cutflow.nMinFatjet =parser.get<int>("Channel." + channel + ".Selection.nMinFatJet");
                 
                 cutflow.weight = 1;    
 
-                flowPerSyst.push_back(cutflow); 
+                flowPerSyst.push_back(cutflow);
             }
 
+            //Get information for analyzers
+            float jetPt = parser.get<float>("Analyzer.Jet.pt." + std::to_string(era));
+            float jetEta = parser.get<float>("Analyzer.Jet.pt." + std::to_string(era));
+            float elePt = parser.get<float>("Analyzer.Electron.pt." + std::to_string(era));
+            float eleEta = parser.get<float>("Analyzer.Electron.eta." + std::to_string(era));
+            float muonPt = parser.get<float>("Analyzer.Muon.pt." + std::to_string(era));
+            float muonEta = parser.get<float>("Analyzer.Muon.eta." + std::to_string(era));
+
+            std::map<std::string, std::vector<std::string>> triggers;
+
+            for(const std::string &channel: channels){
+                triggers[channel] = Util::GetVector<std::string>(parser, "Channel." + channel + ".Trigger." + std::to_string(era));
+            }
+
+            std::vector<std::string> genParts = Util::GetVector<std::string>(parser, "Analyzer.Gen");
+
+            //Set Analyzer
             analyzerPerSyst = {
-                std::shared_ptr<WeightAnalyzer>(new WeightAnalyzer(2017, xSec, pileupToken, geninfoToken, {prefireToken, prefireTokenUp, prefireTokenDown}, pdfToken, scaleToken)),
-                std::shared_ptr<TriggerAnalyzer>(new TriggerAnalyzer({"HLT_IsoMu27"}, {"HLT_Ele35_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150", "HLT_Ele30_eta2p1_WPTight_Gsf_CentralPFJet35_EleCleaned"}, {"HLT_AK8PFJet500"}, triggerToken)),
-                std::shared_ptr<MetFilterAnalyzer>(new MetFilterAnalyzer(2017, triggerToken)),
-                std::shared_ptr<JetAnalyzer>(new JetAnalyzer(2017, 30., 2.4, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken, particle == "j" ? systName : "")),
-                std::shared_ptr<MuonAnalyzer>(new MuonAnalyzer(2017, 15., 2.4, muonToken, genParticleToken)),
-                std::shared_ptr<ElectronAnalyzer>(new ElectronAnalyzer(2017, 15., 2.4, eleToken, genParticleToken, particle == "e" ? systName : "")),
-                std::shared_ptr<GenPartAnalyzer>(new GenPartAnalyzer(genParticleToken, {"HPlus", "higgs", "b", "W", "top", "Z"})),
+                std::make_shared<WeightAnalyzer>(era, xSec, pileupToken, geninfoToken, prefireTokens, pdfToken, scaleToken),
+                std::make_shared<TriggerAnalyzer>(triggers, triggerToken),
+                std::make_shared<MetFilterAnalyzer>(era, triggerToken),
+                std::make_shared<JetAnalyzer>(era, jetPt, jetEta, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken, systName),
+                std::make_shared<MuonAnalyzer>(era, muonPt, muonEta, muonToken, genParticleToken),
+                std::make_shared<ElectronAnalyzer>(era, elePt, eleEta, eleToken, genParticleToken, systName),
+                std::make_shared<GenPartAnalyzer>(genParticleToken, genParts),
             };
 
             //Begin jobs for all analyzers
-            for(std::shared_ptr<BaseAnalyzer> analyzer: analyzerPerSyst){
+            for(std::shared_ptr<BaseAnalyzer>& analyzer: analyzerPerSyst){
                 analyzer->BeginJob(treesPerSyst, isData, !isNomi);
             }
 
@@ -168,8 +172,11 @@ void MiniSkimmer::endJob(){
     for(unsigned int i = 0; i < analyzers.size(); i++){
         outputFiles[i]->cd();
 
+        std::cout << "Overview for closed output file: " << outputFiles[i]->GetName() << std::endl;
+
         for(TTree* tree: outputTrees[i]){
-            tree->Write();
+            tree->Write("", TObject::kWriteDelete);
+            std::cout << "Output tree '" << tree->GetName() << "': Selected " << tree->GetEntries() << " events of " << nEvents << " (" << 100*(float)tree->GetEntries()/nEvents << "%)" << std::endl;
         }
 
         //End jobs for all analyzers
@@ -179,10 +186,8 @@ void MiniSkimmer::endJob(){
 
         for(CutFlow& cutflow: cutflows[i]){
             cutflow.hist->Write();
-            delete cutflow.hist;
         }
 
-        outputFiles[i]->Write();
         outputFiles[i]->Close();
     }
 }

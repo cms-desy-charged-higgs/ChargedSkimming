@@ -6,6 +6,9 @@
 #include <string>
 #include <map>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 #include <FWCore/Framework/interface/Frameworkfwd.h>
 #include <FWCore/Framework/interface/one/EDAnalyzer.h>
 #include <FWCore/Framework/interface/Event.h>
@@ -36,18 +39,14 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         std::chrono::steady_clock::time_point start, end;
 
         //Output file
-        TFile* outputFile;
+        std::vector<TFile*> outputFiles;
 
         //Trees for each systematic analysis
-        std::vector<TFile*> outputFiles;
         std::vector<std::vector<TTree*>> outputTrees;
         std::vector<std::vector<CutFlow>> cutflows; 
 
         //Vector with wished analyzers for each systematic
         std::vector<std::vector<std::shared_ptr<BaseAnalyzer>>> analyzers;
-
-        //Map with systematic uncertanties
-        std::vector<std::pair<std::string, std::string>> systNames;
 
         //EDM tokens
         jToken jetToken, fatjetToken; 
@@ -68,9 +67,8 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         std::vector<std::string> channels;
         float xSec;
         std::string outFile;
-        bool isData;           
-
-        std::map<std::string, std::vector<unsigned int>> nMin;
+        int era;
+        bool isData;     
 
         //Number of analyzed events
         int nEvents=0;
