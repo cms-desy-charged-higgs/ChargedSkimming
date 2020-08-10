@@ -7,15 +7,18 @@ import time
 import argparse
 import numpy as np
 import yaml
+import math
 from multiprocessing import Process, Pool, cpu_count
 
 from CRABAPI.RawCommand import crabCommand
 from CRABClient.UserUtilities import config
+from dbs.apis.dbsClient import DbsApi
 
 def parser():
     parser = argparse.ArgumentParser(description = "Skim MINIAOD with crab", formatter_class=argparse.RawTextHelpFormatter)
     
     parser.add_argument("skim_dir", metavar='skim-dir', type=str, action="store", help="Working directory")
+    parser.add_argument("--era", action = "store", help = "Run era")
     parser.add_argument("--submit", action = "store_true", help = "Submit all the jobs")
     parser.add_argument("--monitor", action = "store_true", help = "Check if jobs only should be monitored")
     parser.add_argument("--get-output", action = "store_true", help = "Save list of all output files")
@@ -24,7 +27,7 @@ def parser():
 
     return parser.parse_args()
 
-def crabConfig(dataSet, setName, outDir, systematics, channels):
+def crabConfig(dataSet, setName, outDir, systematics, channels, era):
     isSignal = "HPlus" in setName
     isData = "Single" in setName or "JetHT" in setName
 
@@ -41,27 +44,35 @@ def crabConfig(dataSet, setName, outDir, systematics, channels):
         for shift in ["Up", "Down"]:
             outFiles.append("{}_{}{}.root".format(setName, systematic, shift))
 
+    #Caculate number of files per job
+    url="https://cmsweb.cern.ch/dbs/prod/{}/DBSReader".format("global" if not isSignal else "phys03")
+    api=DbsApi(url=url)
+    files = api.listFiles(dataset = dataSet, detail = 1)
+    
+    eventsPerFile = sum(f["event_count"] for f in files)/len(files)
+    filesPerJob = int(math.ceil(300000./eventsPerFile))
+
     ##Crab config
     crabConf = config()
 
-    crabConf.General.requestName = "Skim"
+    crabConf.General.requestName = "Skim_{}".format(era)
     crabConf.General.workArea = outDir
     crabConf.General.transferOutputs = True
     crabConf.General.transferLogs = False
 
     crabConf.JobType.pluginName = "Analysis"
     crabConf.JobType.psetName = "ChargedSkimming/Skimming/python/miniskimmer.py"
-    crabConf.JobType.pyCfgParams = ["outname={}.root".format(setName), "channel={}".format(",".join(channels))]
+    crabConf.JobType.pyCfgParams = ["outname={}.root".format(setName), "channel={}".format(",".join(channels)), "era={}".format(era)]
     crabConf.JobType.outputFiles = outFiles
-    crabConf.JobType.maxMemoryMB = 3500
     crabConf.JobType.maxJobRuntimeMin = 1440
+    crabConf.JobType.maxMemoryMB = 2500
     crabConf.JobType.allowUndistributedCMSSW = True
 
     crabConf.Data.inputDataset = dataSet
     crabConf.Data.inputDBS = "global" if not isSignal else "phys03"
-    crabConf.Data.splitting = "EventAwareLumiBased"
-    crabConf.Data.unitsPerJob = 250000
-    crabConf.Data.outLFNDirBase = "/store/user/dbrunner/skim"
+    crabConf.Data.splitting = "FileBased"
+    crabConf.Data.unitsPerJob = filesPerJob
+    crabConf.Data.outLFNDirBase = "/store/user/dbrunner/skim/{}".format(era)
 
     crabConf.Site.storageSite = "T2_DE_DESY"
     crabConf.User.voGroup = "dcms"
@@ -101,7 +112,7 @@ def monitor(crabJob):
                 exitCode = [crabStatus["jobs"][key]["Error"][0] for key in crabStatus["jobs"] if "Error" in crabStatus["jobs"][key]]
 
                 runTime = "1440" if not 50664 in exitCode else "1500"
-                memory = "3500" if not 50660 in exitCode else "3600"
+                memory = "2500" if not 50660 in exitCode else "3000"
 
                 crabCommand("resubmit", dir=crabDir, maxmemory=memory, maxjobruntime=runTime)
                 break 
@@ -139,6 +150,8 @@ def getOutput(crabJob):
     for job in jobs:
         files.extend(job.get())
 
+    files.sort()
+
     print("Got all xrootd paths: {}".format(crabJob.General.workArea.split("/")[-1]))
 
     with open("{}/outputFiles.txt".format(crabJob.General.workArea), "w") as fileList:
@@ -151,16 +164,15 @@ def main():
     args = parser()
 
     ##Txt with dataset names
-    filePath = "{}/src/ChargedSkimming/Skimming/data/filelists".format(os.environ["CMSSW_BASE"])
-    fileName = "/filelist_{}_2017_MINI.yaml"
+    filePath = "{}/src/ChargedSkimming/Skimming/data/filelists/{}".format(os.environ["CMSSW_BASE"], args.era)
+    fileName = "/filelist_{}_MINI.yaml"
     
-    procType = ["bkg", "signal", "data"] if args.process == "all" else [args.process]
+    procType = ["bkg", "sig", "data"] if args.process == "all" else [args.process]
     systematics = ["", "energyScale", "energySigma", "JECTotal", "JER"]
 
     ##Create with each dataset a crab config
     crabJobs = {}
-
-    
+   
     for process in procType:
         with open(filePath + fileName.format(process)) as f:
             datasets = yaml.load(f, Loader=yaml.Loader)
@@ -175,7 +187,10 @@ def main():
                 else: 
                     name = dataset.split("/")[1] + "_" + dataset.split("/")[2]
 
-                crabJobs.setdefault(process, []).append(crabConfig(dataset, name, "{}/{}".format(args.skim_dir, name), systematics, args.channels))
+                if args.era not in ["2016", "2017", "2018"]:
+                    raise RuntimeError("Unvalid value for era: {}".format(args.era))
+
+                crabJobs.setdefault(process, []).append(crabConfig(dataset, name, "{}/{}".format(args.skim_dir, name), systematics, args.channels, args.era))
 
     ##Submit all crab jobs
     if args.submit:
@@ -197,7 +212,12 @@ def main():
         while(True):
             for proc in procType:
                 for crabJob in crabJobs[proc]:
-                    isFinished = monitor(crabJob)
+                    try:
+                        isFinished = monitor(crabJob)
+
+                    except Exception as e:
+                        print(str(e))
+                        isFinished = False
                     
                     if isFinished:
                         crabJobs[proc].remove(crabJob)    
