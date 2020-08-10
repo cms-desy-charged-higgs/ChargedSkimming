@@ -116,19 +116,19 @@
 
             "Histogram": {  
                 "Loose": {
-                    "2016": "NUM_LooseID_DEN_genTracks_pt_abseta",
+                    "2016": "NUM_LooseID_DEN_genTracks_eta_pt",
                     "2017": "NUM_LooseID_DEN_genTracks_pt_abseta",
                     "2018": "NUM_LooseID_DEN_TrackerMuons_pt_abseta" 
                 }, 
 
                 "Medium": {
-                    "2016": "NUM_MediumID_DEN_genTracks_pt_abseta",
+                    "2016": "NUM_MediumID_DEN_genTracks_eta_pt",
                     "2017": "NUM_MediumID_DEN_genTracks_pt_abseta",
                     "2018": "NUM_MediumID_DEN_TrackerMuons_pt_abseta" 
                 },
 
                 "Tight": {
-                    "2016": "NUM_TightID_DEN_genTracks_pt_abseta",
+                    "2016": "NUM_TightID_DEN_genTracks_eta_pt",
                     "2017": "NUM_TightID_DEN_genTracks_pt_abseta",
                     "2018": "NUM_TightID_DEN_TrackerMuons_pt_abseta" 
                 }
