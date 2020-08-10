@@ -18,6 +18,8 @@ class WeightAnalyzer : public BaseAnalyzer {
 
         //xSec information
         float xSec;
+        float lumi;
+        std::string pileUpFile;
     
         //Values for branch
         float genWeight = 1., eventNumber = 1., nTrueInt = 1.;
@@ -31,9 +33,7 @@ class WeightAnalyzer : public BaseAnalyzer {
         wgtToken pdfToken;
 
         //Histograms
-        TH1F* puMC; 
-        TH1F* nGenHist;
-        TH1F* nGenWeightedHist;
+        std::shared_ptr<TH1F> puMC, nGenHist, nGenWeightedHist;
 
         //TTreeReader Values
         std::unique_ptr<TTreeReaderValue<float>> nPU, genWeightValue;

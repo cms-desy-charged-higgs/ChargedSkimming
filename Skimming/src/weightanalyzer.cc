@@ -22,6 +22,13 @@ void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bo
     this->isData = isData;
     this->isSyst = isSyst;
 
+    //Read infos from skim.json
+    boost::property_tree::ptree parser; 
+    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/skim.json", parser);
+    
+    pileUpFile = filePath + parser.get<std::string>("Analyzer.Weight.PileUp." + std::to_string(era));
+    lumi = parser.get<float>("Analyzer.Weight.Lumi." + std::to_string(era))*1e3;
+
     if(!this->isData){
         if(isNANO){
             //Initiliaze TTreeReaderValues
@@ -29,9 +36,9 @@ void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bo
             nPU = std::make_unique<TTreeReaderValue<float>>(*reader, "Pileup_nTrueInt");
         }        
 
-        puMC = new TH1F("puMC", "puMC", 100, 0, 100);
-        nGenHist = new TH1F("nGen", "nGen", 100, 0, 2);
-        nGenWeightedHist = new TH1F("nGenWeighted", "nGenWeighted", 100, -1e7, 1e7);
+        puMC = std::make_shared<TH1F>("puMC", "puMC", 100, 0, 100);
+        nGenHist = std::make_shared<TH1F>("nGen", "nGen", 100, 0, 2);
+        nGenWeightedHist = std::make_shared<TH1F>("nGenWeighted", "nGenWeighted", 100, -1e7, 1e7);
     }
 
     evtNumber = std::make_unique<TTreeReaderValue<ULong64_t>>(*reader, "event");
@@ -114,17 +121,13 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* e
     eventNumber = isNANO ? *evtNumber->Get() : event->id().event();
 
     for(CutFlow& cutflow: cutflows){
-        cutflow.weight = isData ? 1. : xSec*lumis[era];
+        cutflow.weight = isData ? 1. : xSec*lumi;
         cutflow.hist->Fill("No cuts", cutflow.weight);
     }
 }
 
 void WeightAnalyzer::EndJob(TFile* file){
     if(!this->isData){
-        //Read in json config with info
-        boost::property_tree::ptree parser; 
-        boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/config/skim.json", parser);
-
         if(!file->GetListOfKeys()->Contains("nGen")){
             nGenHist->Write();
             nGenWeightedHist->Write();
@@ -132,32 +135,23 @@ void WeightAnalyzer::EndJob(TFile* file){
 
             //Also get measured PU distributions https://twiki.cern.ch/twiki/bin/view/CMS/PileupJSONFileforData
             for(const std::string& syst: {"", "Up", "Down"}){
-                std::string filename = filePath + parser.get<std::string>("Analyzer.Weight.PileUp." + std::to_string(era));
-                filename.replace(filename.find("@"), 1, syst);
+                std::string name = pileUpFile;
+                name.replace(name.find("@"), 1, syst);
 
-                TFile* pileFile = TFile::Open(filename.c_str(), "READ");
-                TH1F* realPile = (TH1F*)pileFile->Get("pileup");
+                std::shared_ptr<TFile> pileFile = std::make_shared<TFile>(name.c_str(), "READ");
+                std::shared_ptr<TH1F> realPile(static_cast<TH1F*>(pileFile->Get("pileup")));
                 realPile->SetName(("pileUp" + syst).c_str());
                 file->cd();
                 realPile->Write();
-
-                delete realPile;
-                delete pileFile;
             }
         }
 
-        TH1F* forXSec = new TH1F("xSec", "xSec", 1, 0, 1);
+        std::shared_ptr<TH1F> forXSec = std::make_shared<TH1F>("xSec", "xSec", 1, 0, 1);
         forXSec->SetBinContent(1, xSec);
         forXSec->Write();
 
-        TH1F* forLumi = new TH1F("Lumi", "Lumi", 1, 0, 1);
-        forLumi->SetBinContent(1, parser.get<float>("Analyzer.Weight.Lumi." + std::to_string(era))*1e3);
+        std::shared_ptr<TH1F> forLumi = std::make_shared<TH1F>("Lumi", "Lumi", 1, 0, 1);
+        forLumi->SetBinContent(1, lumi);
         forLumi->Write();
-
-        delete puMC;
-        delete nGenHist;
-        delete nGenWeightedHist;
-        delete forXSec;
-        delete forLumi;
     }
 }
