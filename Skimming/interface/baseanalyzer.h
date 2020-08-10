@@ -32,7 +32,7 @@ typedef edm::EDGetTokenT<std::vector<reco::GenParticle>> genPartToken;
 
 //Struct for cutflow
 struct CutFlow {
-    TH1F* hist;
+    std::shared_ptr<TH1F> hist;
     Float_t weight = 1.;
     std::string channel;
 
