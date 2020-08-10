@@ -68,11 +68,6 @@ updateJetCollection(
     pvSource = cms.InputTag('offlineSlimmedPrimaryVertices'),
     svSource = cms.InputTag('slimmedSecondaryVertices'),
     jetCorrections = ('AK4PFchs', cms.vstring([]), 'None'),
-    btagDiscriminators = [
-      'pfDeepFlavourJetTags:probb',
-      'pfDeepFlavourJetTags:probbb',
-      'pfDeepFlavourJetTags:problepb',
-    ],
     printWarning = False
 )
 
@@ -146,13 +141,6 @@ process.skimmer = cms.EDAnalyzer("MiniSkimmer",
 process.p = cms.Path(
                      process.patJetCorrFactorsWithDeepB * 
                      process.updatedPatJetsWithDeepB *
-                     process.pfImpactParameterTagInfosWithDeepB *
-                     process.pfInclusiveSecondaryVertexFinderTagInfosWithDeepB *
-                     process.pfDeepCSVTagInfosWithDeepB * 
-                     process.pfDeepFlavourTagInfosWithDeepB * 
-                     process.pfDeepFlavourJetTagsWithDeepB *
-                     process.patJetCorrFactorsTransientCorrectedWithDeepB * 
-                     process.updatedPatJetsTransientCorrectedWithDeepB *
                      process.selectedUpdatedPatJetsWithDeepB *
 
                      process.patJetCorrFactorsAK8WithDeepTags *
