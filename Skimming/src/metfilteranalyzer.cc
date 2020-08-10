@@ -13,7 +13,7 @@ MetFilterAnalyzer::MetFilterAnalyzer(const int &era, trigToken& triggerToken):
 void MetFilterAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
     //Read in json config with sf files
     boost::property_tree::ptree sf; 
-    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/config/skim.json", sf);
+    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/skim.json", sf);
 
     //Set Filter names for each era
     filterNames = Util::GetVector<std::string>(sf, "Analyzer.METFilter." + std::to_string(era));

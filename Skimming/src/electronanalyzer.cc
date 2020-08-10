@@ -26,7 +26,7 @@ ElectronAnalyzer::ElectronAnalyzer(const int& era, const float& ptCut, const flo
 void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
     //Read in json config with sf files
     boost::property_tree::ptree sf; 
-    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/config/sf.json", sf);
+    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/sf.json", sf);
 
     //Set data bool
     this->isData = isData;

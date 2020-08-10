@@ -19,7 +19,7 @@ MuonAnalyzer::MuonAnalyzer(const int& era, const float& ptCut, const float& etaC
 void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
     //Read in json config with sf files
     boost::property_tree::ptree sf; 
-    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/config/sf.json", sf);
+    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/sf.json", sf);
 
     //Set data bool
     this->isData = isData;
@@ -30,13 +30,14 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool
     triggerSFhist = (TH2F*)triggerSFfile->Get(sf.get<std::string>("Muon.Trigger.Histogram." + std::to_string(era)).c_str());
 
     TFile* isoSFfile = TFile::Open((filePath +sf.get<std::string>("Muon.Isolation." + std::to_string(era))).c_str());
-    IsoHist.push_back((TH2F*)isoSFfile->Get("NUM_LooseRelIso_DEN_LooseID_pt_abseta"));
-    IsoHist.push_back((TH2F*)isoSFfile->Get("NUM_LooseRelIso_DEN_MediumID_pt_abseta"));
-    IsoHist.push_back((TH2F*)isoSFfile->Get("NUM_LooseRelIso_DEN_TightIDandIPCut_pt_abseta"));
-    IsoHist.push_back((TH2F*)isoSFfile->Get("NUM_TightRelIso_DEN_MediumID_pt_abseta"));
-    IsoHist.push_back((TH2F*)isoSFfile->Get("NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta"));
+    std::string postFix = era != 2016 ? "_pt_abseta" : "_eta_pt";
+    IsoHist.push_back((TH2F*)isoSFfile->Get(("NUM_LooseRelIso_DEN_LooseID" + postFix).c_str()));
+    IsoHist.push_back((TH2F*)isoSFfile->Get(("NUM_LooseRelIso_DEN_MediumID" + postFix).c_str()));
+    IsoHist.push_back((TH2F*)isoSFfile->Get(("NUM_LooseRelIso_DEN_TightIDandIPCut" + postFix).c_str()));
+    IsoHist.push_back((TH2F*)isoSFfile->Get(("NUM_TightRelIso_DEN_MediumID" + postFix).c_str()));
+    IsoHist.push_back((TH2F*)isoSFfile->Get(("NUM_TightRelIso_DEN_TightIDandIPCut" + postFix).c_str()));
 
-    TFile* IDSFfile = TFile::Open((filePath +sf.get<std::string>("Muon.ID.File." + std::to_string(era))).c_str());
+    TFile* IDSFfile = TFile::Open((filePath  +sf.get<std::string>("Muon.ID.File." + std::to_string(era))).c_str());
     IDHist.push_back((TH2F*)IDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Loose." + std::to_string(era)).c_str()));
     IDHist.push_back((TH2F*)IDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Medium." + std::to_string(era)).c_str()));
     IDHist.push_back((TH2F*)IDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Tight." + std::to_string(era)).c_str()));
@@ -173,15 +174,15 @@ void MuonAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* eve
             
             if(!isData){
                 //Scale factors
-                const Int_t& looseIsoLooseIDBin = IsoHist[0]->FindBin(pt, abs(eta));
-                const Int_t& looseIsoMediumIDBin = IsoHist[1]->FindBin(pt, abs(eta));
-                const Int_t& looseIsoTightIDBin = IsoHist[2]->FindBin(pt, abs(eta));
-                const Int_t& tightIsoMediumIDBin = IsoHist[3]->FindBin(pt, abs(eta));
-                const Int_t& tightIsoTightIDBin = IsoHist[4]->FindBin(pt, abs(eta));
+                const Int_t& looseIsoLooseIDBin = era != 2016 ? IsoHist[0]->FindBin(pt, abs(eta)) : IsoHist[0]->FindBin(eta, pt);
+                const Int_t& looseIsoMediumIDBin = era != 2016 ? IsoHist[1]->FindBin(pt, abs(eta)) : IsoHist[1]->FindBin(eta, pt);
+                const Int_t& looseIsoTightIDBin = era != 2016 ? IsoHist[2]->FindBin(pt, abs(eta)) : IsoHist[2]->FindBin(eta, pt);
+                const Int_t& tightIsoMediumIDBin = era != 2016 ? IsoHist[3]->FindBin(pt, abs(eta)) : IsoHist[3]->FindBin(eta, pt);
+                const Int_t& tightIsoTightIDBin = era != 2016 ? IsoHist[4]->FindBin(pt, abs(eta)) : IsoHist[4]->FindBin(eta, pt);
 
-                const Int_t& looseIDBin = IDHist[0]->FindBin(pt, abs(eta));
-                const Int_t& mediumIDBin = IDHist[1]->FindBin(pt, abs(eta));
-                const Int_t& tightIDBin = IDHist[2]->FindBin(pt, abs(eta));
+                const Int_t& looseIDBin = era != 2016 ? IDHist[0]->FindBin(pt, abs(eta)) : IDHist[0]->FindBin(eta, pt);
+                const Int_t& mediumIDBin = era != 2016 ? IDHist[1]->FindBin(pt, abs(eta)) : IDHist[1]->FindBin(eta, pt);
+                const Int_t& tightIDBin = era != 2016 ? IDHist[2]->FindBin(pt, abs(eta)) : IDHist[2]->FindBin(eta, pt);
                 const Int_t& triggerBin = triggerSFhist->FindBin(pt, abs(eta));
 
                 looseIsoLooseSF.push_back(IsoHist[0]->GetBinContent(looseIsoLooseIDBin));
