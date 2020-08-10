@@ -1,3 +1,6 @@
+#ifndef NANOSKIMMER_H
+#define NANOSKIMMER_H
+
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
 
 #include <vector>
@@ -17,27 +20,36 @@ class NanoSkimmer{
 
         //Input
         std::string inFile;
-        bool isData;
-        //Vector with wished analyzers
-        std::vector<std::shared_ptr<BaseAnalyzer>> analyzers;
-        
-        //Vector of trees for each analysis
-        std::vector<TTree*> outputTrees;
+        std::string outFile;
+        std::vector<std::string> channels;
+        float xSec;
+        int era;
+        bool isData;    
 
-        //Vector of cutflow histograms for each analysis
-        std::vector<CutFlow> cutflows; 
-        std::map<std::string, std::vector<unsigned int>> nMin;
+        int nEvents = 0; 
+
+        //Output file
+        std::vector<TFile*> outputFiles;
+
+        //Trees for each systematic analysis
+        std::vector<std::vector<TTree*>> outputTrees;
+        std::vector<std::vector<CutFlow>> cutflows; 
+
+        //Vector with wished analyzers for each systematic
+        std::vector<std::vector<std::shared_ptr<BaseAnalyzer>>> analyzers;
 
         //Progress bar function
         void ProgressBar(const int &progress);
 
         //Configure analysis modules
-        void Configure(const float &xSec, TTreeReader& reader);
+        void Configure(TTreeReader& reader);
         
 
     public:
         NanoSkimmer();
-        NanoSkimmer(const std::string &inFile, const bool &isData);
-        void EventLoop(const std::vector<std::string> &channels, const float &xSec = 1.);
-        void WriteOutput(const std::string &outFile); 
+        NanoSkimmer(const std::string &inFile, const std::string &outFile, const std::vector<std::string>& channels, const float& xSec, const int& era, const bool &isData);
+        void EventLoop();
+        void WriteOutput(); 
 };
+
+#endif
