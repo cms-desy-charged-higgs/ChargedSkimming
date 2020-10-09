@@ -14,7 +14,7 @@ SKIMDIR=$7
 xrdcp $1 nanoFile.root
 
 ##Do the skimming
-NanoSkim nanoFile.root $ISDATA "$CHANNEL" $XSEC ${OUT}_${JOB}.root
+NanoSkim nanoFile.root $ISDATA "$CHANNEL" $XSEC ${OUT}_${JOB}.root 2017
 rm nanoFile.root
 
 ##Move output to base dir
