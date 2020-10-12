@@ -157,14 +157,9 @@ void NanoSkimmer::EventLoop(){
 
     //Progress bar at 0%
     ProgressBar(0.);
+    nEvents = 0;
 
-    while(true){
-        if(!reader.Next()){
-            nEvents = 0;
-            reader.Restart();
-            reader.Next();
-        } 
-
+    while(reader.Next()){
         for(unsigned int i = 0; i < analyzers.size(); i++){
             //Call each analyzer
             for(unsigned int j = 0; j < analyzers[i].size(); j++){
