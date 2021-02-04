@@ -24,6 +24,7 @@
 #include <ChargedSkimming/Skimming/interface/metfilteranalyzer.h>
 #include <ChargedSkimming/Skimming/interface/weightanalyzer.h>
 #include <ChargedSkimming/Skimming/interface/genpartanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/miscanalyzer.h>
 
 #include <TFile.h>
 #include <TTree.h>
@@ -54,6 +55,7 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         mToken metToken; 
         eToken eleToken; 
         muToken muonToken;
+        isoToken isoTrackToken;
         trigToken triggerToken; 
         puToken pileupToken;
         genToken geninfoToken;

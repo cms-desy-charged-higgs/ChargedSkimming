@@ -9,6 +9,7 @@ MiniSkimmer::MiniSkimmer(const edm::ParameterSet& iConfig):
       metToken(consumes<std::vector<pat::MET>>(iConfig.getParameter<edm::InputTag>("mets"))),
       eleToken(consumes<std::vector<pat::Electron>>(iConfig.getParameter<edm::InputTag>("electrons"))),
       muonToken(consumes<std::vector<pat::Muon>>(iConfig.getParameter<edm::InputTag>("muons"))),
+      isoTrackToken(consumes<std::vector<pat::IsolatedTrack>>(iConfig.getParameter<edm::InputTag>("isoTrack"))),
       triggerToken(consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("trigger"))),
       pileupToken(consumes<std::vector<PileupSummaryInfo>>(iConfig.getParameter<edm::InputTag>("pileUp"))),
       geninfoToken(consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("genInfo"))),
@@ -110,7 +111,7 @@ void MiniSkimmer::beginJob(){
 
             //Get information for analyzers
             float jetPt = parser.get<float>("Analyzer.Jet.pt." + std::to_string(era));
-            float jetEta = parser.get<float>("Analyzer.Jet.pt." + std::to_string(era));
+            float jetEta = parser.get<float>("Analyzer.Jet.eta." + std::to_string(era));
             float elePt = parser.get<float>("Analyzer.Electron.pt." + std::to_string(era));
             float eleEta = parser.get<float>("Analyzer.Electron.eta." + std::to_string(era));
             float muonPt = parser.get<float>("Analyzer.Muon.pt." + std::to_string(era));
@@ -132,6 +133,7 @@ void MiniSkimmer::beginJob(){
                 std::make_shared<JetAnalyzer>(era, jetPt, jetEta, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken, systName),
                 std::make_shared<MuonAnalyzer>(era, muonPt, muonEta, muonToken, genParticleToken),
                 std::make_shared<ElectronAnalyzer>(era, elePt, eleEta, eleToken, genParticleToken, systName),
+                std::make_shared<MiscAnalyzer>(era, std::max({jetEta, muonEta, eleEta}), isoTrackToken),
                 std::make_shared<GenPartAnalyzer>(genParticleToken, genParts),
             };
 
