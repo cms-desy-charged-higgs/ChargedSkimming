@@ -12,6 +12,7 @@ from multiprocessing import Process, Pool, cpu_count
 
 from CRABAPI.RawCommand import crabCommand
 from CRABClient.UserUtilities import config
+from CRABClient.ClientExceptions import TaskNotFoundException, CachefileNotFoundException
 from dbs.apis.dbsClient import DbsApi
 
 def parser():
@@ -29,7 +30,7 @@ def parser():
 
 def crabConfig(dataSet, setName, outDir, systematics, channels, era):
     isSignal = "HPlus" in setName
-    isData = "Single" in setName or "JetHT" in setName
+    isData = "Single" in setName or "JetHT" in setName or "EGamma" in setName
 
     outFiles = []
 
@@ -61,7 +62,7 @@ def crabConfig(dataSet, setName, outDir, systematics, channels, era):
     crabConf.General.transferLogs = False
 
     crabConf.JobType.pluginName = "Analysis"
-    crabConf.JobType.psetName = "ChargedSkimming/Skimming/python/miniskimmer.py"
+    crabConf.JobType.psetName = "{}/src/ChargedSkimming/Skimming/python/miniskimmer.py".format(os.environ["CMSSW_BASE"])
     crabConf.JobType.pyCfgParams = ["outname={}.root".format(setName), "channel={}".format(",".join(channels)), "era={}".format(era)]
     crabConf.JobType.outputFiles = outFiles
     crabConf.JobType.maxJobRuntimeMin = 1440
@@ -151,8 +152,24 @@ def getOutput(crabJob):
         files.extend(job.get())
 
     files.sort()
+    if crabJob.Site.storageSite == "T2_DE_DESY":
+        files = [f.replace("root://cms-xrd-global.cern.ch/", "/pnfs/desy.de/cms/tier2/") for f in files]
 
     print("Got all xrootd paths: {}".format(crabJob.General.workArea.split("/")[-1]))
+   
+    if "Run2018D" in name:
+        splittedFile = np.array_split(files, 3)
+        
+        files = splittedFile[0]
+
+        for index, fList in enumerate(splittedFile[1:]):
+            newDir = crabJob.General.workArea.replace("Run2018D", "Run2018D{}".format(index+2))
+            subprocess.call(["mkdir", "-pv", newDir])
+
+            with open("{}/outputFiles.txt".format(newDir), "w") as fileList:
+                for f in fList:
+                    fileList.write(f)
+                    fileList.write("\n")
 
     with open("{}/outputFiles.txt".format(crabJob.General.workArea), "w") as fileList:
         for f in files:
@@ -205,7 +222,11 @@ def main():
     if args.get_output:
         for proc in procType:
             for crabJob in crabJobs[proc]:
-                getOutput(crabJob)
+                try:
+                    getOutput(crabJob)
+
+                except:
+                    pass
 
     ##Just monitor crab jobs
     elif args.monitor:
@@ -215,10 +236,22 @@ def main():
                     try:
                         isFinished = monitor(crabJob)
 
-                    except Exception as e:
-                        print(str(e))
+                    ##Resubmit if submission somehow failed
+                    except (TaskNotFoundException, CachefileNotFoundException) as e:
                         isFinished = False
+                        crabJob.Site.ignoreGlobalBlacklist = True
                     
+                        crabDir = "{}/crab_{}".format(crabJob.General.workArea, crabJob.General.requestName) 
+                        subprocess.check_output("command rm -rfv {}".format(crabDir), shell = True)
+
+                        process = Process(target=submit, args=(crabJob,))
+                        process.start()
+                        process.join()
+
+                    ##Something else
+                    except:
+                        pass
+            
                     if isFinished:
                         crabJobs[proc].remove(crabJob)    
                         continue
