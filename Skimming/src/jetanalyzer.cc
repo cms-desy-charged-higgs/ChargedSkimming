@@ -140,12 +140,12 @@ float JetAnalyzer::SmearEnergy(const float& pt, const float& eta, const float& p
     return smearFac;
 }
 
-void JetAnalyzer::SetGenParticles(const int& i, const float& pt, const float& eta, const float& phi, const std::vector<int>& pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle){
+void JetAnalyzer::SetGenParticles(const int& currentSize, const int& i, const float& pt, const float& eta, const float& phi, const std::vector<int>& pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle){
     float dR;
 
-    partID.at(type).push_back(-99.);
-    mothID.at(type).push_back(-99.);
-    grandID.at(type).push_back(-99.);
+    partID.at(type)[currentSize] = -99.;
+    mothID.at(type)[currentSize] = -99.;
+    grandID.at(type)[currentSize] =-99.;
 
     float bestDR = 30.; float bestPt = 100.;
     const reco::Candidate* parton=nullptr;
@@ -197,9 +197,9 @@ void JetAnalyzer::SetGenParticles(const int& i, const float& pt, const float& et
 
                 const int grandMotherID = isNANO ? abs(genID->At(genMotherIdx->At(motherIdx))) : motherPart->mother() != nullptr ? abs(motherPart->mother()->pdgId()) : -99.; 
 
-                partID.at(type).back() = ID;
-                mothID.at(type).back() = motherID;
-                grandID.at(type).back() = grandMotherID;
+                partID.at(type)[currentSize] = ID;
+                mothID.at(type)[currentSize] = motherID;
+                grandID.at(type)[currentSize] = grandMotherID;
                 break;
             }
         }
@@ -278,11 +278,21 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
 
     if(!isData){
         bTotal = new TH2F("nTrueB", "TotalB", 20, ptCut, 400, 20, -etaCut, etaCut);
+        cTotal = new TH2F("nTrueC", "TotalC", 20, ptCut, 400, 20, -etaCut, etaCut);
+        lightTotal = new TH2F("nTrueLight", "TotalLight", 20, ptCut, 400, 20, -etaCut, etaCut);
 
         for(const std::string& taggerName :  {"Deep", "CSV"}){
-            bTagEffLoose.push_back(new TH2F(("nLoose" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
-            bTagEffMedium.push_back(new TH2F(("nMedium" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
-            bTagEffTight.push_back(new TH2F(("nTight" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
+            bTagEffBLoose.push_back(new TH2F(("nLooseB" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
+            bTagEffBMedium.push_back(new TH2F(("nMediumB" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
+            bTagEffBTight.push_back(new TH2F(("nTightB" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
+
+            bTagEffCLoose.push_back(new TH2F(("nLooseC" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
+            bTagEffCMedium.push_back(new TH2F(("nMediumC" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
+            bTagEffCTight.push_back(new TH2F(("nTightC" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
+
+            bTagEffLightLoose.push_back(new TH2F(("nLooseLight" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
+            bTagEffLightMedium.push_back(new TH2F(("nMediumLight" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
+            bTagEffLightTight.push_back(new TH2F(("nTightLight" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
         }
     }
     
@@ -346,9 +356,11 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
         {{"FatJet", "Njettiness1"}, Njettiness1[AK8]},
         {{"FatJet", "Njettiness2"}, Njettiness2[AK8]},
         {{"FatJet", "Njettiness3"}, Njettiness3[AK8]},
-        {{"FatJet", "topVsHiggs"}, topVsHiggs[AK8]},
-        {{"FatJet", "QCDVsHiggs"}, QCDVsHiggs[AK8]},
-        {{"FatJet", "WVsHiggs"}, WVsHiggs[AK8]},
+        {{"FatJet", "DeepAK8Higgs"}, DeepAK8Higgs[AK8]},
+        {{"FatJet", "DeepAK8Top"}, DeepAK8Top[AK8]},
+        {{"FatJet", "DeepAK8W"}, DeepAK8W[AK8]},
+        {{"FatJet", "DeepAK8DY"}, DeepAK8DY[AK8]},
+        {{"FatJet", "DeepAK8QCD"}, DeepAK8QCD[AK8]},
         {{"JetParticle", "Pt"}, Pt[PF]},
         {{"JetParticle", "Eta"}, Eta[PF]},
         {{"JetParticle", "Phi"}, Phi[PF]},
@@ -384,7 +396,7 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
     };
 
     if(!isSyst){
-        std::map<std::pair<std::string, std::string>, std::vector<float>&> SFvariations = {
+        std::map<std::pair<std::string, std::string>, float*> SFvariations = {
             {{"Jet", "looseDeepbTagSFUp"}, looseDeepbTagSFUp[AK4]},
             {{"Jet", "looseDeepbTagSFDown"}, looseDeepbTagSFUp[AK4]},
             {{"Jet", "mediumDeepbTagSFUp"}, mediumDeepbTagSFUp[AK4]},
@@ -416,16 +428,18 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
 
     //Set Branches of output tree
     for(TTree* tree: trees){
-        tree->Branch("Jet_Size", &nJets);
-        tree->Branch("SubJet_Size", &nSubJets);
-        tree->Branch("FatJet_Size", &nFatJets);
+        tree->Branch("Jet_Size", &nJets, "Jet_Size/S");
+        tree->Branch("SubJet_Size", &nSubJets, "SubJet_Size/S");
+        tree->Branch("FatJet_Size", &nFatJets, "FatJet_Size/S");
+        tree->Branch("JetParticle_Size", &nPFcands, "JetParticle_Size/S");
+        tree->Branch("SecondaryVertex_Size", &nVtx, "SecondaryVertex_Size/S");
 
-        for(std::pair<const std::pair<std::string, std::string>, std::vector<float>&>& var: floatVar){
-            tree->Branch((var.first.first + "_" + var.first.second).c_str(), &var.second);
+        for(std::pair<const std::pair<std::string, std::string>, float*>& var: floatVar){
+            tree->Branch((var.first.first + "_" + var.first.second).c_str(), var.second, (var.first.first + "_" + var.first.second + "[" + var.first.first + "_Size]/F").c_str());
         }
 
-        for(std::pair<const std::pair<std::string, std::string>, std::vector<char>&>& var: intVar){
-            tree->Branch((var.first.first + "_" + var.first.second).c_str(), &var.second);
+        for(std::pair<const std::pair<std::string, std::string>, short*>& var: intVar){
+            tree->Branch((var.first.first + "_" + var.first.second).c_str(), var.second, (var.first.first + "_" + var.first.second + "[" + var.first.first + "_Size]/S").c_str());
         }
 
         tree->Branch("MET_Pt", &metPT);
@@ -434,15 +448,6 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
 }
 
 void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
-    //Clear variables vector
-    for(std::pair<const std::pair<std::string, std::string>, std::vector<float>&>& var: floatVar){
-        var.second.clear();
-    }
-
-    for(std::pair<const std::pair<std::string, std::string>, std::vector<char>&>& var: intVar){
-        var.second.clear();
-    }
-
     alreadySeenNANO.clear();
     alreadySeenMINI.clear();
 
@@ -463,7 +468,7 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
     edm::Handle<std::vector<reco::VertexCompositePtrCandidate>> secVtx;
 
     //Set necessary parameter
-    float CSVBValue = 0, DeepBValue = 0, smearFac = 1., corrFac = 1., hScore = 0, topScore = 0, WScore = 0;
+    float CSVBValue = 0, DeepBValue = 0, smearFac = 1., corrFac = 1., hScore = 0., topScore = 0., WScore = 0., QCDScore = 0., DYScore = 0.;
     int FatIdx = -1.;
     float metPx = 0, metPy = 0;
 
@@ -484,11 +489,13 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
     metPx = isNANO ? *metPt->Get()*std::cos(*metPhi->Get()) : MET->at(0).uncorPx();
     metPy = isNANO ? *metPt->Get()*std::sin(*metPhi->Get()) : MET->at(0).uncorPy();
     
-    const char& fatJetSize = isNANO ? fatJetPt->GetSize() : fatJets->size();
-    const char& jetSize = isNANO ? jetPt->GetSize() : jets->size();
+    const short& fatJetSize = isNANO ? fatJetPt->GetSize() : fatJets->size();
+    const short& jetSize = isNANO ? jetPt->GetSize() : jets->size();
+
+    nJets = 0; nFatJets = 0; nSubJets = 0; nVtx = 0; nPFcands = 0;
         
     //Loop over all fat jets
-    for(int i = 0; i < fatJetSize; i++){
+    for(int i = 0; i < fatJetSize; ++i){
         //JER smearing
         smearFac = 1., corrFac = 1.;
 
@@ -517,6 +524,8 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                 hScore = fatJets->at(i).bDiscriminator("pfDeepBoostedJetTags:probHbb");
                 topScore = 0.;
                 WScore = 0.;
+                DYScore = 0.;   
+                QCDScore = 0.;
 
                 for(const std::string& name : {"pfDeepBoostedJetTags:probTbcq", "pfDeepBoostedJetTags:probTbqq", "pfDeepBoostedJetTags:probTbc", "pfDeepBoostedJetTags:probTbq"}){
                     topScore += fatJets->at(i).bDiscriminator(name);
@@ -526,99 +535,120 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                     WScore += fatJets->at(i).bDiscriminator(name);
                 }
 
-                topVsHiggs[AK8].push_back(hScore/(hScore + topScore));
-                WVsHiggs[AK8].push_back(hScore/(hScore + WScore));
-                QCDVsHiggs[AK8].push_back(fatJets->at(i).bDiscriminator("pfDeepBoostedDiscriminatorsJetTags:HbbvsQCD"));
+                for(const std::string& name : {"pfDeepBoostedJetTags:probQCDbb", "pfDeepBoostedJetTags:probQCDcc", "pfDeepBoostedJetTags:probQCDb", "pfDeepBoostedJetTags:probQCDc", "pfDeepBoostedJetTags:probQCDothers"}){
+                    QCDScore += fatJets->at(i).bDiscriminator(name);
+                }
+
+                for(const std::string& name : {"pfDeepBoostedJetTags:probZbb", "pfDeepBoostedJetTags:probZcc", "pfDeepBoostedJetTags:probZqq"}){
+                    DYScore += fatJets->at(i).bDiscriminator(name);
+                }
+
+                DeepAK8Top[AK8][nFatJets] = topScore;
+                DeepAK8DY[AK8][nFatJets] = DYScore;
+                DeepAK8W[AK8][nFatJets] = WScore;
+                DeepAK8QCD[AK8][nFatJets] = QCDScore;
+                DeepAK8Higgs[AK8][nFatJets] = hScore;
             }
     
             //Fatjet four momentum components
-            Pt[AK8].push_back(smearFac*corrFac*fatPt);
-            Eta[AK8].push_back(fatEta);  
-            Phi[AK8].push_back(fatPhi);  
-            Mass[AK8].push_back(smearFac*corrFac*fatMass);
-            corrJEC[AK8].push_back(corrFac);
-            if(!isData) corrJER[AK8].push_back(smearFac);
+            Pt[AK8][nFatJets] = smearFac*corrFac*fatPt;
+            Eta[AK8][nFatJets] = fatEta;  
+            Phi[AK8][nFatJets] = fatPhi;  
+            Mass[AK8][nFatJets] = smearFac*corrFac*fatMass;
+            corrJEC[AK8][nFatJets] = corrFac;
+            if(!isData) corrJER[AK8][nFatJets] = smearFac;
 
             //Nsubjettiness
-            Njettiness1[AK8].push_back(isNANO ? fatJetTau1->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau1"));
-            Njettiness2[AK8].push_back(isNANO ? fatJetTau2->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau2"));
-            Njettiness3[AK8].push_back(isNANO ? fatJetTau3->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau3"));
+            Njettiness1[AK8][nFatJets] = isNANO ? fatJetTau1->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau1");
+            Njettiness2[AK8][nFatJets] = isNANO ? fatJetTau2->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau2");
+            Njettiness3[AK8][nFatJets] = isNANO ? fatJetTau3->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau3");
 
             if(!isData){
-                if(isNANO) SetGenParticles(i, Pt[AK8].back(), Eta[AK8].back(), Phi[AK8].back(), {24, 25, 23, 6}, AK8);
+                if(isNANO) SetGenParticles(nFatJets, i, Pt[AK8][nFatJets], Eta[AK8][nFatJets], Phi[AK8][nFatJets], {24, 25, 23, 6}, AK8);
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    SetGenParticles(i, Pt[AK8].back(), Eta[AK8].back(), Phi[AK8].back(), {24, 25, 23, 6}, AK8, *genParts);
+                    SetGenParticles(nFatJets, i, Pt[AK8][nFatJets], Eta[AK8][nFatJets], Phi[AK8][nFatJets], {24, 25, 23, 6}, AK8, *genParts);
                 }
             }
 
             //Fill in particle flow candidates
             if(!isNANO){
                 for(unsigned int j = 0; j < fatJets->at(i).numberOfDaughters(); j++){
+                    if(nPFcands == 300) break;
                     const reco::Candidate* cand = fatJets->at(i).daughter(j);
                     
                     if(cand->numberOfDaughters() == 0){
                         //Jet particle four momentum components
-                        Pt[PF].push_back(cand->pt());
-                        Eta[PF].push_back(cand->eta());
-                        Phi[PF].push_back(cand->phi());
-                        Mass[PF].push_back(cand->mass());
+                        Pt[PF][nPFcands] = cand->pt();
+                        Eta[PF][nPFcands] = cand->eta();
+                        Phi[PF][nPFcands] = cand->phi();
+                        Mass[PF][nPFcands] = cand->mass();
 
                         //Jet particle vertex
-                        Vx[PF].push_back(cand->vx());      
-                        Vy[PF].push_back(cand->vy()); 
-                        Vz[PF].push_back(cand->vz());
-                        Charge[PF].push_back(cand->charge());
+                        Vx[PF][nPFcands] = cand->vx();      
+                        Vy[PF][nPFcands] = cand->vy(); 
+                        Vz[PF][nPFcands] = cand->vz();
+                        Charge[PF][nPFcands] = cand->charge();
             
                         //Fat Jet Index
-                        FatJetIdx[PF].push_back(Pt[AK8].size()-1);
+                        FatJetIdx[PF][nPFcands] = nFatJets;
+
+                        ++nPFcands;
                     }
-                            
+
                     else{
                         for(unsigned int k = 0; k < cand->numberOfDaughters(); k++){
+                            if(nPFcands == 300) break;
                             const reco::Candidate* cand2 = cand->daughter(k);
 
                             //Jet particle four momentum components
-                            Pt[PF].push_back(cand2->pt());
-                            Eta[PF].push_back(cand2->eta());
-                            Phi[PF].push_back(cand2->phi());
-                            Mass[PF].push_back(cand2->mass());
+                            Pt[PF][nPFcands] = cand2->pt();
+                            Eta[PF][nPFcands] = cand2->eta();
+                            Phi[PF][nPFcands] = cand2->phi();
+                            Mass[PF][nPFcands] = cand2->mass();
 
                             //Jet particle vertex
-                            Vx[PF].push_back(cand2->vx());      
-                            Vy[PF].push_back(cand2->vy()); 
-                            Vz[PF].push_back(cand2->vz());
-                            Charge[PF].push_back(cand2->charge());
+                            Vx[PF][nPFcands] = cand2->vx();      
+                            Vy[PF][nPFcands] = cand2->vy(); 
+                            Vz[PF][nPFcands] = cand2->vz();
+                            Charge[PF][nPFcands] = cand2->charge();
                 
                             //Fat Jet Index
-                            FatJetIdx[PF].push_back(Pt[AK8].size()-1);
+                            FatJetIdx[PF][nPFcands] = nFatJets;
+
+                            ++nPFcands;
                         }
                     }
                 }
-
+            
                 for(const reco::VertexCompositePtrCandidate& vtx: *secVtx){
-                    if(BaseAnalyzer::DeltaR(vtx.p4().Eta(), vtx.p4().Phi(), Eta[AK8].back(), Phi[AK8].back()) < 0.8){
+                    if(BaseAnalyzer::DeltaR(vtx.p4().Eta(), vtx.p4().Phi(), Eta[AK8][nFatJets], Phi[AK8][nFatJets]) < 0.8){
                         //SV four momentum components
-                        Pt[VTX].push_back(vtx.p4().Pt());
-                        Eta[VTX].push_back(vtx.p4().Eta());
-                        Phi[VTX].push_back(vtx.p4().Phi());
-                        Mass[VTX].push_back(vtx.p4().M());
+                        Pt[VTX][nVtx] = vtx.p4().Pt();
+                        Eta[VTX][nVtx] = vtx.p4().Eta();
+                        Phi[VTX][nVtx] = vtx.p4().Phi();
+                        Mass[VTX][nVtx] = vtx.p4().M();
 
                         //SV vertex
-                        Vx[VTX].push_back(vtx.vx());
-                        Vy[VTX].push_back(vtx.vy()); 
-                        Vz[VTX].push_back(vtx.vz());
+                        Vx[VTX][nVtx] = vtx.vx();
+                        Vy[VTX][nVtx] = vtx.vy(); 
+                        Vz[VTX][nVtx] = vtx.vz();
             
                         //Fat Jet Index
-                        FatJetIdx[VTX].push_back(Pt[AK8].size()-1);
+                        FatJetIdx[VTX][nVtx] = nFatJets;
+
+                        ++nVtx;
                     }
                 }
+   
             }
+
+            ++nFatJets;
         }
     }
 
     //Loop over all jets
-    for(int i = 0; i < jetSize; i++){
+    for(int i = 0; i < jetSize; ++i){
         //JER smearing
         smearFac = 1., corrFac = 1.;
 
@@ -647,27 +677,37 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
             FatIdx = -1.;
 
             //Check overlap with AK4 valid jets
-            for(unsigned int j = 0; j < Pt[AK8].size(); j++){
-                if(BaseAnalyzer::DeltaR(Eta[AK8][i], Phi[AK8][i], eta, phi) < 1.2){
+            for(int j = 0; j < nFatJets; ++j){
+                if(BaseAnalyzer::DeltaR(Eta[AK8][j], Phi[AK8][j], eta, phi) < 1.2){
                     FatIdx = j;
                 }
             }
 
             JetType type = FatIdx == -1 ? AK4 : SUBAK4;
+            int JetIdx;
 
-            if(type == SUBAK4) FatJetIdx[SUBAK4].push_back(FatIdx);
+            if(type == SUBAK4){
+                FatJetIdx[SUBAK4][nSubJets] = FatIdx;
+                JetIdx = nSubJets;
+                ++nSubJets;
+            }
+
+            else{
+                JetIdx = nJets;
+                ++nJets;
+            }
 
             //Jet four momentum components
-            Pt[type].push_back(smearFac*corrFac*pt);
-            Eta[type].push_back(eta);
-            Phi[type].push_back(phi);
-            Mass[type].push_back(smearFac*corrFac*mass);
-            corrJEC[type].push_back(corrFac);
-            if(!isData) corrJER[type].push_back(smearFac);
+            Pt[type][JetIdx] = smearFac*corrFac*pt;
+            Eta[type][JetIdx] = eta;
+            Phi[type][JetIdx] = phi;
+            Mass[type][JetIdx] = smearFac*corrFac*mass;
+            corrJEC[type][JetIdx] = corrFac;
+            if(!isData) corrJER[type][JetIdx] = smearFac;
 
             //Correct met
-            metPx += pt*std::cos(phi) - Pt[type].back()*std::cos(Phi[type].back());
-            metPy += pt*std::sin(phi) - Pt[type].back()*std::sin(Phi[type].back());
+            metPx += pt*std::cos(phi) - Pt[type][JetIdx]*std::cos(Phi[type][JetIdx]);
+            metPy += pt*std::sin(phi) - Pt[type][JetIdx]*std::sin(Phi[type][JetIdx]);
 
             //Check for btag
             CSVBValue = 0, DeepBValue = 0;
@@ -686,105 +726,123 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                 }
             }
 
-            CSVScore[type].push_back(CSVBValue);
-            DeepScore[type].push_back(DeepBValue);
+            CSVScore[type][JetIdx] = CSVBValue;
+            DeepScore[type][JetIdx] = DeepBValue;
 
             //True Flavour of Jet
             if(!isData){
-                TrueFlavour[type].push_back(isNANO ? jetFlavour->At(i) : jets->at(i).partonFlavour());
+                TrueFlavour[type][JetIdx] = isNANO ? jetFlavour->At(i) : jets->at(i).partonFlavour();
 
                 if(abs(isNANO ? jetFlavour->At(i) : jets->at(i).partonFlavour()) == 5){
                     bTotal->Fill(pt, eta);
                 
-                    if(DeepBValue > DeepLoose[era]) bTagEffLoose[0]->Fill(pt, eta);
-                    if(DeepBValue > DeepMedium[era]) bTagEffMedium[0]->Fill(pt, eta);
-                    if(DeepBValue > DeepTight[era]) bTagEffTight[0]->Fill(pt, eta);
-                    if(CSVBValue > CSVLoose[era]) bTagEffLoose[1]->Fill(pt, eta);
-                    if(CSVBValue > CSVMedium[era]) bTagEffMedium[1]->Fill(pt, eta);
-                    if(CSVBValue > CSVTight[era]) bTagEffTight[1]->Fill(pt, eta);
+                    if(DeepBValue > DeepLoose[era]) bTagEffBLoose[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepMedium[era]) bTagEffBMedium[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepTight[era]) bTagEffBTight[0]->Fill(pt, eta);
+                    if(CSVBValue > CSVLoose[era]) bTagEffBLoose[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVMedium[era]) bTagEffBMedium[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVTight[era]) bTagEffBTight[1]->Fill(pt, eta);
+                }
+
+                else if(abs(isNANO ? jetFlavour->At(i) : jets->at(i).partonFlavour()) == 4){
+                    cTotal->Fill(pt, eta);
+                    
+                    if(DeepBValue > DeepLoose[era]) bTagEffCLoose[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepMedium[era]) bTagEffCMedium[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepTight[era]) bTagEffCTight[0]->Fill(pt, eta);
+                    if(CSVBValue > CSVLoose[era]) bTagEffCLoose[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVMedium[era]) bTagEffCMedium[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVTight[era]) bTagEffCTight[1]->Fill(pt, eta);
+                }
+
+                else{
+                    lightTotal->Fill(pt, eta);
+                    
+                    if(DeepBValue > DeepLoose[era]) bTagEffLightLoose[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepMedium[era]) bTagEffLightMedium[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepTight[era]) bTagEffLightTight[0]->Fill(pt, eta);
+                    if(CSVBValue > CSVLoose[era]) bTagEffLightLoose[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVMedium[era]) bTagEffLightMedium[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVTight[era]) bTagEffLightTight[1]->Fill(pt, eta);
                 }
             }
     
             if(!isData){
                 //btag SF
-                looseCSVbTagSF[type].push_back(CSVReader.Get(Pt[type].back(), 0));
-                mediumCSVbTagSF[type].push_back(CSVReader.Get(Pt[type].back(), 1));
-                tightCSVbTagSF[type].push_back(CSVReader.Get(Pt[type].back(), 2));
+                looseCSVbTagSF[type][JetIdx] = CSVReader.Get(Pt[type][JetIdx], 0);
+                mediumCSVbTagSF[type][JetIdx] = CSVReader.Get(Pt[type][JetIdx], 1);
+                tightCSVbTagSF[type][JetIdx] = CSVReader.Get(Pt[type][JetIdx], 2);
 
-                looseDeepbTagSF[type].push_back(DeepReader.Get(Pt[type].back(), 0));
-                mediumDeepbTagSF[type].push_back(DeepReader.Get(Pt[type].back(), 1));
-                tightDeepbTagSF[type].push_back(DeepReader.Get(Pt[type].back(), 2));
+                looseDeepbTagSF[type][JetIdx] = DeepReader.Get(Pt[type][JetIdx], 0);
+                mediumDeepbTagSF[type][JetIdx] = DeepReader.Get(Pt[type][JetIdx], 1);
+                tightDeepbTagSF[type][JetIdx] = DeepReader.Get(Pt[type][JetIdx], 2);
 
                 if(!isSyst){
-                    looseCSVbTagSFUp[type].push_back(CSVReader.GetUp(Pt[type].back(), 0));
-                    looseCSVbTagSFDown[type].push_back(CSVReader.GetDown(Pt[type].back(), 0));
-                    mediumCSVbTagSFUp[type].push_back(CSVReader.GetUp(Pt[type].back(), 1));
-                    mediumCSVbTagSFDown[type].push_back(CSVReader.GetDown(Pt[type].back(), 1));
-                    tightCSVbTagSFUp[type].push_back(CSVReader.GetUp(Pt[type].back(), 2));
-                    tightCSVbTagSFDown[type].push_back(CSVReader.GetDown(Pt[type].back(), 2));
+                    looseCSVbTagSFUp[type][JetIdx] = CSVReader.GetUp(Pt[type][JetIdx], 0);
+                    looseCSVbTagSFDown[type][JetIdx] = CSVReader.GetDown(Pt[type][JetIdx], 0);
+                    mediumCSVbTagSFUp[type][JetIdx] = CSVReader.GetUp(Pt[type][JetIdx], 1);
+                    mediumCSVbTagSFDown[type][JetIdx] = CSVReader.GetDown(Pt[type][JetIdx], 1);
+                    tightCSVbTagSFUp[type][JetIdx] = CSVReader.GetUp(Pt[type][JetIdx], 2);
+                    tightCSVbTagSFDown[type][JetIdx] = CSVReader.GetDown(Pt[type][JetIdx], 2);
 
-                    looseDeepbTagSFUp[type].push_back(DeepReader.GetUp(Pt[type].back(), 0));
-                    looseDeepbTagSFDown[type].push_back(DeepReader.GetDown(Pt[type].back(), 0));
-                    mediumDeepbTagSFUp[type].push_back(DeepReader.GetUp(Pt[type].back(), 1));
-                    mediumDeepbTagSFDown[type].push_back(DeepReader.GetDown(Pt[type].back(), 1));
-                    tightDeepbTagSFUp[type].push_back(DeepReader.GetUp(Pt[type].back(), 2));
-                    tightDeepbTagSFDown[type].push_back(DeepReader.GetDown(Pt[type].back(), 2));
+                    looseDeepbTagSFUp[type][JetIdx] = DeepReader.GetUp(Pt[type][JetIdx], 0);
+                    looseDeepbTagSFDown[type][JetIdx] = DeepReader.GetDown(Pt[type][JetIdx], 0);
+                    mediumDeepbTagSFUp[type][JetIdx] = DeepReader.GetUp(Pt[type][JetIdx], 1);
+                    mediumDeepbTagSFDown[type][JetIdx] = DeepReader.GetDown(Pt[type][JetIdx], 1);
+                    tightDeepbTagSFUp[type][JetIdx] = DeepReader.GetUp(Pt[type][JetIdx], 2);
+                    tightDeepbTagSFDown[type][JetIdx] = DeepReader.GetDown(Pt[type][JetIdx], 2);
                 }
 
-                if(isNANO) SetGenParticles(i, Pt[type].back(), Eta[type].back(), Phi[type].back(), {5}, AK4);
+                if(isNANO) SetGenParticles(JetIdx, i, Pt[type][JetIdx], Eta[type][JetIdx], Phi[type][JetIdx], {5}, AK4);
                 else{
                     event->getByToken(genParticleToken, genParts);
-                    SetGenParticles(i, Pt[type].back(), Eta[type].back(), Phi[type].back(), {5}, AK4, *genParts);
+                    SetGenParticles(JetIdx, i, Pt[type][JetIdx], Eta[type][JetIdx], Phi[type][JetIdx], {5}, AK4, *genParts);
                 }
             }
         } 
     }
 
-    nJets = Pt[AK4].size(); nSubJets = Pt[SUBAK4].size(); nFatJets = Pt[AK8].size();
     metPT = std::sqrt(std::pow(metPx, 2) + std::pow(metPy, 2));
     metPHI = std::atan2(metPy, metPx);
 
     //Resort because of change PT order due to JEC
-    std::map<std::string, JetType> jetNames = {{"Jet", AK4}, {"SubJet", SUBAK4}, {"FatJet", AK8}};
+    std::vector<std::tuple<std::string, JetType, short>> jetInfo = {{"Jet", AK4, nJets}, {"SubJet", SUBAK4, nSubJets}, {"FatJet", AK8, nFatJets}};
 
-    for(std::pair<const std::string, JetType>& jet : jetNames){
-        std::vector<int> idx(Pt[jet.second].size());
+    for(std::tuple<std::string, JetType, short>& jet : jetInfo){
+        std::vector<int> idx(std::get<2>(jet));
         std::iota(idx.begin(), idx.end(), 0);
 
-        std::stable_sort(idx.begin(), idx.end(), [&](int i1, int i2) {return Pt[jet.second][i1] > Pt[jet.second][i2];});
+        std::stable_sort(idx.begin(), idx.end(), [&](const int& i1, const int& i2) {return Pt.at(std::get<1>(jet))[i1] > Pt.at(std::get<1>(jet))[i2];});
 
-        for(std::pair<const std::pair<std::string, std::string>, std::vector<float>&>& var: floatVar){
-            if(var.second.size() == 0) continue;
+        for(std::pair<const std::pair<std::string, std::string>, float*>& var: floatVar){
+            if(std::get<0>(jet) == var.first.first and std::get<2>(jet) != 0){
+                float tmp[300];
 
-            if(jet.first == var.first.first){
-                std::vector<float> tmp(var.second.size());
-
-                for(unsigned int l = 0; l < idx.size(); l++){
-                    tmp[l] = var.second.at(idx[l]);
+                for(unsigned int l = 0; l < idx.size(); ++l){
+                    tmp[l] = var.second[idx[l]];
                 }
 
                 var.second = std::move(tmp);
             }
         }
 
-        for(std::pair<const std::pair<std::string, std::string>, std::vector<char>&>& var: intVar){
-            if(var.second.size() == 0) continue;
+        for(std::pair<const std::pair<std::string, std::string>, short*>& var: intVar){
+            if(std::get<0>(jet) == var.first.first and std::get<2>(jet) != 0){
+                short tmp[300];
 
-            if(jet.first == var.first.first){
-                std::vector<char> tmp(var.second.size());
-
-                for(unsigned int l = 0; l < idx.size(); l++){
-                    tmp[l] = var.second.at(idx[l]);
+                for(unsigned int l = 0; l < idx.size(); ++l){
+                    tmp[l] = var.second[idx[l]];
                 }
 
                 var.second = std::move(tmp);
             }
         }
+
     }
 
     for(CutFlow& cutflow: cutflows){
         //Check if one combination of jet and fatjet number is fullfilled
-        if(Pt[AK4].size() >= cutflow.nMinJet and Pt[AK8].size() >= cutflow.nMinFatjet){
+        if(nJets >= cutflow.nMinJet and nFatJets >= cutflow.nMinFatjet){
             if(cutflow.passed and (cutflow.nMinJet!=0 or cutflow.nMinFatjet!=0)){
                 std::string cutName("N^{AK4}_{jet} >= " + std::to_string(cutflow.nMinJet) + " && N^{AK8}_{jet} >= " + std::to_string(cutflow.nMinFatjet));
 
@@ -806,13 +864,15 @@ void JetAnalyzer::EndJob(TFile* file){
 
     if(!isData){
         for(int i = 0; i < 2; i++){
-            for(const std::vector<TH2F*> eff : {bTagEffLoose, bTagEffMedium, bTagEffTight}){
+            for(const std::vector<TH2F*> eff : {bTagEffBLoose, bTagEffBMedium, bTagEffBTight, bTagEffCLoose, bTagEffCMedium, bTagEffCTight, bTagEffLightLoose, bTagEffLightMedium, bTagEffLightTight}){
                 eff[i]->Write();
                 delete eff[i];
             }
         }
 
         bTotal->Write();
+        cTotal->Write();
+        lightTotal->Write();
         delete bTotal;
     }
 }

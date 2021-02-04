@@ -23,7 +23,8 @@ class WeightAnalyzer : public BaseAnalyzer {
     
         //Values for branch
         float genWeight = 1., eventNumber = 1., nTrueInt = 1.;
-        std::vector<float> prefireWeights, pdfWeights, scaleWeights;
+        float pdfWeights[102], scaleWeights[8];
+        std::vector<float> prefireWeights;
 
         //Token for MINIAOD
         puToken pileupToken;

@@ -38,8 +38,10 @@ class JetAnalyzer: public BaseAnalyzer{
         //Classes for reading btag SF
         BTagCSVReader CSVReader, DeepReader;
 
-        std::vector<TH2F*> bTagEffLoose, bTagEffMedium, bTagEffTight;
+        std::vector<TH2F*> bTagEffBLoose, bTagEffBMedium, bTagEffBTight, bTagEffCLoose, bTagEffCMedium, bTagEffCTight, bTagEffLightLoose, bTagEffLightMedium, bTagEffLightTight;
         TH2F* bTotal;
+        TH2F* cTotal; 
+        TH2F* lightTotal;
 
         //Cut values for btag disc.
         std::map<int, float> CSVLoose, CSVMedium, CSVTight;
@@ -85,14 +87,14 @@ class JetAnalyzer: public BaseAnalyzer{
         int runNumber;
 
         //Vector with output varirables of the output tree
-        std::map<std::pair<std::string, std::string>, std::vector<float>&> floatVar;
-        std::map<std::pair<std::string, std::string>, std::vector<char>&> intVar;
+        std::map<std::pair<std::string, std::string>, float*> floatVar;
+        std::map<std::pair<std::string, std::string>, short*> intVar;
 
-        std::map<JetType, std::vector<float>> Pt, Eta, Phi, Mass, Vx, Vy, Vz, topVsHiggs, QCDVsHiggs, WVsHiggs, Njettiness1, Njettiness2, Njettiness3, looseCSVbTagSF, looseCSVbTagSFUp, looseCSVbTagSFDown, mediumCSVbTagSF, mediumCSVbTagSFUp, mediumCSVbTagSFDown, tightCSVbTagSF, tightCSVbTagSFUp, tightCSVbTagSFDown, looseDeepbTagSF, looseDeepbTagSFUp, looseDeepbTagSFDown, mediumDeepbTagSF, mediumDeepbTagSFUp, mediumDeepbTagSFDown, tightDeepbTagSF, tightDeepbTagSFUp, tightDeepbTagSFDown, DeepScore, CSVScore, corrJEC, corrJER;
+        std::map<JetType, float[300]> Pt, Eta, Phi, Mass, Vx, Vy, Vz, DeepAK8Higgs, DeepAK8Top, DeepAK8W, DeepAK8DY, DeepAK8QCD, Njettiness1, Njettiness2, Njettiness3, looseCSVbTagSF, looseCSVbTagSFUp, looseCSVbTagSFDown, mediumCSVbTagSF, mediumCSVbTagSFUp, mediumCSVbTagSFDown, tightCSVbTagSF, tightCSVbTagSFUp, tightCSVbTagSFDown, looseDeepbTagSF, looseDeepbTagSFUp, looseDeepbTagSFDown, mediumDeepbTagSF, mediumDeepbTagSFUp, mediumDeepbTagSFDown, tightDeepbTagSF, tightDeepbTagSFUp, tightDeepbTagSFDown, DeepScore, CSVScore, corrJEC, corrJER;
 
-        std::map<JetType, std::vector<char>> TrueFlavour, Charge, FatJetIdx, partID, mothID, grandID;
+        std::map<JetType, short[300]> TrueFlavour, Charge, FatJetIdx, partID, mothID, grandID;
 
-        char nJets, nSubJets, nFatJets;
+        short nJets, nSubJets, nFatJets, nVtx, nPFcands;
 
         //Get jet energy correction
         std::map<JetType, FactorizedJetCorrector*> jetCorrector;
@@ -107,7 +109,7 @@ class JetAnalyzer: public BaseAnalyzer{
         std::vector<int> alreadySeenNANO;
         std::vector<const reco::Candidate*> alreadySeenMINI;
 
-        void SetGenParticles(const int& i, const float& pt, const float& eta, const float& phi, const std::vector<int>& pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle = {});
+        void SetGenParticles(const int& currentSize, const int& i, const float& pt, const float& eta, const float& phi, const std::vector<int>& pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle = {});
 
     public:
         JetAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader& reader);

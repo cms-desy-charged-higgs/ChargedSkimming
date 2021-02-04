@@ -14,11 +14,13 @@ class GenPartAnalyzer: public BaseAnalyzer{
         std::vector<int> particleIDs;
 
         //Set output names
-        std::map<std::string, std::vector<float>&> floatVar;
-        std::map<std::string, std::vector<char>&> intVar;
+        std::map<std::string, float*> floatVar;
+        std::map<std::string, short*> intVar;
 
-        std::vector<float> Pt, Eta, Phi, Mass;
-        std::vector<char> partID, mothID;
+        float Pt[100], Eta[100], Phi[100], Mass[100];
+        short partID[100], mothID[100];
+
+        short nGenPart;
 
     public:
         GenPartAnalyzer(genPartToken& genParticleToken, const std::vector<std::string>& particleNames);

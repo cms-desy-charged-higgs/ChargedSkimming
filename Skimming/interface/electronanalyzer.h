@@ -30,14 +30,14 @@ class ElectronAnalyzer: public BaseAnalyzer {
         std::string energyCorrection;
 
         //Vector with output varirables of the output tree
-        std::map<std::string, std::vector<float>&> floatVar;
-        std::map<std::string, std::vector<char>&> intVar;
+        std::map<std::string, float*> floatVar;
+        std::map<std::string, short*> intVar;
 
-        std::vector<float> Pt, Eta, Phi, recoSF, recoSFUp, recoSFDown, looseSF, looseSFUp, looseSFDown, mediumSF, mediumSFUp, mediumSFDown, tightSF, tightSFUp, tightSFDown, Isolation;
+        float Pt[20], Eta[20], Phi[20], recoSF[20], recoSFUp[20], recoSFDown[20], looseSF[20], looseSFUp[20], looseSFDown[20], mediumSF[20], mediumSFUp[20], mediumSFDown[20], tightSF[20], tightSFUp[20], tightSFDown[20], Isolation[20];
 
-        std::vector<char> ID, Charge, partID, mothID, grandID;
+        short ID[20], Charge[20], partID[20], mothID[20], grandID[20];
 
-        char nElectrons;
+        short nElectrons;
 
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> elePt, eleEta, elePhi, eleIso;

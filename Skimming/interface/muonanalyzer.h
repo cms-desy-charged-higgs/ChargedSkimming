@@ -11,6 +11,7 @@ class MuonAnalyzer: public BaseAnalyzer{
     private:
         //Check if data
         bool isData;
+        bool isSig = false;
 
         //Hist with scale factors
         TH2F* triggerSFhist;
@@ -21,14 +22,14 @@ class MuonAnalyzer: public BaseAnalyzer{
         float ptCut, etaCut;
 
         //Vector with output varirables of the output tree
-        std::map<std::string, std::vector<float>&> floatVar;
-        std::map<std::string, std::vector<char>&> intVar;
+        std::map<std::string, float*> floatVar;
+        std::map<std::string, short*> intVar;
 
-        std::vector<float> Pt, Eta, Phi, Isolation, triggerSF, triggerSFUp, triggerSFDown, looseSF, looseSFUp, looseSFDown, mediumSF, mediumSFUp, mediumSFDown, tightSF, tightSFUp, tightSFDown, looseIsoLooseSF, looseIsoLooseSFDown, looseIsoLooseSFUp, looseIsoMediumSF, looseIsoMediumSFDown, looseIsoMediumSFUp, looseIsoTightSF, looseIsoTightSFDown, looseIsoTightSFUp, tightIsoMediumSF, tightIsoMediumSFDown, tightIsoMediumSFUp, tightIsoTightSF, tightIsoTightSFDown, tightIsoTightSFUp;
+        float Pt[20], Eta[20], Phi[20], Isolation[20], triggerSF[20], triggerSFUp[20], triggerSFDown[20], looseSF[20], looseSFUp[20], looseSFDown[20], mediumSF[20], mediumSFUp[20], mediumSFDown[20], tightSF[20], tightSFUp[20], tightSFDown[20], looseIsoLooseSF[20], looseIsoLooseSFDown[20], looseIsoLooseSFUp[20], looseIsoMediumSF[20], looseIsoMediumSFDown[20], looseIsoMediumSFUp[20], looseIsoTightSF[20], looseIsoTightSFDown[20], looseIsoTightSFUp[20], tightIsoMediumSF[20], tightIsoMediumSFDown[20], tightIsoMediumSFUp[20], tightIsoTightSF[20], tightIsoTightSFDown[20], tightIsoTightSFUp[20];
 
-        std::vector<char> ID, isoID, Charge, partID, mothID, grandID;
+        short ID[20], isoID[20], Charge[20], partID[20], mothID[20], grandID[20];
 
-        char nMuons;
+        short nMuons;
 
         //EDM Token for MINIAOD analysis
         muToken muonToken;

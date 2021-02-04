@@ -79,7 +79,7 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const 
     };
 
     if(!isSyst){
-        std::map<std::string, std::vector<float>&> SFvariations = {
+        std::map<std::string, float*> SFvariations = {
             {"recoSFUp", recoSFUp},
             {"recoSFDown", recoSFDown},
             {"looseSFUp", looseSFUp},
@@ -95,28 +95,19 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const 
 
     //Set Branches of output tree
     for(TTree* tree: trees){
-        tree->Branch("Electron_Size", &nElectrons);
+        tree->Branch("Electron_Size", &nElectrons, "Electron_Size/S");
 
-        for(std::pair<const std::string, std::vector<float>&>& var: floatVar){
-            tree->Branch(("Electron_" + var.first).c_str(), &var.second);
+        for(std::pair<const std::string, float*>& var: floatVar){
+            tree->Branch(("Electron_" + var.first).c_str(), var.second, ("Electron_" + var.first + "[Electron_Size]/F").c_str());
         }
 
-        for(std::pair<const std::string, std::vector<char>&>& var: intVar){
-            tree->Branch(("Electron_" + var.first).c_str(), &var.second);
+        for(std::pair<const std::string, short*>& var: intVar){
+            tree->Branch(("Electron_" + var.first).c_str(), var.second, ("Electron_" + var.first + "[Electron_Size]/S").c_str());
         }
     }
 }
 
 void ElectronAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event){
-    //Clear variables vector
-    for(std::pair<const std::string, std::vector<float>&>& var: floatVar){
-        var.second.clear();
-    }
-
-    for(std::pair<const std::string, std::vector<char>&>& var: intVar){
-        var.second.clear();
-    }
-
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<pat::Electron>> electrons;
     edm::Handle<std::vector<reco::GenParticle>> genParts;
@@ -126,31 +117,32 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event*
     }
 
     const int& eleSize = isNANO ? elePt->GetSize() : electrons->size();
+    nElectrons = 0;
     
     //Loop over all electrons
-    for(int i = 0; i < eleSize; i++){
+    for(int i = 0; i < eleSize; ++i){
         const float& pt = isNANO ? elePt->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat(energyCorrection) / electrons->at(i).energy()).Pt();
         const float& eta = isNANO ? eleEta->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat(energyCorrection) / electrons->at(i).energy()).Eta();
         const float& phi = isNANO ? elePhi->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat(energyCorrection) / electrons->at(i).energy()).Phi();
 
         if(pt > ptCut && abs(eta) < etaCut){
             //Electron four momentum components
-            Pt.push_back(pt);
-            Eta.push_back(eta);
-            Phi.push_back(phi);
+            Pt[nElectrons] = pt;
+            Eta[nElectrons] =  eta;
+            Phi[nElectrons] =  phi;
 
-            Charge.push_back(isNANO ? eleCharge->At(i) : electrons->at(i).charge());  //charge
+            Charge[nElectrons] = isNANO ? eleCharge->At(i) : electrons->at(i).charge();  //charge
 
             //Isolation
             const float& iso = isNANO ? eleIso->At(i) : (electrons->at(i).pfIsolationVariables().sumChargedHadronPt + std::max(electrons->at(i).pfIsolationVariables().sumNeutralHadronEt + electrons->at(i).pfIsolationVariables().sumPhotonEt - 0.5 * electrons->at(i).pfIsolationVariables().sumPUPt, 0.0)) / electrons->at(i).pt();
    
-            Isolation.push_back(iso);
+            Isolation[nElectrons] =  iso;
 
             //Electron ID
-            if(isNANO ? eleID->At(i) == 4 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-tight")) ID.push_back(3);
-            else if(isNANO ? eleID->At(i) == 3 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-medium")) ID.push_back(2);
-            else if(isNANO ? eleID->At(i) == 2 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-loose")) ID.push_back(1);
-            else ID.push_back(0);
+            if(isNANO ? eleID->At(i) == 4 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-tight")) ID[nElectrons] = 3;
+            else if(isNANO ? eleID->At(i) == 3 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-medium")) ID[nElectrons] = 2;
+            else if(isNANO ? eleID->At(i) == 2 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-loose")) ID[nElectrons] = 1;
+            else ID[nElectrons] = 0;
 
             if(!isData){
                //Fill scale factors
@@ -159,23 +151,23 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event*
                 const Int_t& mediumBin = mediumSFhist->FindBin(eta, pt);
                 const Int_t& tightBin = tightSFhist->FindBin(eta, pt);
 
-                recoSF.push_back(recoSFhist->GetBinContent(recoBin));
-                looseSF.push_back(looseSFhist->GetBinContent(looseBin));
-                mediumSF.push_back(mediumSFhist->GetBinContent(mediumBin));
-                tightSF.push_back(tightSFhist->GetBinContent(tightBin));
+                recoSF[nElectrons] = recoSFhist->GetBinContent(recoBin);
+                looseSF[nElectrons] = looseSFhist->GetBinContent(looseBin);
+                mediumSF[nElectrons] =  mediumSFhist->GetBinContent(mediumBin);
+                tightSF[nElectrons] = tightSFhist->GetBinContent(tightBin);
 
                 if(!isSyst){
-                    recoSFUp.push_back(recoSFhist->GetBinContent(recoBin) + recoSFhist->GetBinErrorUp(recoBin));
-                    recoSFDown.push_back(recoSFhist->GetBinContent(recoBin) - recoSFhist->GetBinErrorLow(recoBin));
+                    recoSFUp[nElectrons] = recoSFhist->GetBinContent(recoBin) + recoSFhist->GetBinErrorUp(recoBin);
+                    recoSFDown[nElectrons] = recoSFhist->GetBinContent(recoBin) - recoSFhist->GetBinErrorLow(recoBin);
 
-                    looseSFUp.push_back(looseSFhist->GetBinContent(looseBin) + looseSFhist->GetBinErrorUp(looseBin));
-                    looseSFDown.push_back(looseSFhist->GetBinContent(looseBin) - looseSFhist->GetBinErrorLow(looseBin));
+                    looseSFUp[nElectrons] = looseSFhist->GetBinContent(looseBin) + looseSFhist->GetBinErrorUp(looseBin);
+                    looseSFDown[nElectrons] = looseSFhist->GetBinContent(looseBin) - looseSFhist->GetBinErrorLow(looseBin);
 
-                    mediumSFUp.push_back(mediumSFhist->GetBinContent(mediumBin) + mediumSFhist->GetBinErrorUp(mediumBin));
-                    mediumSFDown.push_back(mediumSFhist->GetBinContent(mediumBin) - mediumSFhist->GetBinErrorLow(mediumBin));
+                    mediumSFUp[nElectrons] = mediumSFhist->GetBinContent(mediumBin) + mediumSFhist->GetBinErrorUp(mediumBin);
+                    mediumSFDown[nElectrons] = mediumSFhist->GetBinContent(mediumBin) - mediumSFhist->GetBinErrorLow(mediumBin);
 
-                    tightSFUp.push_back(tightSFhist->GetBinContent(tightBin) + tightSFhist->GetBinErrorUp(tightBin));
-                    tightSFDown.push_back(tightSFhist->GetBinContent(tightBin) - tightSFhist->GetBinErrorLow(tightBin));
+                    tightSFUp[nElectrons] = tightSFhist->GetBinContent(tightBin) + tightSFhist->GetBinErrorUp(tightBin);
+                    tightSFDown[nElectrons] = tightSFhist->GetBinContent(tightBin) - tightSFhist->GetBinErrorLow(tightBin);
                 }
 
                 //Save gen particle information
@@ -183,26 +175,26 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event*
 
                 if(isNANO){
                     IDs = SetGenParticles(pt, eta, phi, i, 13);
-                    partID.push_back(std::get<0>(IDs));
-                    mothID.push_back(std::get<1>(IDs));
-                    grandID.push_back(std::get<2>(IDs));
+                    partID[nElectrons] = std::get<0>(IDs);
+                    mothID[nElectrons] = std::get<1>(IDs);
+                    grandID[nElectrons] = std::get<2>(IDs);
                 }
     
                 else{
                     event->getByToken(genParticleToken, genParts);
                     IDs = SetGenParticles(pt, eta, phi, i, 13, *genParts);
-                    partID.push_back(std::get<0>(IDs));
-                    mothID.push_back(std::get<1>(IDs));
-                    grandID.push_back(std::get<2>(IDs));
+                    partID[nElectrons] = std::get<0>(IDs);
+                    mothID[nElectrons] = std::get<1>(IDs);
+                    grandID[nElectrons] = std::get<2>(IDs);
                 }
             }
-        } 
+
+            ++nElectrons; 
+        }
     }
 
-    nElectrons = Pt.size();
-
     for(CutFlow &cutflow: cutflows){
-        if(cutflow.nMinEle <= Pt.size()){
+        if(cutflow.nMinEle <= nElectrons){
             if(cutflow.nMinEle!=0 and cutflow.passed){
                 std::string cutName("N_{e} >= " + std::to_string(cutflow.nMinEle) + " (no iso/ID req)");
                 cutflow.hist->Fill(cutName.c_str(), cutflow.weight);

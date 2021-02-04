@@ -46,26 +46,19 @@ void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const b
     };
     //Set Branches of output tree
     for(TTree* tree: trees){
-        for(std::pair<const std::string, std::vector<float>&>& var: floatVar){
-            tree->Branch(("GenParticle_" + var.first).c_str(), &var.second);
+        tree->Branch("GenParticle_Size", &nGenPart, "GenParticle_Size/S");
+
+        for(std::pair<const std::string, float*>& var: floatVar){
+            tree->Branch(("GenParticle_" + var.first).c_str(), var.second, ("GenParticle_" + var.first + "[GenParticle_Size]/F").c_str());
         }
 
-        for(std::pair<const std::string, std::vector<char>&>& var: intVar){
-            tree->Branch(("GenParticle_" + var.first).c_str(), &var.second);
+        for(std::pair<const std::string, short*>& var: intVar){
+            tree->Branch(("GenParticle_" + var.first).c_str(), var.second, ("GenParticle_" + var.first + "[GenParticle_Size]/S").c_str());
         }
     }
 }
 
 void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
-    //Clear variables vector
-    for(std::pair<const std::string, std::vector<float>&>& var: floatVar){
-        var.second.clear();
-    }
-
-    for(std::pair<const std::string, std::vector<char>&>& var: intVar){
-        var.second.clear();
-    }
-
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<reco::GenParticle>> genParts;
 
@@ -77,6 +70,8 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
         std::vector<int> alreadySeenNANO;
         std::vector<const reco::Candidate*> alreadySeenMINI;
         int size = isNANO ? genID->GetSize() : genParts->size();
+
+        nGenPart = 0;
 
         //Fill 4 four vectors
         for(int i = 0; i < size; i++){
@@ -108,13 +103,15 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
                 eta = isNANO ? genEta->At(index) : part->eta();
                 m = isNANO ? genMass->At(index) : part->mass();
 
-                Pt.push_back(pt);
-                Eta.push_back(eta);
-                Phi.push_back(phi);
-                Mass.push_back(m);
+                Pt[nGenPart] = pt;
+                Eta[nGenPart] = eta;
+                Phi[nGenPart] = phi;
+                Mass[nGenPart] = m;
             
-                partID.push_back(ID);
-                mothID.push_back(motherID);
+                partID[nGenPart] = ID;
+                mothID[nGenPart] = motherID;
+
+                ++nGenPart;
             }
         }
     }

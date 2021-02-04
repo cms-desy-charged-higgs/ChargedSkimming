@@ -53,8 +53,8 @@ void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bo
         tree->Branch("Misc_eventNumber", &eventNumber);
 
         if(!isSyst){
-            tree->Branch("Weight_pdfVariations", &pdfWeights);
-            tree->Branch("Weight_scaleVariations", &scaleWeights);
+            tree->Branch("Weight_pdfVariations", pdfWeights, "Weight_pdfVariations[102]/F");
+            tree->Branch("Weight_scaleVariations", scaleWeights, "Weight_scaleVariations[8]/F");
             tree->Branch("Weight_prefireWeightUp", &prefireWeights[1]);
             tree->Branch("Weight_prefireWeightDown", &prefireWeights[2]);
         }
@@ -89,8 +89,8 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* e
         if(!isNANO){
             if(!isSyst){
                 //PDF uncertainties
-                scaleWeights = *scaleVariations;
-                pdfWeights = *pdfVariations;
+                std::copy(scaleVariations->begin(), scaleVariations->begin()+8, scaleWeights);
+                std::copy(pdfVariations->begin(), pdfVariations->begin()+102, pdfWeights);
 
                 //Fill prefire weight
                 for(unsigned int i = 0; i < 3; i ++){
