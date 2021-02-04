@@ -1,10 +1,13 @@
 import FWCore.ParameterSet.Config as cms
+from FWCore.PythonUtilities.LumiList import LumiList
 from FWCore.ParameterSet.VarParsing import VarParsing
 
 from Configuration.AlCa.GlobalTag import GlobalTag
-from RecoEgamma.EgammaTools.EgammaPostRecoTools import setupEgammaPostRecoSeq
+from EgammaUser.EgammaPostRecoTools.EgammaPostRecoTools import setupEgammaPostRecoSeq
 from PhysicsTools.PatAlgos.tools.jetTools import updateJetCollection
+from RecoBTag.MXNet.pfDeepBoostedJet_cff import _pfDeepBoostedJetTagsProbs, _pfDeepBoostedJetTagsMetaDiscrs
 from PhysicsTools.PatUtils.l1ECALPrefiringWeightProducer_cfi import l1ECALPrefiringWeightProducer
+from PhysicsTools.SelectorUtils.pfJetIDSelector_cfi import pfJetIDSelector
 
 import yaml
 import os
@@ -31,7 +34,7 @@ for key in xSecFile.keys():
         xSec = xSecFile[key]
 
 ##Check if file is true data file
-isData = True in [name in options.outname for name in ["Electron", "Muon", "MET", "JetHT"]]
+isData = True in [name in options.outname for name in ["Electron", "Muon", "MET", "JetHT", "EGamma"]]
 
 process = cms.Process("MiniSkimming")
 
@@ -43,16 +46,23 @@ process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 process.load('Configuration.StandardSequences.Services_cff')
 process.load("Configuration.StandardSequences.GeometryRecoDB_cff")
 process.load("Configuration.StandardSequences.MagneticField_cff")
+process.load("Geometry.CaloEventSetup.CaloTowerConstituents_cfi")
 process.load("Geometry.CaloEventSetup.CaloTopology_cfi")
 
 ##Global tag https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVAnalysisSummaryTable
 tags = {2016: "102X_mcRun2_asymptotic_v8", 2017: "102X_mc2017_realistic_v8", 2018: "102X_upgrade2018_realistic_v21"}
+dataTag = "102X_dataRun2_v13" if not "Run2018D" in options.outname else "102X_dataRun2_Prompt_v16"
 
-tag = "102X_dataRun2_v13" if isData else tags[options.era]
+tag = dataTag if isData else tags[options.era]
 process.GlobalTag = GlobalTag(process.GlobalTag, tag, '')
 
 ##Input file
-process.source = cms.Source("PoolSource", fileNames = cms.untracked.vstring(["file:{}".format(f) for f in options.filename]))
+goodLumiFile = "{}/src/ChargedSkimming/Skimming/data/goldenJSON/{}/goodLumi.txt".format(os.environ["CMSSW_BASE"], options.era)
+
+process.source = cms.Source("PoolSource", 
+                            fileNames = cms.untracked.vstring(["file:{}".format(f) for f in options.filename]),
+                            lumisToProcess = LumiList(filename = goodLumiFile).getVLuminosityBlockRange() if isData else cms.untracked.VLuminosityBlockRange()
+)
 
 """
 process.maxEvents = cms.untracked.PSet(
@@ -71,6 +81,12 @@ updateJetCollection(
     printWarning = False
 )
 
+process.goodPatJetsPFlow = cms.EDFilter("PFJetIDSelectionFunctorFilter",
+                                        filterParams = pfJetIDSelector.clone(),
+                                        src = cms.InputTag("slimmedJets"),
+                                        filter = cms.bool(True)
+)
+
 ##Deep AK8
 updateJetCollection(
     process,
@@ -79,16 +95,7 @@ updateJetCollection(
     svSource = cms.InputTag('slimmedSecondaryVertices'),
     rParam = 0.8,
     jetCorrections = ('AK8PFchs', cms.vstring([]), 'None'),
-    btagDiscriminators = [
-        "pfDeepBoostedJetTags:probHbb",
-        "pfDeepBoostedJetTags:probTbcq",
-        "pfDeepBoostedJetTags:probTbqq",
-        "pfDeepBoostedJetTags:probTbc",
-        "pfDeepBoostedJetTags:probTbq",
-        "pfDeepBoostedJetTags:probWcq",
-        "pfDeepBoostedJetTags:probWqq", 
-        "pfDeepBoostedDiscriminatorsJetTags:HbbvsQCD", 
-    ],
+    btagDiscriminators = _pfDeepBoostedJetTagsProbs + _pfDeepBoostedJetTagsMetaDiscrs,
     postfix='AK8WithDeepTags',
     printWarning = False
 )
@@ -122,7 +129,8 @@ process.skimmer = cms.EDAnalyzer("MiniSkimmer",
                                 mets = cms.InputTag("slimmedMETs"),
                                 electrons = cms.InputTag("slimmedElectrons"), 
                                 muons = cms.InputTag("slimmedMuons"),
-                                trigger = cms.InputTag("TriggerResults","","HLT"),
+                                isoTrack = cms.InputTag("isolatedTracks"), 
+                                trigger = cms.InputTag("TriggerResults", "", "HLT"),
                                 pileUp = cms.InputTag("slimmedAddPileupInfo"),
                                 genInfo = cms.InputTag("generator"),
                                 genPart = cms.InputTag("prunedGenParticles"),
@@ -139,6 +147,8 @@ process.skimmer = cms.EDAnalyzer("MiniSkimmer",
 
 ##Let it run baby
 process.p = cms.Path(
+                     process.goodPatJetsPFlow*
+
                      process.patJetCorrFactorsWithDeepB * 
                      process.updatedPatJetsWithDeepB *
                      process.selectedUpdatedPatJetsWithDeepB *
