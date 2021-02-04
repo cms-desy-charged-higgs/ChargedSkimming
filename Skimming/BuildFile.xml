@@ -20,7 +20,7 @@
 <use name="SimDataFormats/PileupSummaryInfo"/>
 <use name="SimDataFormats/GeneratorProducts"/>
 
-<flags CXXFLAGS="-Wall -std=c++17 -O2"/>
+<flags CXXFLAGS="-fPIC -w -fcompare-debug-second -g -std=c++17 -O2"/>
 
 <export>
     <lib name="1"/>
