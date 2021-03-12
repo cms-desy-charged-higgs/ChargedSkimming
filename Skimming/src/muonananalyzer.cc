@@ -119,10 +119,12 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool
         tree->Branch("Muon_Size", &nMuons, "Muon_Size/S");
 
         for(std::pair<const std::string, float*>& var: floatVar){
+            std::fill_n(var.second, 20, 1.);
             tree->Branch(("Muon_" + var.first).c_str(), var.second, ("Muon_" + var.first + "[Muon_Size]/F").c_str());
         }
 
         for(std::pair<const std::string, short*>& var: intVar){
+            std::fill_n(var.second, 20, 0);
             tree->Branch(("Muon_" + var.first).c_str(), var.second, ("Muon_" + var.first + "[Muon_Size]/S").c_str());
         }
     }

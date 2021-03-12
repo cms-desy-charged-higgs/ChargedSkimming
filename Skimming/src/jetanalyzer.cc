@@ -266,7 +266,7 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
 
     //Set configuration for bTagSF reader  
     CSVReader=BTagCSVReader(filePath + sf.get<std::string>("Jet.BTag.CSV." + std::to_string(era)));
-    DeepReader=BTagCSVReader(filePath +sf.get<std::string>("Jet.BTag.DeepJet." + std::to_string(era)));
+    DeepReader=BTagCSVReader(filePath + sf.get<std::string>("Jet.BTag.DeepJet." + std::to_string(era)));
 
     //Cut Values for b tagging
     CSVLoose = {{2016, 0.2217}, {2017, 0.1522}, {2018, 0.1241}};
@@ -398,11 +398,11 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
     if(!isSyst){
         std::map<std::pair<std::string, std::string>, float*> SFvariations = {
             {{"Jet", "looseDeepbTagSFUp"}, looseDeepbTagSFUp[AK4]},
-            {{"Jet", "looseDeepbTagSFDown"}, looseDeepbTagSFUp[AK4]},
+            {{"Jet", "looseDeepbTagSFDown"}, looseDeepbTagSFDown[AK4]},
             {{"Jet", "mediumDeepbTagSFUp"}, mediumDeepbTagSFUp[AK4]},
-            {{"Jet", "mediumDeepbTagSFDown"}, mediumDeepbTagSFUp[AK4]},
+            {{"Jet", "mediumDeepbTagSFDown"}, mediumDeepbTagSDown[AK4]},
             {{"Jet", "tightDeepbTagSFUp"}, tightDeepbTagSFUp[AK4]},
-            {{"Jet", "tightDeepbTagSFDown"}, tightDeepbTagSFUp[AK4]},
+            {{"Jet", "tightDeepbTagSFDown"}, tightDeepbTagSFDown[AK4]},
             {{"Jet", "looseCSVbTagSFUp"}, looseCSVbTagSFUp[AK4]},
             {{"Jet", "looseCSVbTagSFDown"}, looseCSVbTagSFDown[AK4]},
             {{"Jet", "mediumCSVbTagSFUp"}, mediumCSVbTagSFUp[AK4]},
@@ -410,11 +410,11 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
             {{"Jet", "tightCSVbTagSFUp"}, tightCSVbTagSFUp[AK4]},
             {{"Jet", "tightCSVbTagSFDown"}, tightCSVbTagSFDown[AK4]},
             {{"SubJet", "looseDeepbTagSFUp"}, looseDeepbTagSFUp[SUBAK4]},
-            {{"SubJet", "looseDeepbTagSFDown"}, looseDeepbTagSFUp[SUBAK4]},
+            {{"SubJet", "looseDeepbTagSFDown"}, looseDeepbTagSFDown[SUBAK4]},
             {{"SubJet", "mediumDeepbTagSFUp"}, mediumDeepbTagSFUp[SUBAK4]},
-            {{"SubJet", "mediumDeepbTagSFDown"}, mediumDeepbTagSFUp[SUBAK4]},
+            {{"SubJet", "mediumDeepbTagSFDown"}, mediumDeepbTagSFDown[SUBAK4]},
             {{"SubJet", "tightDeepbTagSFUp"}, tightDeepbTagSFUp[SUBAK4]},
-            {{"SubJet", "tightDeepbTagSFDown"}, tightDeepbTagSFUp[SUBAK4]},
+            {{"SubJet", "tightDeepbTagSFDown"}, tightDeepbTagSFDown[SUBAK4]},
             {{"SubJet", "looseCSVbTagSFUp"}, looseCSVbTagSFUp[SUBAK4]},
             {{"SubJet", "looseCSVbTagSFDown"}, looseCSVbTagSFDown[SUBAK4]},
             {{"SubJet", "mediumCSVbTagSFUp"}, mediumCSVbTagSFUp[SUBAK4]},
@@ -435,10 +435,12 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
         tree->Branch("SecondaryVertex_Size", &nVtx, "SecondaryVertex_Size/S");
 
         for(std::pair<const std::pair<std::string, std::string>, float*>& var: floatVar){
+            std::fill_n(var.second, 300, 1.);
             tree->Branch((var.first.first + "_" + var.first.second).c_str(), var.second, (var.first.first + "_" + var.first.second + "[" + var.first.first + "_Size]/F").c_str());
         }
 
         for(std::pair<const std::pair<std::string, std::string>, short*>& var: intVar){
+            std::fill_n(var.second, 300, 0);
             tree->Branch((var.first.first + "_" + var.first.second).c_str(), var.second, (var.first.first + "_" + var.first.second + "[" + var.first.first + "_Size]/S").c_str());
         }
 

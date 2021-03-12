@@ -61,6 +61,7 @@ void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const b
 void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<reco::GenParticle>> genParts;
+    nGenPart = 0;
 
     if(!isData){
         if(!isNANO){
@@ -70,8 +71,6 @@ void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
         std::vector<int> alreadySeenNANO;
         std::vector<const reco::Candidate*> alreadySeenMINI;
         int size = isNANO ? genID->GetSize() : genParts->size();
-
-        nGenPart = 0;
 
         //Fill 4 four vectors
         for(int i = 0; i < size; i++){

@@ -98,10 +98,12 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const 
         tree->Branch("Electron_Size", &nElectrons, "Electron_Size/S");
 
         for(std::pair<const std::string, float*>& var: floatVar){
+            std::fill_n(var.second, 20, 1.);
             tree->Branch(("Electron_" + var.first).c_str(), var.second, ("Electron_" + var.first + "[Electron_Size]/F").c_str());
         }
 
         for(std::pair<const std::string, short*>& var: intVar){
+            std::fill_n(var.second, 20, 0);
             tree->Branch(("Electron_" + var.first).c_str(), var.second, ("Electron_" + var.first + "[Electron_Size]/S").c_str());
         }
     }
