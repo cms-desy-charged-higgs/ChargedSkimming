@@ -3,6 +3,8 @@
 
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
 
+#include <TParameter.h>
+
 #include <SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h>
 #include <SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h>
 
@@ -17,8 +19,8 @@ class WeightAnalyzer : public BaseAnalyzer {
         int era;    
 
         //xSec information
-        float xSec;
-        float lumi;
+        float xSec, lumi, nGen = 0., nGenWeighted = 0.;
+        
         std::string pileUpFile;
     
         //Values for branch
@@ -34,7 +36,7 @@ class WeightAnalyzer : public BaseAnalyzer {
         wgtToken pdfToken;
 
         //Histograms
-        std::shared_ptr<TH1F> puMC, nGenHist, nGenWeightedHist;
+        std::shared_ptr<TH1F> puMC;
 
         //TTreeReader Values
         std::unique_ptr<TTreeReaderValue<float>> nPU, genWeightValue;

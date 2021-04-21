@@ -37,8 +37,6 @@ void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bo
         }        
 
         puMC = std::make_shared<TH1F>("puMC", "puMC", 100, 0, 100);
-        nGenHist = std::make_shared<TH1F>("nGen", "nGen", 100, 0, 2);
-        nGenWeightedHist = std::make_shared<TH1F>("nGenWeighted", "nGenWeighted", 100, -1e7, 1e7);
     }
 
     evtNumber = std::make_unique<TTreeReaderValue<ULong64_t>>(*reader, "event");
@@ -118,15 +116,15 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* e
             }
         }
 
-        nGenHist->Fill(1);
-        nGenWeightedHist->Fill(genWeight);
+        ++nGen;
+        nGenWeighted += genWeight;
         puMC->Fill(nTrueInt);
     }
 
     eventNumber = isNANO ? *evtNumber->Get() : event->id().event();
 
     for(CutFlow& cutflow: cutflows){
-        cutflow.weight = isData ? 1. : xSec*lumi;
+        cutflow.weight = 1.;
         cutflow.hist->Fill("No cuts", cutflow.weight);
     }
 }
@@ -134,8 +132,6 @@ void WeightAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* e
 void WeightAnalyzer::EndJob(TFile* file){
     if(!this->isData){
         if(!file->GetListOfKeys()->Contains("nGen")){
-            nGenHist->Write();
-            nGenWeightedHist->Write();
             puMC->Write();
 
             //Also get measured PU distributions https://twiki.cern.ch/twiki/bin/view/CMS/PileupJSONFileforData
@@ -151,12 +147,16 @@ void WeightAnalyzer::EndJob(TFile* file){
             }
         }
 
-        std::shared_ptr<TH1F> forXSec = std::make_shared<TH1F>("xSec", "xSec", 1, 0, 1);
-        forXSec->SetBinContent(1, xSec);
-        forXSec->Write();
+        TParameter<float> xSecV("xSec", xSec);
+        xSecV.Write();
 
-        std::shared_ptr<TH1F> forLumi = std::make_shared<TH1F>("Lumi", "Lumi", 1, 0, 1);
-        forLumi->SetBinContent(1, lumi);
-        forLumi->Write();
+        TParameter<float> lumiV("Lumi", lumi);
+        lumiV.Write();
+
+        TParameter<float> nGenV("nGen", nGen);
+        nGenV.Write();
+
+        TParameter<float> nGenWeightedV("nGenWeighted", nGenWeighted);
+        nGenWeightedV.Write();
     }
 }
