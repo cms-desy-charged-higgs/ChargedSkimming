@@ -1,10 +1,11 @@
 #include <ChargedSkimming/Skimming/interface/miscanalyzer.h>
 
-MiscAnalyzer::MiscAnalyzer(const int& era, const float& etaCut, isoToken& isoTrackToken):
+MiscAnalyzer::MiscAnalyzer(const int& era, const float& etaCut, isoToken& isoTrackToken, lheToken& lheTok):
     BaseAnalyzer(), 
     era(era),
     etaCut(etaCut),
-    isoTrackToken(isoTrackToken)
+    isoTrackToken(isoTrackToken),
+    lheTok(lheTok)
     {}
 
 void MiscAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
@@ -32,6 +33,7 @@ void MiscAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool
     //Set Branches of output tree
     for(TTree* tree: trees){
         tree->Branch("IsoTrack_Size", &nTracks, "IsoTrack_Size/S");
+        tree->Branch("Misc_NParton", &nParton, "Misc_NParton/S");
 
         for(std::pair<const std::string, float*>& var: floatVar){
             tree->Branch(("IsoTrack_" + var.first).c_str(), var.second, ("IsoTrack_" + var.first + "[IsoTrack_Size]/F").c_str());
@@ -43,6 +45,25 @@ void MiscAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool
     }
 }
 
+int MiscAnalyzer::GetNParton(const edm::Event* event){
+    edm::Handle<LHEEventProduct> lheEventProduct;  
+    event->getByToken(lheTok, lheEventProduct);
+    const lhef::HEPEUP& lheEvent = lheEventProduct->hepeup();
+    
+    size_t nOutgoing = 0;
+
+    for(size_t idxParticle = 0; idxParticle < lheEvent.PUP.size(); ++idxParticle){
+        int absPdgId = std::abs(lheEvent.IDUP[idxParticle]);
+        int status = lheEvent.ISTUP[idxParticle];
+        
+        if (status == 1 && ((absPdgId >= 1 && absPdgId <= 6) || absPdgId == 21)){  // quarks and gluons
+            ++nOutgoing;
+        } 
+    }
+
+    return nOutgoing;
+}
+
 void MiscAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event){
     //Get Event info is using MINIAOD
     edm::Handle<std::vector<pat::IsolatedTrack>> isoTracks;
@@ -52,7 +73,7 @@ void MiscAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* eve
     }
 
     const short& isoTrackSize = isNANO ? 0 : isoTracks->size();
-    nTracks = 0;
+    nTracks = 0, nParton = 0;
 
     //Loop over all electrons
     for(int i = 0; i < isoTrackSize; i++){
@@ -77,6 +98,11 @@ void MiscAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* eve
 
             ++nTracks;
         }
+    }
+
+    //Get Number of true partons
+    if(!isData and event){
+        nParton = GetNParton(event);
     }
 }
 
