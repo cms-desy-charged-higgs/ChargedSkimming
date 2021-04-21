@@ -36,16 +36,16 @@ std::vector<T> SplitString(const std::string& splitString, const std::string& de
 
 class BTagCSVReader{
     private:        
-        std::map<std::pair<int, int>, std::vector<std::shared_ptr<TF1>>> SF;
-        std::map<std::pair<int, int>, std::vector<std::pair<float, float>>> ptRange;
+        std::map<std::tuple<int, int, int>, std::vector<std::shared_ptr<TF1>>> SF;
+        std::map<std::tuple<int, int, int>, std::vector<std::pair<float, float>>> ptRange;
 
     public: 
         BTagCSVReader(){};
         BTagCSVReader(const std::string& fileName);
 
-        double Get(const float& pt, const int& wp);
-        double GetUp(const float& pt, const int& wp);
-        double GetDown(const float& pt, const int& wp);
+        double Get(const float& pt, const int& wp, const int& flavour);
+        double GetUp(const float& pt, const int& wp, const int& flavour);
+        double GetDown(const float& pt, const int& wp, const int& flavour);
 };
 
 #endif
