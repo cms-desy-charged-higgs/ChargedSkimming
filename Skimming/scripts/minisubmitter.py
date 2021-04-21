@@ -9,22 +9,22 @@ import numpy as np
 import yaml
 import math
 from multiprocessing import Process, Pool, cpu_count
+from termcolor import colored
 
 from CRABAPI.RawCommand import crabCommand
 from CRABClient.UserUtilities import config
-from CRABClient.ClientExceptions import TaskNotFoundException, CachefileNotFoundException
+from CRABClient.ClientExceptions import TaskNotFoundException, CachefileNotFoundException, ConfigException
 from dbs.apis.dbsClient import DbsApi
 
 def parser():
     parser = argparse.ArgumentParser(description = "Skim MINIAOD with crab", formatter_class=argparse.RawTextHelpFormatter)
     
     parser.add_argument("skim_dir", metavar='skim-dir', type=str, action="store", help="Working directory")
-    parser.add_argument("--era", action = "store", help = "Run era")
+    parser.add_argument("--eras", nargs='+', default = ["2016", "2017", "2018"], help = "Run eras")
+    parser.add_argument("--channels", nargs='+', default = ["MuonIncl", "EleIncl"], help = "Merge output together")
     parser.add_argument("--submit", action = "store_true", help = "Submit all the jobs")
     parser.add_argument("--monitor", action = "store_true", help = "Check if jobs only should be monitored")
     parser.add_argument("--get-output", action = "store_true", help = "Save list of all output files")
-    parser.add_argument("--process", action = "store", default = "all", help = "Merge output together")
-    parser.add_argument("--channels", nargs='+', default = ["MuonIncl", "EleIncl"], help = "Merge output together")
 
     return parser.parse_args()
 
@@ -46,7 +46,7 @@ def crabConfig(dataSet, setName, outDir, systematics, channels, era):
             outFiles.append("{}_{}{}.root".format(setName, systematic, shift))
 
     #Caculate number of files per job
-    url="https://cmsweb.cern.ch/dbs/prod/{}/DBSReader".format("global" if not isSignal else "phys03")
+    url="https://cmsweb.cern.ch/dbs/prod/{}/DBSReader".format("global") # if not isSignal else "phys03")
     api=DbsApi(url=url)
     files = api.listFiles(dataset = dataSet, detail = 1)
     
@@ -70,100 +70,141 @@ def crabConfig(dataSet, setName, outDir, systematics, channels, era):
     crabConf.JobType.allowUndistributedCMSSW = True
 
     crabConf.Data.inputDataset = dataSet
-    crabConf.Data.inputDBS = "global" if not isSignal else "phys03"
+    crabConf.Data.inputDBS = "global" # if not isSignal else "phys03"
     crabConf.Data.splitting = "FileBased"
     crabConf.Data.unitsPerJob = filesPerJob
-    crabConf.Data.outLFNDirBase = "/store/user/dbrunner/skim/{}".format(era)
+    crabConf.Data.outLFNDirBase = "/store/user/dbrunner/skim/{}/{}".format("_".join([str(getattr(time.localtime(), "tm_" + t)) for t in ["mday", "mon", "year"]]), era)
 
     crabConf.Site.storageSite = "T2_DE_DESY"
     crabConf.User.voGroup = "dcms"
 
     return crabConf
 
-def submit(crabJob):
-    crabCommand("submit", config=crabJob)
+def submit(era, name, config):
+    crabDir = "{}/crab_{}".format(config.General.workArea, config.General.requestName)
 
-def getFiles(jobNr, crabDir):
-    fileNames =  subprocess.check_output(["crab", "getoutput", "--xrootd", "--jobids", ",".join(jobNr), crabDir]).split("\n")[:-1]
-    print("Got {} xrood paths".format(len(jobNr)))
+    try:
+        sys.stdout = open(os.devnull, 'w')
+        crabCommand("submit", config=config)
+        sys.stdout = sys.__stdout__
 
-    return fileNames
-    
-def monitor(crabJob):
+        print("{} ({}): Succesfully submitted".format(name, era))
+
+    except ConfigException as e:
+        try:
+            crabCommand("status", dir=crabDir)
+
+        except CachefileNotFoundException as e2:
+            subprocess.check_output("command rm -rfv {}".format(crabDir), shell = True)
+            crabCommand("submit", config=config)
+
+            sys.stdout = sys.__stdout__
+
+            print("{} ({}): Succesfully submitted".format(name, era))
+            return
+      
+        if "already exists" in str(e):
+            sys.stdout = sys.__stdout__
+            print("{} ({}): Already submitted".format(name, era))
+
+def monitor(era, name, config):
+    out = "{} ({}): ".format(name, era)
+
     ##Crab dir
-    crabDir = "{}/crab_{}".format(crabJob.General.workArea, crabJob.General.requestName)
+    crabDir = "{}/crab_{}".format(config.General.workArea, config.General.requestName)
 
     ##Get status
-    crabStatus = crabCommand("status", dir=crabDir)
-    nFinished = 0
+    try:
+        sys.stdout = open(os.devnull, 'w')
+        crabStatus = crabCommand("status", dir=crabDir)
+        sys.stdout = sys.__stdout__
+
+    except:
+        sys.stdout = sys.__stdout__
+        submit(era, name, config)
+
+        return ""
+
+    nFailed, nFinished, nRunning, nIdle = 0, 0, 0, 0
     
     ##If submission failed, resubmit and leave function
     if crabStatus["status"] == "SUBMITFAILED":
-        os.system("command rm -r {}".format(crabDir))
+        os.system("command rm -rf {}".format(crabDir))
+        submit(era, name, config)
 
-        Process(target=crabCommand, args=("submit", crabJob))
+        return ""
 
-        return False
-
-    for status in crabStatus["jobsPerStatus"].keys():
+    for idx, job in crabStatus["jobs"].items():
         ##If one jobs failed, resubmit and leave loop
-        if status == "failed" and (crabStatus["dbStatus"] == "SUBMITTED" or crabStatus["dbStatus"] == "RESUBMITFAILED"):
-            if crabStatus["jobsPerStatus"][status] != 0:
-                ##Check if you have to increase memory/run time
-                exitCode = [crabStatus["jobs"][key]["Error"][0] for key in crabStatus["jobs"] if "Error" in crabStatus["jobs"][key]]
+        if job["State"] == "failed":
+            nFailed += 1
 
-                runTime = "1440" if not 50664 in exitCode else "1500"
-                memory = "2500" if not 50660 in exitCode else "3000"
+        elif job["State"] == "running":
+            nRunning += 1
 
-                crabCommand("resubmit", dir=crabDir, maxmemory=memory, maxjobruntime=runTime)
-                break 
+        elif job["State"] == "finished":
+            nFinished += 1
 
-    if "finished" in crabStatus["jobsPerStatus"]:
-        jobNrs = [nr for nr in crabStatus["jobs"].keys() if crabStatus["jobs"][nr]["State"] == "finished"]
+        else:
+            nIdle += 1
 
-        ##Skip if output already retrieved
-        if(len(crabStatus["jobs"].keys()) == len(jobNrs)):
-            return True
+    out += "{}/{}/{}/{}".format(nIdle, colored(nRunning, "blue"), colored(nFinished, "green"), colored(nFailed, "red"))
 
-    time.sleep(10)
+    if nFailed != 0 and (crabStatus["dbStatus"] == "SUBMITTED" or crabStatus["dbStatus"] == "RESUBMITFAILED"):
+        try:
+            sys.stdout = open(os.devnull, 'w')
+            crabCommand("resubmit", dir=crabDir)
+            sys.stdout = sys.__stdout__
 
-    return False
+        except:
+            pass
 
-def getOutput(crabJob):
-    pool = Pool(processes=cpu_count())
+        out += " (Resubmitting...)"
 
-    files = []
-    name = crabJob.General.workArea.split("/")[-1]
+    if nFinished == len(crabStatus["jobs"]):
+        out += " (Finished)"
 
-    print("Get xrootd paths: {}".format(name))
+    return out
+
+def getOutput(era, name, config):
+    out = "{} ({}): ".format(name, era)
         
-    crabDir = "{}/crab_{}".format(crabJob.General.workArea, crabJob.General.requestName)
+    crabDir = "{}/crab_{}".format(config.General.workArea, config.General.requestName)
 
     sys.stdout = open(os.devnull, 'w')
     crabStatus = crabCommand("status", dir=crabDir)
     sys.stdout = sys.__stdout__
 
     jobNrs = [nr for nr in crabStatus["jobs"].keys() if crabStatus["jobs"][nr]["State"] == "finished"]
-    jobNrs = [jobNrs[i:i + 30] for i in range(0, len(jobNrs), 30)]
+    jobNrs.sort()
 
-    jobs = [pool.apply_async(getFiles, (jobNr, crabDir)) for jobNr in jobNrs]
+    while True:
+        files = []
 
-    for job in jobs:
-        files.extend(job.get())
+        try:
+            for ids in np.array_split(jobNrs, np.arange(100, len(jobNrs), 100)):
+                sys.stdout = open(os.devnull, 'w')
+                files.extend(crabCommand("getoutput", dir = crabDir, dump = True, jobids= ",".join(ids))["lfn"])
+                sys.stdout = sys.__stdout__
 
-    files.sort()
-    if crabJob.Site.storageSite == "T2_DE_DESY":
-        files = [f.replace("root://cms-xrd-global.cern.ch/", "/pnfs/desy.de/cms/tier2/") for f in files]
+            break
 
-    print("Got all xrootd paths: {}".format(crabJob.General.workArea.split("/")[-1]))
-   
+        except:
+            pass
+
+    if config.Site.storageSite == "T2_DE_DESY":
+        files = ["/pnfs/desy.de/cms/tier2/" + f for f in files]
+
+    else:
+        files = ["root://cms-xrd-global.cern.ch" + f for f in files]
+
     if "Run2018D" in name:
         splittedFile = np.array_split(files, 3)
         
         files = splittedFile[0]
 
         for index, fList in enumerate(splittedFile[1:]):
-            newDir = crabJob.General.workArea.replace("Run2018D", "Run2018D{}".format(index+2))
+            newDir = config.General.workArea.replace("Run2018D", "Run2018D{}".format(index+2))
             subprocess.call(["mkdir", "-pv", newDir])
 
             with open("{}/outputFiles.txt".format(newDir), "w") as fileList:
@@ -171,90 +212,88 @@ def getOutput(crabJob):
                     fileList.write(f)
                     fileList.write("\n")
 
-    with open("{}/outputFiles.txt".format(crabJob.General.workArea), "w") as fileList:
+    with open("{}/outputFiles.txt".format(config.General.workArea), "w") as fileList:
         for f in files:
             fileList.write(f)
             fileList.write("\n")
 
+    nSyst = len(files)/len(crabStatus["jobs"].keys())
+
+    print("{} ({}): {} of {} extracted".format(name, era, len(files), len(crabStatus["jobs"].keys())*nSyst))
+ 
 def main():
     ##Parser arguments
     args = parser()
 
     ##Txt with dataset names
-    filePath = "{}/src/ChargedSkimming/Skimming/data/filelists/{}".format(os.environ["CMSSW_BASE"], args.era)
-    fileName = "/filelist_{}_MINI.yaml"
-    
-    procType = ["bkg", "sig", "data"] if args.process == "all" else [args.process]
+    processes = ["sig"]
     systematics = ["", "energyScale", "energySigma", "JECTotal", "JER"]
 
     ##Create with each dataset a crab config
-    crabJobs = {}
-   
-    for process in procType:
-        with open(filePath + fileName.format(process)) as f:
-            datasets = yaml.load(f, Loader=yaml.Loader)
+    crabConfigs = {}
 
-            for dataset in datasets:
-                if "SIM" in dataset or "HPlus" in dataset:
-                    if "ext" in dataset:
-                        name = dataset.split("/")[1] + "_ext"
-                    else: 
+    for era in args.eras:
+        crabConfigs[era] = {}
+
+        for process in processes:
+            filePath = "{}/src/ChargedSkimming/Skimming/data/filelists/{}/filelist_{}_MINI.yaml".format(os.environ["CMSSW_BASE"], era, process)
+
+            with open(filePath) as f:
+                datasets = yaml.load(f, Loader=yaml.Loader)
+
+                for dataset in datasets:
+                    if "SIM" in dataset or "HPlus" in dataset:
                         name = dataset.split("/")[1]
+
+                        nExt = len([n for n in crabConfigs[era].keys() if name in n])
+
+                        if nExt != 0:
+                            name += "_ext{}".format(nExt)
                 
-                else: 
-                    name = dataset.split("/")[1] + "_" + dataset.split("/")[2]
+                    else: 
+                        name = dataset.split("/")[1] + "_" + dataset.split("/")[2]
 
-                if args.era not in ["2016", "2017", "2018"]:
-                    raise RuntimeError("Unvalid value for era: {}".format(args.era))
-
-                crabJobs.setdefault(process, []).append(crabConfig(dataset, name, "{}/{}".format(args.skim_dir, name), systematics, args.channels, args.era))
+                    crabConfigs[era][name] = crabConfig(dataset, name, "{}/{}/{}/".format(args.skim_dir, era, name), systematics, args.channels, era)
 
     ##Submit all crab jobs
     if args.submit:
-        for proc in procType:
-            processes = [Process(target=submit, args=(config,)) for config in crabJobs[proc]]
+        print("\nStart submission of crab jobs\n")
 
-            for process in processes:
-                process.start()
-                process.join()
+        for era in args.eras:
+            jobs = [Process(target=submit, args = (era, name, config)) for name, config in crabConfigs[era].items()]
 
-    ##Get output files xrood paths and save in txt files
+            for job in jobs:
+                job.start()
+                job.join()
+
+    if args.monitor:
+        p = Pool(cpu_count())
+
+        while crabConfigs:
+            print("\nStatus of crab jobs ({})\n".format(time.asctime()))
+
+            for era in args.eras:
+                jobs = {name: p.apply_async(monitor, (era, name, config)) for name, config in crabConfigs[era].items()}
+
+                for name, job in jobs.items():
+                    out = job.get()
+                    if out != "":
+                        print(out)
+
+                    if "Finished" in out:
+                        crabConfigs[era].pop(name)
+
+                time.sleep(60)
+
+                if not crabConfigs[era]:
+                    crabConfigs.pop(era)
+
     if args.get_output:
-        for proc in procType:
-            for crabJob in crabJobs[proc]:
-                try:
-                    getOutput(crabJob)
+        p = Pool(cpu_count())
 
-                except:
-                    pass
+        for era in args.eras:
+            jobs = {name: p.apply_async(getOutput, (era, name, config)) for name, config in crabConfigs[era].items()}
+            [job.get() for job in jobs.values()]
 
-    ##Just monitor crab jobs
-    elif args.monitor:
-        while(True):
-            for proc in procType:
-                for crabJob in crabJobs[proc]:
-                    try:
-                        isFinished = monitor(crabJob)
-
-                    ##Resubmit if submission somehow failed
-                    except (TaskNotFoundException, CachefileNotFoundException) as e:
-                        isFinished = False
-                        crabJob.Site.ignoreGlobalBlacklist = True
-                    
-                        crabDir = "{}/crab_{}".format(crabJob.General.workArea, crabJob.General.requestName) 
-                        subprocess.check_output("command rm -rfv {}".format(crabDir), shell = True)
-
-                        process = Process(target=submit, args=(crabJob,))
-                        process.start()
-                        process.join()
-
-                    ##Something else
-                    except:
-                        pass
-            
-                    if isFinished:
-                        crabJobs[proc].remove(crabJob)    
-                        continue
-    
 if __name__ == "__main__":
     main()
