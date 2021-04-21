@@ -64,6 +64,7 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         secvtxToken secVertexToken;
         edm::EDGetTokenT<double> prefireToken, prefireTokenUp, prefireTokenDown;
         wgtToken pdfToken, scaleToken;
+        lheToken lheTok;
 
         //Channel
         std::vector<std::string> channels;

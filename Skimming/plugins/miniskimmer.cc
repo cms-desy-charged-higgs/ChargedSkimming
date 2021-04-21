@@ -21,6 +21,7 @@ MiniSkimmer::MiniSkimmer(const edm::ParameterSet& iConfig):
       prefireTokenDown(consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProbDown"))),
       pdfToken(consumes<std::vector<float>>(iConfig.getParameter<edm::InputTag>("pdf"))),
       scaleToken(consumes<std::vector<float>>(iConfig.getParameter<edm::InputTag>("scale"))),
+      lheTok(consumes<LHEEventProduct>(iConfig.getParameter<edm::InputTag>("lhe"))),
 
       //Other stuff
       channels(iConfig.getParameter<std::vector<std::string>>("channels")),
@@ -133,7 +134,7 @@ void MiniSkimmer::beginJob(){
                 std::make_shared<JetAnalyzer>(era, jetPt, jetEta, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken, systName),
                 std::make_shared<MuonAnalyzer>(era, muonPt, muonEta, muonToken, genParticleToken),
                 std::make_shared<ElectronAnalyzer>(era, elePt, eleEta, eleToken, genParticleToken, systName),
-                std::make_shared<MiscAnalyzer>(era, std::max({jetEta, muonEta, eleEta}), isoTrackToken),
+                std::make_shared<MiscAnalyzer>(era, std::max({jetEta, muonEta, eleEta}), isoTrackToken, lheTok),
                 std::make_shared<GenPartAnalyzer>(genParticleToken, genParts),
             };
 
