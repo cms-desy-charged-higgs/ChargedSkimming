@@ -400,7 +400,7 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
             {{"Jet", "looseDeepbTagSFUp"}, looseDeepbTagSFUp[AK4]},
             {{"Jet", "looseDeepbTagSFDown"}, looseDeepbTagSFDown[AK4]},
             {{"Jet", "mediumDeepbTagSFUp"}, mediumDeepbTagSFUp[AK4]},
-            {{"Jet", "mediumDeepbTagSFDown"}, mediumDeepbTagSDown[AK4]},
+            {{"Jet", "mediumDeepbTagSFDown"}, mediumDeepbTagSFDown[AK4]},
             {{"Jet", "tightDeepbTagSFUp"}, tightDeepbTagSFUp[AK4]},
             {{"Jet", "tightDeepbTagSFDown"}, tightDeepbTagSFDown[AK4]},
             {{"Jet", "looseCSVbTagSFUp"}, looseCSVbTagSFUp[AK4]},
@@ -734,8 +734,9 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
             //True Flavour of Jet
             if(!isData){
                 TrueFlavour[type][JetIdx] = isNANO ? jetFlavour->At(i) : jets->at(i).partonFlavour();
+                int flavour = abs(TrueFlavour[type][JetIdx]);
 
-                if(abs(isNANO ? jetFlavour->At(i) : jets->at(i).partonFlavour()) == 5){
+                if(flavour == 5){
                     bTotal->Fill(pt, eta);
                 
                     if(DeepBValue > DeepLoose[era]) bTagEffBLoose[0]->Fill(pt, eta);
@@ -746,7 +747,7 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                     if(CSVBValue > CSVTight[era]) bTagEffBTight[1]->Fill(pt, eta);
                 }
 
-                else if(abs(isNANO ? jetFlavour->At(i) : jets->at(i).partonFlavour()) == 4){
+                else if(flavour == 4){
                     cTotal->Fill(pt, eta);
                     
                     if(DeepBValue > DeepLoose[era]) bTagEffCLoose[0]->Fill(pt, eta);
@@ -767,32 +768,30 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                     if(CSVBValue > CSVMedium[era]) bTagEffLightMedium[1]->Fill(pt, eta);
                     if(CSVBValue > CSVTight[era]) bTagEffLightTight[1]->Fill(pt, eta);
                 }
-            }
-    
-            if(!isData){
+  
                 //btag SF
-                looseCSVbTagSF[type][JetIdx] = CSVReader.Get(Pt[type][JetIdx], 0);
-                mediumCSVbTagSF[type][JetIdx] = CSVReader.Get(Pt[type][JetIdx], 1);
-                tightCSVbTagSF[type][JetIdx] = CSVReader.Get(Pt[type][JetIdx], 2);
+                looseCSVbTagSF[type][JetIdx] = CSVReader.Get(Pt[type][JetIdx], 0, flavour);
+                mediumCSVbTagSF[type][JetIdx] = CSVReader.Get(Pt[type][JetIdx], 1, flavour);
+                tightCSVbTagSF[type][JetIdx] = CSVReader.Get(Pt[type][JetIdx], 2, flavour);
 
-                looseDeepbTagSF[type][JetIdx] = DeepReader.Get(Pt[type][JetIdx], 0);
-                mediumDeepbTagSF[type][JetIdx] = DeepReader.Get(Pt[type][JetIdx], 1);
-                tightDeepbTagSF[type][JetIdx] = DeepReader.Get(Pt[type][JetIdx], 2);
+                looseDeepbTagSF[type][JetIdx] = DeepReader.Get(Pt[type][JetIdx], 0, flavour);
+                mediumDeepbTagSF[type][JetIdx] = DeepReader.Get(Pt[type][JetIdx], 1, flavour);
+                tightDeepbTagSF[type][JetIdx] = DeepReader.Get(Pt[type][JetIdx], 2, flavour);
 
                 if(!isSyst){
-                    looseCSVbTagSFUp[type][JetIdx] = CSVReader.GetUp(Pt[type][JetIdx], 0);
-                    looseCSVbTagSFDown[type][JetIdx] = CSVReader.GetDown(Pt[type][JetIdx], 0);
-                    mediumCSVbTagSFUp[type][JetIdx] = CSVReader.GetUp(Pt[type][JetIdx], 1);
-                    mediumCSVbTagSFDown[type][JetIdx] = CSVReader.GetDown(Pt[type][JetIdx], 1);
-                    tightCSVbTagSFUp[type][JetIdx] = CSVReader.GetUp(Pt[type][JetIdx], 2);
-                    tightCSVbTagSFDown[type][JetIdx] = CSVReader.GetDown(Pt[type][JetIdx], 2);
+                    looseCSVbTagSFUp[type][JetIdx] = CSVReader.GetUp(Pt[type][JetIdx], 0, flavour);
+                    looseCSVbTagSFDown[type][JetIdx] = CSVReader.GetDown(Pt[type][JetIdx], 0, flavour);
+                    mediumCSVbTagSFUp[type][JetIdx] = CSVReader.GetUp(Pt[type][JetIdx], 1, flavour);
+                    mediumCSVbTagSFDown[type][JetIdx] = CSVReader.GetDown(Pt[type][JetIdx], 1, flavour);
+                    tightCSVbTagSFUp[type][JetIdx] = CSVReader.GetUp(Pt[type][JetIdx], 2, flavour);
+                    tightCSVbTagSFDown[type][JetIdx] = CSVReader.GetDown(Pt[type][JetIdx], 2, flavour);
 
-                    looseDeepbTagSFUp[type][JetIdx] = DeepReader.GetUp(Pt[type][JetIdx], 0);
-                    looseDeepbTagSFDown[type][JetIdx] = DeepReader.GetDown(Pt[type][JetIdx], 0);
-                    mediumDeepbTagSFUp[type][JetIdx] = DeepReader.GetUp(Pt[type][JetIdx], 1);
-                    mediumDeepbTagSFDown[type][JetIdx] = DeepReader.GetDown(Pt[type][JetIdx], 1);
-                    tightDeepbTagSFUp[type][JetIdx] = DeepReader.GetUp(Pt[type][JetIdx], 2);
-                    tightDeepbTagSFDown[type][JetIdx] = DeepReader.GetDown(Pt[type][JetIdx], 2);
+                    looseDeepbTagSFUp[type][JetIdx] = DeepReader.GetUp(Pt[type][JetIdx], 0, flavour);
+                    looseDeepbTagSFDown[type][JetIdx] = DeepReader.GetDown(Pt[type][JetIdx], 0, flavour);
+                    mediumDeepbTagSFUp[type][JetIdx] = DeepReader.GetUp(Pt[type][JetIdx], 1, flavour);
+                    mediumDeepbTagSFDown[type][JetIdx] = DeepReader.GetDown(Pt[type][JetIdx], 1, flavour);
+                    tightDeepbTagSFUp[type][JetIdx] = DeepReader.GetUp(Pt[type][JetIdx], 2, flavour);
+                    tightDeepbTagSFDown[type][JetIdx] = DeepReader.GetDown(Pt[type][JetIdx], 2, flavour);
                 }
 
                 if(isNANO) SetGenParticles(JetIdx, i, Pt[type][JetIdx], Eta[type][JetIdx], Phi[type][JetIdx], {5}, AK4);
