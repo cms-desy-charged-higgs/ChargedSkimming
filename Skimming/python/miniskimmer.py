@@ -64,11 +64,9 @@ process.source = cms.Source("PoolSource",
                             lumisToProcess = LumiList(filename = goodLumiFile).getVLuminosityBlockRange() if isData else cms.untracked.VLuminosityBlockRange()
 )
 
-"""
-process.maxEvents = cms.untracked.PSet(
-  input = cms.untracked.int32(1),
-)
-"""
+"""process.maxEvents = cms.untracked.PSet(
+  input = cms.untracked.int32(100),
+)"""
 
 ##Calculate deep flavour discriminator
 updateJetCollection(
@@ -138,6 +136,7 @@ process.skimmer = cms.EDAnalyzer("MiniSkimmer",
                                 svtx = cms.InputTag("slimmedSecondaryVertices"),
                                 pdf = cms.InputTag("pdfweights","pdfVariations"),
                                 scale = cms.InputTag("pdfweights", "scaleVariations"),
+                                lhe = cms.InputTag("externalLHEProducer"),
                                 channels = cms.vstring(options.channel),
                                 xSec = cms.double(xSec),
                                 era = cms.int32(options.era),
