@@ -211,8 +211,9 @@ void JetAnalyzer::SetGenParticles(const int& currentSize, const int& i, const fl
 
 void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst){
     //Read in json config with sf files
-    boost::property_tree::ptree sf; 
+    boost::property_tree::ptree sf, skim; 
     boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/sf.json", sf);
+    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/skim.json", skim);
 
     //Get for JEC files names
     JECMC = Util::GetVector<std::string>(sf, "Jet.JEC.MC." + std::to_string(era));
@@ -719,9 +720,9 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
             } 
 
             else{
-             //   for(std::string disc: {"pfDeepFlavourJetTags:probb", "pfDeepFlavourJetTags:probbb","pfDeepFlavourJetTags:problepb"}){
-                  //  DeepBValue +=  jets->at(i).bDiscriminator(disc);
-             //   }
+                for(std::string disc: {"pfDeepFlavourJetTags:probb", "pfDeepFlavourJetTags:probbb","pfDeepFlavourJetTags:problepb"}){
+                    DeepBValue +=  jets->at(i).bDiscriminator(disc);
+                }
 
                 for(std::string disc: {"pfDeepCSVJetTags:probb", "pfDeepCSVJetTags:probbb"}){
                     CSVBValue +=  jets->at(i).bDiscriminator(disc);
