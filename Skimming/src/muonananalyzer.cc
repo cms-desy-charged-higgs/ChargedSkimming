@@ -155,19 +155,10 @@ void MuonAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* eve
             Phi[nMuons] = phi;
 
             //ID
-            if(isSig){
-                if(isNANO ? muonTightID->At(i) : muons->at(i).passed(reco::Muon::MvaTight)) ID[nMuons] = 3;
-                else if(isNANO ? muonMediumID->At(i) : muons->at(i).passed(reco::Muon::MvaMedium)) ID[nMuons] = 2;
-                else if(isNANO ? muonLooseID->At(i) : muons->at(i).passed(reco::Muon::MvaLoose)) ID[nMuons] = 1;
-                else ID[nMuons] = 0;
-            }
-
-            else{
-                if(isNANO ? muonTightID->At(i) : muons->at(i).passed(reco::Muon::CutBasedIdTight)) ID[nMuons] = 3;
-                else if(isNANO ? muonMediumID->At(i) : muons->at(i).passed(reco::Muon::CutBasedIdMedium)) ID[nMuons] = 2;
-                else if(isNANO ? muonLooseID->At(i) : muons->at(i).passed(reco::Muon::CutBasedIdLoose)) ID[nMuons] = 1;
-                else ID[nMuons] = 0;
-            }
+            if(isNANO ? muonTightID->At(i) : muons->at(i).passed(reco::Muon::CutBasedIdTight)) ID[nMuons] = 3;
+            else if(isNANO ? muonMediumID->At(i) : muons->at(i).passed(reco::Muon::CutBasedIdMedium)) ID[nMuons] = 2;
+            else if(isNANO ? muonLooseID->At(i) : muons->at(i).passed(reco::Muon::CutBasedIdLoose)) ID[nMuons] = 1;
+            else ID[nMuons] = 0;
 
             //Isolation
             if(isNANO ? muonIso->At(i) < 0.15 : muons->at(i).passed(reco::Muon::PFIsoTight)) isoID[nMuons] = 3;
