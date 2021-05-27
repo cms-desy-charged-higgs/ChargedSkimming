@@ -1,36 +1,51 @@
 #include <ChargedSkimming/Skimming/interface/miniskimmer.h>
 
-MiniSkimmer::MiniSkimmer(const edm::ParameterSet& iConfig):
-      //Tokens
-      jetToken(consumes<std::vector<pat::Jet>>(iConfig.getParameter<edm::InputTag>("jets"))),
-      fatjetToken(consumes<std::vector<pat::Jet>>(iConfig.getParameter<edm::InputTag>("fatjets"))),
-      genjetToken(consumes<std::vector<reco::GenJet>>(iConfig.getParameter<edm::InputTag>("genjets"))),
-      genfatjetToken(consumes<std::vector<reco::GenJet>>(iConfig.getParameter<edm::InputTag>("genfatjets"))),
-      metToken(consumes<std::vector<pat::MET>>(iConfig.getParameter<edm::InputTag>("mets"))),
-      eleToken(consumes<std::vector<pat::Electron>>(iConfig.getParameter<edm::InputTag>("electrons"))),
-      muonToken(consumes<std::vector<pat::Muon>>(iConfig.getParameter<edm::InputTag>("muons"))),
-      isoTrackToken(consumes<std::vector<pat::IsolatedTrack>>(iConfig.getParameter<edm::InputTag>("isoTrack"))),
-      triggerToken(consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("trigger"))),
-      pileupToken(consumes<std::vector<PileupSummaryInfo>>(iConfig.getParameter<edm::InputTag>("pileUp"))),
-      geninfoToken(consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("genInfo"))),
-      genParticleToken(consumes<std::vector<reco::GenParticle>>(iConfig.getParameter<edm::InputTag>("genPart"))),
-      rhoToken(consumes<double>(iConfig.getParameter<edm::InputTag>("rho"))),
-      secVertexToken(consumes<std::vector<reco::VertexCompositePtrCandidate>>(iConfig.getParameter<edm::InputTag>("svtx"))), 
-      prefireToken(consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProb"))),
-      prefireTokenUp(consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProbUp"))),
-      prefireTokenDown(consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProbDown"))),
-      pdfToken(consumes<std::vector<float>>(iConfig.getParameter<edm::InputTag>("pdf"))),
-      scaleToken(consumes<std::vector<float>>(iConfig.getParameter<edm::InputTag>("scale"))),
-      lheTok(consumes<LHEEventProduct>(iConfig.getParameter<edm::InputTag>("lhe"))),
+MiniSkimmer::MiniSkimmer(const edm::ParameterSet& iConfig){
+    //Tokens
+    tokens = std::make_shared<Token>();
 
-      //Other stuff
-      channels(iConfig.getParameter<std::vector<std::string>>("channels")),
-      xSec(iConfig.getParameter<double>("xSec")),
-      outFile(iConfig.getParameter<std::string>("outFile")),
-      era(iConfig.getParameter<int>("era")),
-      isData(iConfig.getParameter<bool>("isData")){
+    //Jet related edm token
+    tokens->jetToken = consumes<std::vector<pat::Jet>>(iConfig.getParameter<edm::InputTag>("jets"));
+    tokens->fatJetToken = consumes<std::vector<pat::Jet>>(iConfig.getParameter<edm::InputTag>("fatjets"));
+    tokens->genJetToken = consumes<std::vector<reco::GenJet>>(iConfig.getParameter<edm::InputTag>("genjets"));
+    tokens->genFatJetToken = consumes<std::vector<reco::GenJet>>(iConfig.getParameter<edm::InputTag>("genfatjets"));
+    tokens->METToken = consumes<std::vector<pat::MET>>(iConfig.getParameter<edm::InputTag>("mets"));
+    tokens->secVertexToken = consumes<std::vector<reco::VertexCompositePtrCandidate>>(iConfig.getParameter<edm::InputTag>("svtx")); 
 
-        start = std::chrono::steady_clock::now();
+    //Electron related token
+    tokens->eleToken = consumes<std::vector<pat::Electron>>(iConfig.getParameter<edm::InputTag>("electrons"));
+
+    //Muon related token
+    tokens->muonToken = consumes<std::vector<pat::Muon>>(iConfig.getParameter<edm::InputTag>("muons"));
+
+    //Gen related token
+    tokens->genToken = consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("genInfo"));
+    tokens->genPartToken = consumes<std::vector<reco::GenParticle>>(iConfig.getParameter<edm::InputTag>("genPart"));
+    tokens->lheToken = consumes<LHEEventProduct>(iConfig.getParameter<edm::InputTag>("lhe"));
+
+    //PDF related token
+    tokens->pdfToken = consumes<std::vector<float>>(iConfig.getParameter<edm::InputTag>("pdf"));
+    tokens->scaleToken = consumes<std::vector<float>>(iConfig.getParameter<edm::InputTag>("scale"));
+
+    //Weight token
+    tokens->prefireToken = consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProb"));
+    tokens->prefireTokenUp = consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProbUp"));
+    tokens->prefireTokenDown = consumes<double>(edm::InputTag("prefiringweight:nonPrefiringProbDown"));
+    tokens->pileUpToken = consumes<std::vector<PileupSummaryInfo>>(iConfig.getParameter<edm::InputTag>("pileUp"));
+
+    //Miscellaneous
+    tokens->isoTrackToken = consumes<std::vector<pat::IsolatedTrack>>(iConfig.getParameter<edm::InputTag>("isoTrack"));
+    tokens->triggerToken = consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("trigger"));
+    tokens->rhoToken = consumes<double>(iConfig.getParameter<edm::InputTag>("rho"));
+
+    //Other stuff
+    channels = iConfig.getParameter<std::vector<std::string>>("channels");
+    xSec = iConfig.getParameter<double>("xSec");
+    outFile = iConfig.getParameter<std::string>("outFile");
+    era = iConfig.getParameter<std::string>("era");
+    isData = iConfig.getParameter<bool>("isData");
+
+    start = std::chrono::steady_clock::now();
 }
 
 MiniSkimmer::~MiniSkimmer(){
@@ -39,16 +54,13 @@ MiniSkimmer::~MiniSkimmer(){
 }
 
 void MiniSkimmer::beginJob(){
-    //Read in json config
-    boost::property_tree::ptree parser; 
-    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/skim.json", parser);
+    //Read in json configs
+    pt::ptree sf, skim; 
+    pt::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/UL/skim.json", skim);
+    pt::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/UL/sf.json", sf);
 
     //Set analyzer modules for each final state
-    std::vector<jToken> jetTokens = {jetToken, fatjetToken};
-    std::vector<genjToken> genjetTokens = {genjetToken, genfatjetToken};
-    std::vector<edm::EDGetTokenT<double>> prefireTokens = {prefireToken, prefireTokenUp, prefireTokenDown};
-
-    for(std::pair<std::string, boost::property_tree::ptree> syst : parser.get_child("Systematics")){
+    for(std::pair<std::string, boost::property_tree::ptree> syst : skim.get_child("Systematics")){
         std::string systematic = syst.first;
 
         //Dont do systematics for data
@@ -100,47 +112,34 @@ void MiniSkimmer::beginJob(){
                 cutflow.hist->SetName(("cutflow_" + channel).c_str());
                 cutflow.hist->GetYaxis()->SetName("Events");
     
-                cutflow.nMinMu = parser.get<int>("Channel." + channel + ".Selection.nMinMuon");
-                cutflow.nMinEle = parser.get<int>("Channel." + channel + ".Selection.nMinElectron");
-                cutflow.nMinJet = parser.get<int>("Channel." + channel + ".Selection.nMinJet");
-                cutflow.nMinFatjet =parser.get<int>("Channel." + channel + ".Selection.nMinFatJet");
+                cutflow.nMinMu = skim.get<int>("Channel." + channel + ".Selection.nMinMuon");
+                cutflow.nMinEle = skim.get<int>("Channel." + channel + ".Selection.nMinElectron");
+                cutflow.nMinJet = skim.get<int>("Channel." + channel + ".Selection.nMinJet");
+                cutflow.nMinFatjet = skim.get<int>("Channel." + channel + ".Selection.nMinFatJet");
                 
                 cutflow.weight = 1;    
 
                 flowPerSyst.push_back(cutflow);
             }
 
-            //Get information for analyzers
-            float jetPt = parser.get<float>("Analyzer.Jet.pt." + std::to_string(era));
-            float jetEta = parser.get<float>("Analyzer.Jet.eta." + std::to_string(era));
-            float elePt = parser.get<float>("Analyzer.Electron.pt." + std::to_string(era));
-            float eleEta = parser.get<float>("Analyzer.Electron.eta." + std::to_string(era));
-            float muonPt = parser.get<float>("Analyzer.Muon.pt." + std::to_string(era));
-            float muonEta = parser.get<float>("Analyzer.Muon.eta." + std::to_string(era));
-
-            std::map<std::string, std::vector<std::string>> triggers;
-
-            for(const std::string &channel: channels){
-                triggers[channel] = Util::GetVector<std::string>(parser, "Channel." + channel + ".Trigger." + std::to_string(era));
-            }
-
-            std::vector<std::string> genParts = Util::GetVector<std::string>(parser, "Analyzer.Gen");
+            skim.put<bool>("isData", isData);
+            skim.put<bool>("isSyst", !isNomi);
 
             //Set Analyzer
             analyzerPerSyst = {
-                std::make_shared<WeightAnalyzer>(era, xSec, pileupToken, geninfoToken, prefireTokens, pdfToken, scaleToken),
-                std::make_shared<TriggerAnalyzer>(triggers, triggerToken),
-                std::make_shared<MetFilterAnalyzer>(era, triggerToken),
-                std::make_shared<JetAnalyzer>(era, jetPt, jetEta, jetTokens, genjetTokens, metToken, rhoToken, genParticleToken, secVertexToken, systName),
-                std::make_shared<MuonAnalyzer>(era, muonPt, muonEta, muonToken, genParticleToken),
-                std::make_shared<ElectronAnalyzer>(era, elePt, eleEta, eleToken, genParticleToken, systName),
-                std::make_shared<MiscAnalyzer>(era, std::max({jetEta, muonEta, eleEta}), isoTrackToken, lheTok),
-                std::make_shared<GenPartAnalyzer>(genParticleToken, genParts),
+                std::make_shared<WeightAnalyzer>(era, xSec, tokens),
+                std::make_shared<TriggerAnalyzer>(era, channels, tokens),
+                std::make_shared<MetFilterAnalyzer>(era, tokens),
+                std::make_shared<JetAnalyzer>(era, tokens, systName),
+                std::make_shared<MuonAnalyzer>(era, tokens),
+                std::make_shared<ElectronAnalyzer>(era, tokens, systName),
+                std::make_shared<MiscAnalyzer>(era, tokens),
+                std::make_shared<GenPartAnalyzer>(tokens),
             };
 
             //Begin jobs for all analyzers
             for(std::shared_ptr<BaseAnalyzer>& analyzer: analyzerPerSyst){
-                analyzer->BeginJob(treesPerSyst, isData, !isNomi);
+                analyzer->BeginJob(treesPerSyst, skim, sf);
             }
 
             outputTrees.push_back(treesPerSyst);
@@ -152,16 +151,16 @@ void MiniSkimmer::beginJob(){
 }
 
 void MiniSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
-    nEvents++;
+    ++nEvents;
 
-    for(unsigned int i = 0; i < analyzers.size(); i++){
+    for(unsigned int i = 0; i < analyzers.size(); ++i){
         //Call each analyzer
-        for(unsigned int j = 0; j < analyzers[i].size(); j++){
+        for(unsigned int j = 0; j < analyzers[i].size(); ++j){
             analyzers[i][j]->Analyze(cutflows[i], &iEvent);
         }
 
         //Check individual for each channel, if event should be filled
-        for(unsigned int j = 0; j < outputTrees[i].size(); j++){
+        for(unsigned int j = 0; j < outputTrees[i].size(); ++j){
             if(cutflows[i][j].passed){
                 outputTrees[i][j]->Fill();
             }
