@@ -2,10 +2,9 @@
 #define MUONANALYZER_H
 
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/tokens.h>
 
 #include <DataFormats/PatCandidates/interface/Muon.h>
-
-typedef edm::EDGetTokenT<std::vector<pat::Muon>> muToken;
 
 class MuonAnalyzer: public BaseAnalyzer{
     private:
@@ -13,12 +12,15 @@ class MuonAnalyzer: public BaseAnalyzer{
         bool isData;
         bool isSig = false;
 
+        //Input
+        std::string era;
+        std::shared_ptr<Token> tokens;
+
         //Hist with scale factors
-        TH2F* triggerSFhist;
-        std::vector<TH2F*> IsoHist, IDHist;
+        std::shared_ptr<TH2F> triggerSFhist;
+        std::vector<std::shared_ptr<TH2F>> IsoHist, IDHist;
 
         //Kinematic cut criteria
-        int era;
         float ptCut, etaCut;
 
         //Vector with output varirables of the output tree
@@ -31,10 +33,6 @@ class MuonAnalyzer: public BaseAnalyzer{
 
         short nMuons;
 
-        //EDM Token for MINIAOD analysis
-        muToken muonToken;
-        genPartToken genParticleToken;
-
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> muonPt, muonEta, muonPhi, muonIso;
         std::unique_ptr<TTreeReaderArray<int>> muonCharge;
@@ -42,10 +40,10 @@ class MuonAnalyzer: public BaseAnalyzer{
         std::unique_ptr<TTreeReaderArray<int>> muonGenIdx;
 
     public:
-        MuonAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader& reader);
-        MuonAnalyzer(const int& era, const float& ptCut, const float& etaCut, muToken& muonToken, genPartToken& genParticleToken);
+        MuonAnalyzer(const std::string& era, TTreeReader& reader);
+        MuonAnalyzer(const std::string& era, const std::shared_ptr<Token>& tokens);
 
-        void BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst=false);
+        void BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf);
         void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };

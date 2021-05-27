@@ -1,15 +1,21 @@
 #include <ChargedSkimming/Skimming/interface/triggeranalyzer.h>
 
-TriggerAnalyzer::TriggerAnalyzer(const std::map<std::string, std::vector<std::string>> triggerPaths, TTreeReader& reader):
+TriggerAnalyzer::TriggerAnalyzer(const std::string& era, const std::vector<std::string>& channels, TTreeReader& reader):
     BaseAnalyzer(&reader),
-    triggerPaths(triggerPaths){}
+    era(era),
+    channels(channels){}
 
-TriggerAnalyzer::TriggerAnalyzer(const std::map<std::string, std::vector<std::string>> triggerPaths, trigToken& triggerToken):
+TriggerAnalyzer::TriggerAnalyzer(const std::string& era, const std::vector<std::string>& channels, const std::shared_ptr<Token>& tokens):
     BaseAnalyzer(),
-    triggerPaths(triggerPaths),
-    triggerToken(triggerToken){}
+    era(era),
+    channels(channels),
+    tokens(tokens){}
 
-void TriggerAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
+void TriggerAnalyzer::BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf){
+    for(const std::string& channel: channels){
+        triggerPaths[channel] = Util::GetVector<std::string>(skim, "Channel." + channel + ".Trigger." + era);
+    }
+
     if(isNANO){
         //TTreeReader Values
         for(const std::pair<std::string, std::vector<std::string>>& t : triggerPaths){
@@ -45,11 +51,11 @@ void TriggerAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
     }
 
     //Get Event info is using MINIAOD
-    edm::Handle<edm::TriggerResults> triggers;
+    edm::TriggerResults triggers;
 
     if(!isNANO){
-        event->getByToken(triggerToken, triggers);
-        const edm::TriggerNames &names = event->triggerNames(*triggers);
+        triggers = Token::GetTokenValue<edm::TriggerResults>(event, tokens->triggerToken);
+        const edm::TriggerNames &names = event->triggerNames(triggers);
 
         //Find position of trigger name in trigger collection to avoid looping everytime over all trigger names
         if(triggerIndex.empty()){
@@ -67,7 +73,7 @@ void TriggerAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* 
         //Check trigger result
         for(const std::pair<std::string, std::vector<std::string>>& t : triggerPaths){
             for(unsigned int i = 0; i < t.second.size(); i++){
-                triggerResults[t.first][i] = triggers->accept(triggerIndex[t.first][i]);
+                triggerResults[t.first][i] = triggers.accept(triggerIndex[t.first][i]);
             }
         }
     }

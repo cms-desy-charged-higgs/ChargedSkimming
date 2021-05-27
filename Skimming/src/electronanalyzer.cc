@@ -1,12 +1,9 @@
 #include <ChargedSkimming/Skimming/interface/electronanalyzer.h>
 
-ElectronAnalyzer::ElectronAnalyzer(const int& era, const float& ptCut, const float& etaCut, eToken& eleToken, genPartToken& genParticleToken, const std::string& systematic):
+ElectronAnalyzer::ElectronAnalyzer(const std::string& era, const std::shared_ptr<Token>& tokens, std::string& systematic):
     BaseAnalyzer(),    
     era(era),
-    ptCut(ptCut),
-    etaCut(etaCut),
-    eleToken(eleToken),
-    genParticleToken(genParticleToken)
+    tokens(tokens)
     {
         std::vector<std::string> validSystematics = {"energyScaleUp", "energyScaleDown", "energySigmaUp", "energySigmaDown"};
     
@@ -16,34 +13,34 @@ ElectronAnalyzer::ElectronAnalyzer(const int& era, const float& ptCut, const flo
         else energyCorrection = "ecalTrkEnergyPostCorr";
     }
 
-ElectronAnalyzer::ElectronAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader& reader):
+ElectronAnalyzer::ElectronAnalyzer(const std::string& era, TTreeReader& reader):
     BaseAnalyzer(&reader),    
-    era(era),
-    ptCut(ptCut),
-    etaCut(etaCut)
+    era(era)
     {}
 
-void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
-    //Read in json config with sf files
-    boost::property_tree::ptree sf; 
-    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/sf.json", sf);
-
+void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf){
     //Set data bool
-    this->isData = isData;
-    this->isSyst = isSyst;
+    this->isData = skim.get<bool>("isData");
+    this->isSyst = skim.get<bool>("isSyst");
+
+    TH1::AddDirectory(false);
+
+    //Kinematic cut
+    ptCut = skim.get<float>("Analyzer.Electron.pt." + era);
+    etaCut = skim.get<float>("Analyzer.Electron.eta." + era);
 
     //Hist with scale factors
-    TFile* recoSFfile = TFile::Open((filePath +sf.get<std::string>("Electron.Reco." + std::to_string(era))).c_str());
-    recoSFhist = (TH2F*)recoSFfile->Get("EGamma_SF2D");
+    std::shared_ptr<TFile> recoSFfile = std::make_shared<TFile>((filePath + sf.get<std::string>("Electron.Reco." + era)).c_str());
+    recoSFhist.reset((TH2F*)recoSFfile->Get("EGamma_SF2D")); 
 
-    TFile* looseSFfile = TFile::Open((filePath +sf.get<std::string>("Electron.ID.Loose." + std::to_string(era))).c_str());
-    looseSFhist = (TH2F*)looseSFfile->Get("EGamma_SF2D");
+    std::shared_ptr<TFile> looseSFfile = std::make_shared<TFile>((filePath + sf.get<std::string>("Electron.ID.Loose." + era)).c_str());
+    looseSFhist.reset((TH2F*)looseSFfile->Get("EGamma_SF2D"));
 
-    TFile* mediumSFfile = TFile::Open((filePath +sf.get<std::string>("Electron.ID.Medium." + std::to_string(era))).c_str());
-    mediumSFhist = (TH2F*)mediumSFfile->Get("EGamma_SF2D");
+    std::shared_ptr<TFile> mediumSFfile = std::make_shared<TFile>((filePath + sf.get<std::string>("Electron.ID.Medium." + era)).c_str());
+    mediumSFhist.reset((TH2F*)mediumSFfile->Get("EGamma_SF2D"));
 
-    TFile* tightSFfile = TFile::Open((filePath +sf.get<std::string>("Electron.ID.Tight." + std::to_string(era))).c_str());
-    tightSFhist = (TH2F*)tightSFfile->Get("EGamma_SF2D");
+    std::shared_ptr<TFile> tightSFfile = std::make_shared<TFile>((filePath + sf.get<std::string>("Electron.ID.Tight." + era)).c_str());
+    tightSFhist.reset((TH2F*)tightSFfile->Get("EGamma_SF2D"));
 
     //Initiliaze TTreeReaderValues then using NANO AOD
     if(isNANO){
@@ -111,21 +108,23 @@ void ElectronAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const 
 
 void ElectronAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event){
     //Get Event info is using MINIAOD
-    edm::Handle<std::vector<pat::Electron>> electrons;
-    edm::Handle<std::vector<reco::GenParticle>> genParts;
+    std::vector<pat::Electron> electrons;
+    std::vector<reco::GenParticle> genParts;
 
     if(!isNANO){
-        event->getByToken(eleToken, electrons);
+        electrons = Token::GetTokenValue<std::vector<pat::Electron>>(event, tokens->eleToken);
     }
 
-    const int& eleSize = isNANO ? elePt->GetSize() : electrons->size();
+    const int& eleSize = isNANO ? elePt->GetSize() : electrons.size();
     nElectrons = 0;
-    
+        
     //Loop over all electrons
     for(int i = 0; i < eleSize; ++i){
-        const float& pt = isNANO ? elePt->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat(energyCorrection) / electrons->at(i).energy()).Pt();
-        const float& eta = isNANO ? eleEta->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat(energyCorrection) / electrons->at(i).energy()).Eta();
-        const float& phi = isNANO ? elePhi->At(i) : (electrons->at(i).p4()*electrons->at(i).userFloat(energyCorrection) / electrons->at(i).energy()).Phi();
+        if(nElectrons >= std::size(Pt)) break;
+
+        const float& pt = isNANO ? elePt->At(i) : (electrons.at(i).p4()*electrons.at(i).userFloat(energyCorrection) / electrons.at(i).energy()).Pt();
+        const float& eta = isNANO ? eleEta->At(i) : (electrons.at(i).p4()*electrons.at(i).userFloat(energyCorrection) / electrons.at(i).energy()).Eta();
+        const float& phi = isNANO ? elePhi->At(i) : (electrons.at(i).p4()*electrons.at(i).userFloat(energyCorrection) / electrons.at(i).energy()).Phi();
 
         if(pt > ptCut && abs(eta) < etaCut){
             //Electron four momentum components
@@ -133,17 +132,17 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event*
             Eta[nElectrons] =  eta;
             Phi[nElectrons] =  phi;
 
-            Charge[nElectrons] = isNANO ? eleCharge->At(i) : electrons->at(i).charge();  //charge
+            Charge[nElectrons] = isNANO ? eleCharge->At(i) : electrons.at(i).charge();  //charge
 
             //Isolation
-            const float& iso = isNANO ? eleIso->At(i) : (electrons->at(i).pfIsolationVariables().sumChargedHadronPt + std::max(electrons->at(i).pfIsolationVariables().sumNeutralHadronEt + electrons->at(i).pfIsolationVariables().sumPhotonEt - 0.5 * electrons->at(i).pfIsolationVariables().sumPUPt, 0.0)) / electrons->at(i).pt();
+            const float& iso = isNANO ? eleIso->At(i) : (electrons.at(i).pfIsolationVariables().sumChargedHadronPt + std::max(electrons.at(i).pfIsolationVariables().sumNeutralHadronEt + electrons.at(i).pfIsolationVariables().sumPhotonEt - 0.5 * electrons.at(i).pfIsolationVariables().sumPUPt, 0.0)) / electrons.at(i).pt();
    
             Isolation[nElectrons] =  iso;
 
             //Electron ID
-            if(isNANO ? eleID->At(i) == 4 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-tight")) ID[nElectrons] = 3;
-            else if(isNANO ? eleID->At(i) == 3 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-medium")) ID[nElectrons] = 2;
-            else if(isNANO ? eleID->At(i) == 2 : electrons->at(i).electronID("cutBasedElectronID-Fall17-94X-V2-loose")) ID[nElectrons] = 1;
+            if(isNANO ? eleID->At(i) == 4 : electrons.at(i).electronID("cutBasedElectronID-Fall17-94X-V2-tight")) ID[nElectrons] = 3;
+            else if(isNANO ? eleID->At(i) == 3 : electrons.at(i).electronID("cutBasedElectronID-Fall17-94X-V2-medium")) ID[nElectrons] = 2;
+            else if(isNANO ? eleID->At(i) == 2 : electrons.at(i).electronID("cutBasedElectronID-Fall17-94X-V2-loose")) ID[nElectrons] = 1;
             else ID[nElectrons] = 0;
 
             if(!isData){
@@ -183,8 +182,9 @@ void ElectronAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event*
                 }
     
                 else{
-                    event->getByToken(genParticleToken, genParts);
-                    IDs = SetGenParticles(pt, eta, phi, i, 13, *genParts);
+                    genParts = tokens->GetTokenValue(event, tokens->genPartToken);
+
+                    IDs = SetGenParticles(pt, eta, phi, i, 13, genParts);
                     partID[nElectrons] = std::get<0>(IDs);
                     mothID[nElectrons] = std::get<1>(IDs);
                     grandID[nElectrons] = std::get<2>(IDs);

@@ -1,22 +1,18 @@
 #include <ChargedSkimming/Skimming/interface/metfilteranalyzer.h>
 
-MetFilterAnalyzer::MetFilterAnalyzer(const int &era, TTreeReader &reader):
+MetFilterAnalyzer::MetFilterAnalyzer(const std::string& era, TTreeReader& reader):
     BaseAnalyzer(&reader),
     era(era){}
 
-MetFilterAnalyzer::MetFilterAnalyzer(const int &era, trigToken& triggerToken):
+MetFilterAnalyzer::MetFilterAnalyzer(const std::string& era, const std::shared_ptr<Token>& tokens):
     BaseAnalyzer(),
     era(era),
-    triggerToken(triggerToken)
+    tokens(tokens)
     {}
 
-void MetFilterAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
-    //Read in json config with sf files
-    boost::property_tree::ptree sf; 
-    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/skim.json", sf);
-
+void MetFilterAnalyzer::BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf){
     //Set Filter names for each era
-    filterNames = Util::GetVector<std::string>(sf, "Analyzer.METFilter." + std::to_string(era));
+    filterNames = Util::GetVector<std::string>(skim, "Analyzer.METFilter." + era);
 
     if(isNANO){
         //Set TTreeReaderValues
@@ -30,11 +26,11 @@ void MetFilterAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event
     bool passedFilter = true;
 
     //Get Event info is using MINIAOD
-    edm::Handle<edm::TriggerResults> triggers;
+    edm::TriggerResults triggers;
 
     if(!isNANO){
-        event->getByToken(triggerToken, triggers);
-        const edm::TriggerNames &names = event->triggerNames(*triggers);
+        triggers = Token::GetTokenValue(event, tokens->triggerToken);
+        const edm::TriggerNames &names = event->triggerNames(triggers);
 
         //Find result with given filter name with MINIAOD
         for(std::string filterName: filterNames){
@@ -42,7 +38,7 @@ void MetFilterAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event
 
             for(unsigned int i = 0; i < names.size(); i++){
                 if(names.triggerName(i).find(filterName) != std::string::npos){
-                    filterVersion.push_back(triggers->accept(i));
+                    filterVersion.push_back(triggers.accept(i));
                 }
             }    
     

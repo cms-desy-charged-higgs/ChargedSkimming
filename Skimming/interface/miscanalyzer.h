@@ -6,20 +6,15 @@
 #include <DataFormats/PatCandidates/interface/IsolatedTrack.h>
 #include <SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h>
 
-typedef edm::EDGetTokenT<std::vector<pat::IsolatedTrack>> isoToken;
-typedef edm::EDGetTokenT<LHEEventProduct> lheToken;
-
 class MiscAnalyzer: public BaseAnalyzer{
     private:
         //Check if data
-        bool isData;
+        bool isData = false;
         bool isSig = false;
 
-        int era;
+        std::string era;
+        std::shared_ptr<Token> tokens;
         float etaCut;
-
-        isoToken isoTrackToken;
-        lheToken lheTok;
 
         //Vector with output varirables of the output tree
         std::map<std::string, float*> floatVar;
@@ -33,9 +28,9 @@ class MiscAnalyzer: public BaseAnalyzer{
         int GetNParton(const edm::Event* event);
 
     public:
-        MiscAnalyzer(const int& era, const float& etaCut, isoToken& isoTrackToken, lheToken& lheTok);
+        MiscAnalyzer(const std::string& era, const std::shared_ptr<Token>& tokens);
 
-        void BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst=false);
+        void BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf);
         void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };

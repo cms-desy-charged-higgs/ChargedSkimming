@@ -22,14 +22,13 @@
 
 #include <FWCore/Framework/interface/Event.h>
 
-#include <DataFormats/Common/interface/TriggerResults.h>
-#include <FWCore/Common/interface/TriggerNames.h>
-
 #include <DataFormats/Candidate/interface/Candidate.h>
 #include <DataFormats/HepMCCandidate/interface/GenParticle.h>
 
-typedef edm::EDGetTokenT<edm::TriggerResults> trigToken;
-typedef edm::EDGetTokenT<std::vector<reco::GenParticle>> genPartToken;
+#include <ChargedSkimming/Skimming/interface/tokens.h>
+#include <ChargedSkimming/Skimming/interface/util.h>
+
+namespace pt = boost::property_tree;
 
 //Struct for cutflow
 struct CutFlow {
@@ -50,15 +49,15 @@ class BaseAnalyzer {
         //File path for SF etc.
         std::string filePath = std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/";
 
-        std::map<int, std::map<std::string, std::pair<int, int>>> runEras = {
-              {2016, {
+        std::map<std::string, std::map<std::string, std::pair<int, int>>> runEras = {
+              {"2016", {
                         {"BCD", {272007, 276811}}, 
                         {"EF", {276831, 278808}}, 
                         {"GH", {278820, 284044}},
                      }
               },
 
-              {2017, {
+              {"2017", {
                         {"B", {297046, 299329}}, 
                         {"C", {299368, 302029}}, 
                         {"DE", {302030, 304797}},
@@ -66,7 +65,7 @@ class BaseAnalyzer {
                      }
               },
 
-              {2018, {
+              {"2018", {
                         {"A", {315252, 316995}}, 
                         {"B", {316998, 319312}}, 
                         {"C", {319313, 320393}},
@@ -103,8 +102,9 @@ class BaseAnalyzer {
         virtual ~BaseAnalyzer(){};
         BaseAnalyzer();
         BaseAnalyzer(TTreeReader* reader);
-        virtual void BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst=false) = 0;
-        virtual void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event = NULL) = 0;
+
+        virtual void BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf) = 0;
+        virtual void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event = nullptr) = 0;
         virtual void EndJob(TFile* file) = 0;
 
         static float DeltaR(const float& eta1, const float& phi1, const float& eta2, const float& phi2);

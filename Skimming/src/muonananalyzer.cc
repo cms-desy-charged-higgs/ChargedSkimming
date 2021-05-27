@@ -1,46 +1,44 @@
 #include <ChargedSkimming/Skimming/interface/muonanalyzer.h>
 
-MuonAnalyzer::MuonAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader &reader):
+MuonAnalyzer::MuonAnalyzer(const std::string& era, TTreeReader& reader):
     BaseAnalyzer(&reader),    
-    era(era),
-    ptCut(ptCut),
-    etaCut(etaCut)
+    era(era)
     {}
 
-MuonAnalyzer::MuonAnalyzer(const int& era, const float& ptCut, const float& etaCut, muToken& muonToken, genPartToken& genParticleToken):
+MuonAnalyzer::MuonAnalyzer(const std::string& era, const std::shared_ptr<Token>& tokens):
     BaseAnalyzer(), 
     era(era),
-    ptCut(ptCut),
-    etaCut(etaCut),
-    muonToken(muonToken),
-    genParticleToken(genParticleToken)
+    tokens(tokens)
     {}
 
-void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
-    //Read in json config with sf files
-    boost::property_tree::ptree sf; 
-    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/sf.json", sf);
-
+void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf){
     //Set data bool
-    this->isData = isData;
-    this->isSyst = isSyst;
+    this->isData = skim.get<bool>("isData");
+    this->isSyst = skim.get<bool>("isSyst");
+
+    //Kinematic cut
+    ptCut = skim.get<float>("Analyzer.Muon.pt." + era);
+    etaCut = skim.get<float>("Analyzer.Muon.eta." + era);
+
+
+    TH1::AddDirectory(false);
 
     //Hist with scale factors
-    TFile* triggerSFfile = TFile::Open((filePath + sf.get<std::string>("Muon.Trigger.File." + std::to_string(era))).c_str());
-    triggerSFhist = (TH2F*)triggerSFfile->Get(sf.get<std::string>("Muon.Trigger.Histogram." + std::to_string(era)).c_str());
+    std::shared_ptr<TFile> triggerSFfile = std::make_shared<TFile>((filePath + sf.get<std::string>("Muon.Trigger.File." + era)).c_str());
+    triggerSFhist.reset((TH2F*)triggerSFfile->Get(sf.get<std::string>("Muon.Trigger.Histogram." + era).c_str()));
 
-    TFile* isoSFfile = TFile::Open((filePath +sf.get<std::string>("Muon.Isolation." + std::to_string(era))).c_str());
-    std::string postFix = era != 2016 ? "_pt_abseta" : "_eta_pt";
-    IsoHist.push_back((TH2F*)isoSFfile->Get(("NUM_LooseRelIso_DEN_LooseID" + postFix).c_str()));
-    IsoHist.push_back((TH2F*)isoSFfile->Get(("NUM_LooseRelIso_DEN_MediumID" + postFix).c_str()));
-    IsoHist.push_back((TH2F*)isoSFfile->Get(("NUM_LooseRelIso_DEN_TightIDandIPCut" + postFix).c_str()));
-    IsoHist.push_back((TH2F*)isoSFfile->Get(("NUM_TightRelIso_DEN_MediumID" + postFix).c_str()));
-    IsoHist.push_back((TH2F*)isoSFfile->Get(("NUM_TightRelIso_DEN_TightIDandIPCut" + postFix).c_str()));
+    std::shared_ptr<TFile> isoSFfile = std::make_shared<TFile>((filePath +sf.get<std::string>("Muon.Isolation." + era)).c_str());
 
-    TFile* IDSFfile = TFile::Open((filePath  +sf.get<std::string>("Muon.ID.File." + std::to_string(era))).c_str());
-    IDHist.push_back((TH2F*)IDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Loose." + std::to_string(era)).c_str()));
-    IDHist.push_back((TH2F*)IDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Medium." + std::to_string(era)).c_str()));
-    IDHist.push_back((TH2F*)IDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Tight." + std::to_string(era)).c_str()));
+    IsoHist.push_back(std::shared_ptr<TH2F>((TH2F*)isoSFfile->Get("NUM_LooseRelIso_DEN_LooseID_abseta_pt")));
+    IsoHist.push_back(std::shared_ptr<TH2F>((TH2F*)isoSFfile->Get("NUM_LooseRelIso_DEN_MediumID_abseta_pt")));
+    IsoHist.push_back(std::shared_ptr<TH2F>((TH2F*)isoSFfile->Get("NUM_LooseRelIso_DEN_TightIDandIPCut_abseta_pt")));
+    IsoHist.push_back(std::shared_ptr<TH2F>((TH2F*)isoSFfile->Get("NUM_TightRelIso_DEN_MediumID_abseta_pt")));
+    IsoHist.push_back(std::shared_ptr<TH2F>((TH2F*)isoSFfile->Get("NUM_TightRelIso_DEN_TightIDandIPCut_abseta_pt")));
+
+    std::shared_ptr<TFile> IDSFfile = std::make_shared<TFile>((filePath  +sf.get<std::string>("Muon.ID.File." + era)).c_str());
+    IDHist.push_back(std::shared_ptr<TH2F>((TH2F*)IDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Loose." + era).c_str())));
+    IDHist.push_back(std::shared_ptr<TH2F>((TH2F*)IDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Medium." + era).c_str())));
+    IDHist.push_back(std::shared_ptr<TH2F>((TH2F*)IDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Tight." + era).c_str())));
 
     if(isNANO){
         //Initiliaze TTreeReaderValues
@@ -113,9 +111,6 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool
 
     //Set Branches of output tree
     for(TTree* tree: trees){
-        std::string n(tree->GetDirectory()->GetName());
-        if(n.find("HPlus") != std::string::npos) isSig = true;
-
         tree->Branch("Muon_Size", &nMuons, "Muon_Size/S");
 
         for(std::pair<const std::string, float*>& var: floatVar){
@@ -132,21 +127,23 @@ void MuonAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool
 
 void MuonAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event){
     //Get Event info is using MINIAOD
-    edm::Handle<std::vector<pat::Muon>> muons;
-    edm::Handle<std::vector<reco::GenParticle>> genParts;
+    std::vector<pat::Muon> muons;
+    std::vector<reco::GenParticle> genParts;
 
     if(!isNANO){
-        event->getByToken(muonToken, muons);
+        muons = Token::GetTokenValue<std::vector<pat::Muon>>(event, tokens->muonToken);
     }
 
-    const short& muSize = isNANO ? muonPt->GetSize() : muons->size();
+    const short& muSize = isNANO ? muonPt->GetSize() : muons.size();
     nMuons = 0;
 
     //Loop over all electrons
     for(int i = 0; i < muSize; ++i){
-        const float& pt = isNANO ? muonPt->At(i) : muons->at(i).pt();
-        const float& eta = isNANO ? muonEta->At(i) : muons->at(i).eta();
-        const float& phi = isNANO ? muonPhi->At(i) : muons->at(i).phi();
+        if(nMuons >= std::size(Pt)) break;
+
+        const float& pt = isNANO ? muonPt->At(i) : muons.at(i).pt();
+        const float& eta = isNANO ? muonEta->At(i) : muons.at(i).eta();
+        const float& phi = isNANO ? muonPhi->At(i) : muons.at(i).phi();
 
         if(pt > ptCut && abs(eta) < etaCut){
             //Muon four momentum components
@@ -155,32 +152,32 @@ void MuonAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* eve
             Phi[nMuons] = phi;
 
             //ID
-            if(isNANO ? muonTightID->At(i) : muons->at(i).passed(reco::Muon::CutBasedIdTight)) ID[nMuons] = 3;
-            else if(isNANO ? muonMediumID->At(i) : muons->at(i).passed(reco::Muon::CutBasedIdMedium)) ID[nMuons] = 2;
-            else if(isNANO ? muonLooseID->At(i) : muons->at(i).passed(reco::Muon::CutBasedIdLoose)) ID[nMuons] = 1;
+            if(isNANO ? muonTightID->At(i) : muons.at(i).passed(reco::Muon::CutBasedIdTight)) ID[nMuons] = 3;
+            else if(isNANO ? muonMediumID->At(i) : muons.at(i).passed(reco::Muon::CutBasedIdMedium)) ID[nMuons] = 2;
+            else if(isNANO ? muonLooseID->At(i) : muons.at(i).passed(reco::Muon::CutBasedIdLoose)) ID[nMuons] = 1;
             else ID[nMuons] = 0;
 
             //Isolation
-            if(isNANO ? muonIso->At(i) < 0.15 : muons->at(i).passed(reco::Muon::PFIsoTight)) isoID[nMuons] = 3;
-            else if(isNANO ? muonIso->At(i) < 0.2 : muons->at(i).passed(reco::Muon::PFIsoMedium)) isoID[nMuons] = 2;
-            else if(isNANO ? muonIso->At(i) < 0.25 : muons->at(i).passed(reco::Muon::PFIsoLoose)) isoID[nMuons] = 1;
+            if(isNANO ? muonIso->At(i) < 0.15 : muons.at(i).passed(reco::Muon::PFIsoTight)) isoID[nMuons] = 3;
+            else if(isNANO ? muonIso->At(i) < 0.2 : muons.at(i).passed(reco::Muon::PFIsoMedium)) isoID[nMuons] = 2;
+            else if(isNANO ? muonIso->At(i) < 0.25 : muons.at(i).passed(reco::Muon::PFIsoLoose)) isoID[nMuons] = 1;
             else isoID[nMuons] = 0;
 
             //Charge
-            Charge[nMuons] = isNANO ? muonCharge->At(i) : muons->at(i).charge();
+            Charge[nMuons] = isNANO ? muonCharge->At(i) : muons.at(i).charge();
             
             if(!isData){
                 //Scale factors
-                const Int_t& looseIsoLooseIDBin = era != 2016 ? IsoHist[0]->FindBin(pt, abs(eta)) : IsoHist[0]->FindBin(eta, pt);
-                const Int_t& looseIsoMediumIDBin = era != 2016 ? IsoHist[1]->FindBin(pt, abs(eta)) : IsoHist[1]->FindBin(eta, pt);
-                const Int_t& looseIsoTightIDBin = era != 2016 ? IsoHist[2]->FindBin(pt, abs(eta)) : IsoHist[2]->FindBin(eta, pt);
-                const Int_t& tightIsoMediumIDBin = era != 2016 ? IsoHist[3]->FindBin(pt, abs(eta)) : IsoHist[3]->FindBin(eta, pt);
-                const Int_t& tightIsoTightIDBin = era != 2016 ? IsoHist[4]->FindBin(pt, abs(eta)) : IsoHist[4]->FindBin(eta, pt);
+                const Int_t& looseIsoLooseIDBin = IsoHist[0]->FindBin(abs(eta), pt);
+                const Int_t& looseIsoMediumIDBin = IsoHist[1]->FindBin(abs(eta), pt);
+                const Int_t& looseIsoTightIDBin = IsoHist[2]->FindBin(abs(eta), pt);
+                const Int_t& tightIsoMediumIDBin = IsoHist[3]->FindBin(abs(eta), pt);
+                const Int_t& tightIsoTightIDBin = IsoHist[4]->FindBin(abs(eta), pt);
 
-                const Int_t& looseIDBin = era != 2016 ? IDHist[0]->FindBin(pt, abs(eta)) : IDHist[0]->FindBin(eta, pt);
-                const Int_t& mediumIDBin = era != 2016 ? IDHist[1]->FindBin(pt, abs(eta)) : IDHist[1]->FindBin(eta, pt);
-                const Int_t& tightIDBin = era != 2016 ? IDHist[2]->FindBin(pt, abs(eta)) : IDHist[2]->FindBin(eta, pt);
-                const Int_t& triggerBin = triggerSFhist->FindBin(pt, abs(eta));
+                const Int_t& looseIDBin = IDHist[0]->FindBin(abs(eta), pt);
+                const Int_t& mediumIDBin = IDHist[1]->FindBin(abs(eta), pt);
+                const Int_t& tightIDBin = IDHist[2]->FindBin(abs(eta), pt);
+                const Int_t& triggerBin = triggerSFhist->FindBin(abs(eta), pt);
 
                 looseIsoLooseSF[nMuons] = IsoHist[0]->GetBinContent(looseIsoLooseIDBin);
                 looseIsoMediumSF[nMuons] = IsoHist[1]->GetBinContent(looseIsoMediumIDBin);
@@ -226,8 +223,9 @@ void MuonAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* eve
                 }
     
                 else{
-                    event->getByToken(genParticleToken, genParts);
-                    IDs = SetGenParticles(pt, eta, phi, i, 13, *genParts);
+                    genParts = tokens->GetTokenValue(event, tokens->genPartToken);
+
+                    IDs = SetGenParticles(pt, eta, phi, i, 13, genParts);
                     partID[nMuons] = std::get<0>(IDs);
                     mothID[nMuons] = std::get<1>(IDs);
                     grandID[nMuons] = std::get<2>(IDs);

@@ -1,18 +1,16 @@
 #include <ChargedSkimming/Skimming/interface/genpartanalyzer.h>
 
-GenPartAnalyzer::GenPartAnalyzer(genPartToken& genParticleToken, const std::vector<std::string>& particleNames):
+GenPartAnalyzer::GenPartAnalyzer(const std::shared_ptr<Token>& tokens):
     BaseAnalyzer(),
-    genParticleToken(genParticleToken),
-    particleNames(particleNames)
+    tokens(tokens)
     {}
 
-GenPartAnalyzer::GenPartAnalyzer(TTreeReader& reader, const std::vector<std::string>& particleNames):
-    BaseAnalyzer(&reader),
-    particleNames(particleNames){}
+GenPartAnalyzer::GenPartAnalyzer(TTreeReader& reader):
+    BaseAnalyzer(&reader){}
 
-void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
+void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf){
     //Set data bool
-    this->isData = isData;
+    this->isData = skim.get<bool>("isData");
     
     //Set TTreeReader for genpart and trigger obj from baseanalyzer
     if(isNANO) SetCollection(this->isData);
@@ -31,7 +29,7 @@ void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const b
         {"nu_muon", 14},
     };
 
-    for(std::string& name : particleNames) particleIDs.push_back(convert.at(name));
+    for(std::string& name : Util::GetVector<std::string>(skim, "Analyzer.Gen")) particleIDs.push_back(convert.at(name));
 
     floatVar = {
             {"Pt", Pt},
@@ -44,6 +42,7 @@ void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const b
             {"ParticleID", partID},
             {"MotherID", mothID},
     };
+
     //Set Branches of output tree
     for(TTree* tree: trees){
         tree->Branch("GenParticle_Size", &nGenPart, "GenParticle_Size/S");
@@ -60,28 +59,28 @@ void GenPartAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const b
 
 void GenPartAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* event){
     //Get Event info is using MINIAOD
-    edm::Handle<std::vector<reco::GenParticle>> genParts;
+    std::vector<reco::GenParticle> genParts;
     nGenPart = 0;
 
     if(!isData){
         if(!isNANO){
-            event->getByToken(genParticleToken, genParts);
+            genParts = Token::GetTokenValue(event, tokens->genPartToken);
         }
     
         std::vector<int> alreadySeenNANO;
         std::vector<const reco::Candidate*> alreadySeenMINI;
-        int size = isNANO ? genID->GetSize() : genParts->size();
+        int size = isNANO ? genID->GetSize() : genParts.size();
 
         //Fill 4 four vectors
         for(int i = 0; i < size; i++){
-            int ID = isNANO ? abs(genID->At(i)) : abs(genParts->at(i).pdgId());  
+            int ID = isNANO ? abs(genID->At(i)) : abs(genParts.at(i).pdgId());  
 
             if(std::find(particleIDs.begin(), particleIDs.end(), ID) != particleIDs.end()){
                 const reco::Candidate* part=nullptr;
                 int index=0;
 
                 if(isNANO) index = FirstCopy(i, ID);
-                else part = FirstCopy(genParts->at(i), ID);
+                else part = FirstCopy(genParts.at(i), ID);
 
                 if(isNANO){
                     if(std::find(alreadySeenNANO.begin(), alreadySeenNANO.end(), index) != alreadySeenNANO.end()) continue; 

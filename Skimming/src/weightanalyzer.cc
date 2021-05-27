@@ -1,33 +1,27 @@
 #include <ChargedSkimming/Skimming/interface/weightanalyzer.h>
 
-WeightAnalyzer::WeightAnalyzer(const int& era, const float& xSec, TTreeReader& reader):
+WeightAnalyzer::WeightAnalyzer(const std::string& era, const float& xSec, TTreeReader &reader):
     BaseAnalyzer(&reader),
     era(era),
     xSec(xSec)
     {}
 
-WeightAnalyzer::WeightAnalyzer(const int& era, const float& xSec, puToken& pileupToken, genToken& geninfoToken, const std::vector<edm::EDGetTokenT<double>>& prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken):
+WeightAnalyzer::WeightAnalyzer(const std::string& era, const float& xSec, const std::shared_ptr<Token>& tokens):
     BaseAnalyzer(),
     era(era),
     xSec(xSec),
-    pileupToken(pileupToken),
-    geninfoToken(geninfoToken),
-    prefireTokens(prefireTokens),
-    scaleToken(scaleToken),
-    pdfToken(pdfToken)
+    tokens(tokens)
     {}
 
-void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst){
+void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf){
     //Set data bool
-    this->isData = isData;
-    this->isSyst = isSyst;
-
-    //Read infos from skim.json
-    boost::property_tree::ptree parser; 
-    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/skim.json", parser);
+    this->isData = skim.get<bool>("isData");
+    this->isSyst = skim.get<bool>("isSyst");
     
-    pileUpFile = filePath + parser.get<std::string>("Analyzer.Weight.PileUp." + std::to_string(era));
-    lumi = parser.get<float>("Analyzer.Weight.Lumi." + std::to_string(era))*1e3;
+    pileUpFile = filePath + skim.get<std::string>("Analyzer.Weight.PileUp." + era);
+    lumi = skim.get<float>("Analyzer.Weight.Lumi.nominal." + era)*1e3;
+    lumiUp = skim.get<float>("Analyzer.Weight.Lumi.Up." + era)*1e3;
+    lumiDown = skim.get<float>("Analyzer.Weight.Lumi.Down." + era)*1e3;
 
     if(!this->isData){
         if(isNANO){
@@ -63,50 +57,48 @@ void WeightAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bo
 }
 
 void WeightAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event){
-    edm::Handle<std::vector<PileupSummaryInfo>> pileUp; 
-    edm::Handle<GenEventInfoProduct> genInfo;
-    std::vector<edm::Handle<double>> prefire;
-    edm::Handle<std::vector<float>> pdfVariations, scaleVariations;
+    std::vector<PileupSummaryInfo> pileUp; 
+    GenEventInfoProduct genInfo;
+    std::vector<double> prefire;
+    std::vector<float> pdfVariations, scaleVariations;
     prefireWeights.clear();
     
-    if(!isNANO){
-        event->getByToken(pileupToken, pileUp);
-        event->getByToken(geninfoToken, genInfo);
-        event->getByToken(pdfToken, pdfVariations);
-        event->getByToken(scaleToken, scaleVariations);
+    if(!isNANO and !this->isData){
+        pileUp = Token::GetTokenValue(event, tokens->pileUpToken);
+        genInfo = Token::GetTokenValue(event, tokens->genToken);
+        pdfVariations = Token::GetTokenValue(event, tokens->pdfToken);
+        scaleVariations = Token::GetTokenValue(event, tokens->scaleToken);
 
-        for(unsigned int i = 0; i < prefireTokens.size(); i ++){
-            edm::Handle<double> fireHandle;
-            if(era != 2018) event->getByToken(prefireTokens[i], fireHandle);
-            prefire.push_back(fireHandle);
+        for(const edm::EDGetTokenT<double>& token : {tokens->prefireToken, tokens->prefireTokenUp, tokens->prefireTokenDown}){
+            if(era != "2018") prefire.push_back(Token::GetTokenValue(event, token));
         }
     }
 
     //Set values if not data
     if(!this->isData){
         nTrueInt = isNANO ? *nPU->Get() : 1.;
-        genWeight = isNANO ? *genWeightValue->Get() : genInfo->weight();
+        genWeight = isNANO ? *genWeightValue->Get() : genInfo.weight();
 
         if(!isNANO){
             if(!isSyst){
                 //PDF uncertainties
-                if(pdfVariations->size() == 102 and scaleVariations->size() == 8){
-                    std::copy(scaleVariations->begin(), scaleVariations->begin()+8, scaleWeights);
-                    std::copy(pdfVariations->begin(), pdfVariations->begin()+102, pdfWeights);
+                if(pdfVariations.size() == 102 and scaleVariations.size() == 8){
+                    std::copy(scaleVariations.begin(), scaleVariations.begin()+8, scaleWeights);
+                    std::copy(pdfVariations.begin(), pdfVariations.begin()+102, pdfWeights);
                 }
 
                 //Fill prefire weight
                 for(unsigned int i = 0; i < 3; i ++){
-                    prefireWeights.push_back(era != 2018 ? *(prefire[i]) : 1.);
+                    prefireWeights.push_back(era != "2018" ? prefire[i] : 1.);
                 }
             }
 
             else{
-                prefireWeights.push_back(era != 2018 ? *(prefire[0]) : 1.);
+                prefireWeights.push_back(era != "2018" ? prefire[0] : 1.);
             }
 
             //Get true number of interaction https://twiki.cern.ch/twiki/bin/view/CMS/PileupSystematicErrors
-            for(PileupSummaryInfo puInfo: *pileUp) {
+            for(PileupSummaryInfo puInfo: pileUp) {
                 const int& BX = puInfo.getBunchCrossing();
 
                 if(BX == 0) { 
@@ -152,6 +144,12 @@ void WeightAnalyzer::EndJob(TFile* file){
 
         TParameter<float> lumiV("Lumi", lumi);
         lumiV.Write();
+
+        TParameter<float> lumiUpV("LumiUp", lumiUp);
+        lumiUpV.Write();
+
+        TParameter<float> lumiDownV("LumiDown", lumiDown);
+        lumiDownV.Write();
 
         TParameter<float> nGenV("nGen", nGen);
         nGenV.Write();

@@ -8,18 +8,16 @@
 #include <SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h>
 #include <SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h>
 
-typedef edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puToken;
-typedef edm::EDGetTokenT<GenEventInfoProduct> genToken;
-typedef edm::EDGetTokenT<std::vector<float>> wgtToken;
-
 class WeightAnalyzer : public BaseAnalyzer {
     private:
         //Bool for data
         bool isData;
-        int era;    
+        std::string era;    
+
+        std::shared_ptr<Token> tokens;
 
         //xSec information
-        float xSec, lumi, nGen = 0., nGenWeighted = 0.;
+        float xSec, lumi, lumiUp, lumiDown, nGen = 0., nGenWeighted = 0.;
         
         std::string pileUpFile;
     
@@ -27,13 +25,6 @@ class WeightAnalyzer : public BaseAnalyzer {
         float genWeight = 1., eventNumber = 1., nTrueInt = 1.;
         float pdfWeights[102], scaleWeights[8];
         std::vector<float> prefireWeights;
-
-        //Token for MINIAOD
-        puToken pileupToken;
-        genToken geninfoToken;
-        std::vector<edm::EDGetTokenT<double>> prefireTokens;
-        wgtToken scaleToken;
-        wgtToken pdfToken;
 
         //Histograms
         std::shared_ptr<TH1F> puMC;
@@ -43,9 +34,10 @@ class WeightAnalyzer : public BaseAnalyzer {
         std::unique_ptr<TTreeReaderValue<ULong64_t>> evtNumber;
 
     public:
-        WeightAnalyzer(const int& era, const float& xSec, TTreeReader &reader);
-        WeightAnalyzer(const int& era, const float& xSec, puToken &pileupToken, genToken &geninfoToken, const std::vector<edm::EDGetTokenT<double>>& prefireTokens, wgtToken& pdfToken, wgtToken& scaleToken);
-        void BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst=false);
+        WeightAnalyzer(const std::string& era, const float& xSec, TTreeReader &reader);
+        WeightAnalyzer(const std::string& era, const float& xSec, const std::shared_ptr<Token>& tokens);
+
+        void BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf);
         void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };

@@ -1,22 +1,16 @@
 #include <ChargedSkimming/Skimming/interface/jetanalyzer.h>
 
-JetAnalyzer::JetAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader& reader):
+JetAnalyzer::JetAnalyzer(const std::string& era, TTreeReader& reader):
     BaseAnalyzer(&reader),    
     era(era),
     ptCut(ptCut),
     etaCut(etaCut)
     {}
 
-JetAnalyzer::JetAnalyzer(const int& era, const float& ptCut, const float& etaCut, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double> &rhoToken, genPartToken& genParticleToken, secvtxToken& vertexToken, const std::string& systematic):
+JetAnalyzer::JetAnalyzer(const std::string& era, const std::shared_ptr<Token>& tokens, const std::string& systematic):
     BaseAnalyzer(),    
     era(era),
-    ptCut(ptCut),
-    etaCut(etaCut),
-    jetTokens(jetTokens),
-    metToken(metToken),
-    rhoToken(rhoToken),
-    genParticleToken(genParticleToken),
-    vertexToken(vertexToken)
+    tokens(tokens)
     {
         if(systematic.find("JEC") != std::string::npos){
             jecSyst = systematic;
@@ -209,19 +203,18 @@ void JetAnalyzer::SetGenParticles(const int& currentSize, const int& i, const fl
     if(!isNANO and parton != nullptr) alreadySeenMINI.push_back(parton);
 }
 
-void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst){
-    //Read in json config with sf files
-    boost::property_tree::ptree sf, skim; 
-    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/sf.json", sf);
-    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/skim.json", skim);
-
+void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf){
     //Get for JEC files names
-    JECMC = Util::GetVector<std::string>(sf, "Jet.JEC.MC." + std::to_string(era));
-    JECDATA = Util::GetVector<std::string>(sf, "Jet.JEC.DATA." + std::to_string(era));
+    JECMC = Util::GetVector<std::string>(sf, "Jet.JEC.MC." + era);
+    JECDATA = Util::GetVector<std::string>(sf, "Jet.JEC.DATA." + era);
 
     //Set data bool
-    this->isData = isData;
-    this->isSyst = isSyst;
+    this->isData = skim.get<bool>("isData");
+    this->isSyst = skim.get<bool>("isSyst");
+
+    //Kinematic cuts
+    ptCut = skim.get<float>("Analyzer.Jet.pt." + era);
+    etaCut = skim.get<float>("Analyzer.Jet.eta." + era);
 
     if(isNANO){
         //Initiliaze TTreeReaderValues
@@ -265,17 +258,19 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
         SetCollection(this->isData);
     }
 
+
     //Set configuration for bTagSF reader  
-    CSVReader=BTagCSVReader(filePath + sf.get<std::string>("Jet.BTag.CSV." + std::to_string(era)));
-    DeepReader=BTagCSVReader(filePath + sf.get<std::string>("Jet.BTag.DeepJet." + std::to_string(era)));
+    CSVReader = BTagCSVReader(filePath + sf.get<std::string>("Jet.BTag.CSV." + era));
+    DeepReader = BTagCSVReader(filePath + sf.get<std::string>("Jet.BTag.DeepJet." + era));
 
     //Cut Values for b tagging
-    CSVLoose = {{2016, 0.2217}, {2017, 0.1522}, {2018, 0.1241}};
-    CSVMedium = {{2016, 0.6321}, {2017, 0.4941}, {2018, 0.4184}};
-    CSVTight = {{2016, 0.8953}, {2017, 0.8001}, {2018, 0.7527}};
-    DeepLoose = {{2016, 0.0614}, {2017, 0.0521}, {2018, 0.0494}};
-    DeepMedium = {{2016, 0.3093}, {2017, 0.3033}, {2018, 0.2770}};
-    DeepTight = {{2016, 0.7221}, {2017, 0.7489}, {2018, 0.7264}};
+    CSVLoose = skim.get<float>("Analyzer.Jet.btag.DeepCSV." + era + ".loose");
+    CSVMedium = skim.get<float>("Analyzer.Jet.btag.DeepCSV." + era + ".medium");
+    CSVTight = skim.get<float>("Analyzer.Jet.btag.DeepCSV." + era + ".tight");
+    DeepLoose = skim.get<float>("Analyzer.Jet.btag.DeepJet." + era + ".loose");
+    DeepMedium = skim.get<float>("Analyzer.Jet.btag.DeepJet." + era + ".medium");
+    DeepTight = skim.get<float>("Analyzer.Jet.btag.DeepJet." + era + ".tight");
+
 
     if(!isData){
         bTotal = new TH2F("nTrueB", "TotalB", 20, ptCut, 400, 20, -etaCut, etaCut);
@@ -296,20 +291,20 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
             bTagEffLightTight.push_back(new TH2F(("nTightLight" + taggerName + "bTag").c_str(), "", 20, ptCut, 400, 20, -etaCut, etaCut));
         }
     }
-    
+
     for(JetType type: {AK4, AK8}){    
         //Set configuration for JER tools
-        std::string fileName = filePath + sf.get<std::string>("Jet.JMEPtReso." + std::to_string(era));
+        std::string fileName = filePath + sf.get<std::string>("Jet.JMEPtReso." + era);
         fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");
         resolution[type] = JME::JetResolution(fileName);
 
-        fileName = filePath + sf.get<std::string>("Jet.JME." + std::to_string(era));
+        fileName = filePath + sf.get<std::string>("Jet.JME." + era);
         fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");
         resolution_sf[type] = JME::JetResolutionScaleFactor(fileName);
 
         //Set object to get JEC uncertainty
         if(jecSyst != ""){
-            std::string fileName = filePath + sf.get<std::string>("Jet.JECUNC." + std::to_string(era));
+            std::string fileName = filePath + sf.get<std::string>("Jet.JECUNC." + era);
             fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");  
 
             jecUnc[type] = new JetCorrectionUncertainty(JetCorrectorParameters(fileName, "Total"));
@@ -317,6 +312,7 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
 
         else jecUnc[type] = nullptr;
     }
+
 
     //Set output names
     floatVar = {
@@ -362,23 +358,25 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
         {{"FatJet", "DeepAK8W"}, DeepAK8W[AK8]},
         {{"FatJet", "DeepAK8DY"}, DeepAK8DY[AK8]},
         {{"FatJet", "DeepAK8QCD"}, DeepAK8QCD[AK8]},
-        {{"JetParticle", "Pt"}, Pt[PF]},
-        {{"JetParticle", "Eta"}, Eta[PF]},
-        {{"JetParticle", "Phi"}, Phi[PF]},
-        {{"JetParticle", "Mass"}, Mass[PF]},
-        {{"JetParticle", "Vx"}, Vx[PF]},
-        {{"JetParticle", "Vy"}, Vy[PF]},
-        {{"JetParticle", "Vz"}, Vz[PF]},
-        {{"SecondaryVertex", "Pt"}, Pt[VTX]},
-        {{"SecondaryVertex", "Eta"}, Eta[VTX]},
-        {{"SecondaryVertex", "Phi"}, Phi[VTX]},
-        {{"SecondaryVertex", "Mass"}, Mass[VTX]},
-        {{"SecondaryVertex", "Vx"}, Vx[VTX]},
-        {{"SecondaryVertex", "Vy"}, Vy[VTX]},
-        {{"SecondaryVertex", "Vz"}, Vz[VTX]},
+      //  {{"JetParticle", "Pt"}, Pt[PF]},
+      //  {{"JetParticle", "Eta"}, Eta[PF]},
+      //   {{"JetParticle", "Phi"}, Phi[PF]},
+      //   {{"JetParticle", "Mass"}, Mass[PF]},
+      //   {{"JetParticle", "Vx"}, Vx[PF]},
+      //   {{"JetParticle", "Vy"}, Vy[PF]},
+      //   {{"JetParticle", "Vz"}, Vz[PF]},
+      //   {{"SecondaryVertex", "Pt"}, Pt[VTX]},
+      //   {{"SecondaryVertex", "Eta"}, Eta[VTX]},
+      //   {{"SecondaryVertex", "Phi"}, Phi[VTX]},
+      //   {{"SecondaryVertex", "Mass"}, Mass[VTX]},
+      //   {{"SecondaryVertex", "Vx"}, Vx[VTX]},
+      //   {{"SecondaryVertex", "Vy"}, Vy[VTX]},
+      //   {{"SecondaryVertex", "Vz"}, Vz[VTX]},
     };
 
     intVar = {
+        {{"Jet", "bTagCSVID"}, bTagCSVID[AK4]},
+        {{"Jet", "bTagDeepID"}, bTagDeepID[AK4]},
         {{"Jet", "TrueFlavour"}, TrueFlavour[AK4]},
         {{"Jet", "ParticleID"}, partID[AK4]},
         {{"Jet", "MotherID"}, mothID[AK4]},
@@ -388,9 +386,12 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
         {{"SubJet", "ParticleID"}, partID[SUBAK4]},
         {{"SubJet", "MotherID"}, mothID[SUBAK4]},
         {{"SubJet", "GrandMotherID"}, grandID[SUBAK4]},
-        {{"JetParticle", "Charge"}, Charge[PF]},
-        {{"JetParticle", "FatJetIdx"}, FatJetIdx[PF]},
-        {{"SecondaryVertex", "FatJetIdx"}, FatJetIdx[VTX]},
+        {{"SubJet", "bTagCSVID"}, bTagCSVID[SUBAK4]},
+        {{"SubJet", "bTagDeepID"}, bTagDeepID[SUBAK4]},
+      //   {{"JetParticle", "Charge"}, Charge[PF]},
+      //   {{"JetParticle", "FatJetIdx"}, FatJetIdx[PF]},
+      //   {{"SecondaryVertex", "FatJetIdx"}, FatJetIdx[VTX]},
+        {{"FatJet", "DeepAK8Class"}, DeepAK8Class[AK8]},
         {{"FatJet", "ParticleID"}, partID[AK8]},
         {{"FatJet", "MotherID"}, mothID[AK8]},
         {{"FatJet", "GrandMotherID"}, grandID[AK8]},
@@ -432,8 +433,8 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
         tree->Branch("Jet_Size", &nJets, "Jet_Size/S");
         tree->Branch("SubJet_Size", &nSubJets, "SubJet_Size/S");
         tree->Branch("FatJet_Size", &nFatJets, "FatJet_Size/S");
-        tree->Branch("JetParticle_Size", &nPFcands, "JetParticle_Size/S");
-        tree->Branch("SecondaryVertex_Size", &nVtx, "SecondaryVertex_Size/S");
+   //     tree->Branch("JetParticle_Size", &nPFcands, "JetParticle_Size/S");
+    //    tree->Branch("SecondaryVertex_Size", &nVtx, "SecondaryVertex_Size/S");
 
         for(std::pair<const std::pair<std::string, std::string>, float*>& var: floatVar){
             std::fill_n(var.second, 300, 1.);
@@ -446,7 +447,11 @@ void JetAnalyzer::BeginJob(std::vector<TTree*>& trees, bool& isData, const bool&
         }
 
         tree->Branch("MET_Pt", &metPT);
+        tree->Branch("MET_PtUp", &metPTUp);
+        tree->Branch("MET_PtDown", &metPTDown);
         tree->Branch("MET_Phi", &metPHI);
+        tree->Branch("MET_PhiUp", &metPHIUp);
+        tree->Branch("MET_PhiDown", &metPHIDown);
     }
 }
 
@@ -463,12 +468,12 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
     }
 
     //Get Event info is using MINIAOD
-    edm::Handle<std::vector<pat::Jet>> jets, fatJets;
-    edm::Handle<std::vector<reco::GenJet>> genJets, genfatJets;
-    edm::Handle<std::vector<pat::MET>> MET;
-    edm::Handle<double> rho;
-    edm::Handle<std::vector<reco::GenParticle>> genParts;
-    edm::Handle<std::vector<reco::VertexCompositePtrCandidate>> secVtx;
+    std::vector<pat::Jet> jets, fatJets;
+    std::vector<reco::GenJet> genJets, genFatJets;
+    std::vector<pat::MET> MET;
+    double rho;
+    std::vector<reco::GenParticle> genParts;
+    std::vector<reco::VertexCompositePtrCandidate> secVtx;
 
     //Set necessary parameter
     float CSVBValue = 0, DeepBValue = 0, smearFac = 1., corrFac = 1., hScore = 0., topScore = 0., WScore = 0., QCDScore = 0., DYScore = 0.;
@@ -476,41 +481,44 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
     float metPx = 0, metPy = 0;
 
     if(!isNANO){
-        event->getByToken(jetTokens[0], jets);
-        event->getByToken(jetTokens[1], fatJets);
-        event->getByToken(metToken, MET);
-        event->getByToken(rhoToken, rho);
-        event->getByToken(vertexToken, secVtx);
+        jets = Token::GetTokenValue<std::vector<pat::Jet>>(event, tokens->jetToken);
+        fatJets = Token::GetTokenValue<std::vector<pat::Jet>>(event, tokens->fatJetToken);
+        MET = Token::GetTokenValue<std::vector<pat::MET>>(event, tokens->METToken);
+
+        rho = Token::GetTokenValue<double>(event, tokens->rhoToken);
+        secVtx = Token::GetTokenValue<std::vector<reco::VertexCompositePtrCandidate>>(event, tokens->secVertexToken);
 
         if(!isData){
-            event->getByLabel(edm::InputTag("slimmedGenJets"), genJets);
-            event->getByLabel(edm::InputTag("slimmedGenJetsAK8"), genfatJets);
+            genJets = Token::GetTokenValue<std::vector<reco::GenJet>>(event, tokens->genJetToken);
+            genFatJets= Token::GetTokenValue<std::vector<reco::GenJet>>(event, tokens->genFatJetToken);
         }
     }
 
     //MET values not correct for JER yet
-    metPx = isNANO ? *metPt->Get()*std::cos(*metPhi->Get()) : MET->at(0).uncorPx();
-    metPy = isNANO ? *metPt->Get()*std::sin(*metPhi->Get()) : MET->at(0).uncorPy();
+    metPx = isNANO ? *metPt->Get()*std::cos(*metPhi->Get()) : MET.at(0).uncorPx();
+    metPy = isNANO ? *metPt->Get()*std::sin(*metPhi->Get()) : MET.at(0).uncorPy();
     
-    const short& fatJetSize = isNANO ? fatJetPt->GetSize() : fatJets->size();
-    const short& jetSize = isNANO ? jetPt->GetSize() : jets->size();
+    const short& fatJetSize = isNANO ? fatJetPt->GetSize() : fatJets.size();
+    const short& jetSize = isNANO ? jetPt->GetSize() : jets.size();
 
     nJets = 0; nFatJets = 0; nSubJets = 0; nVtx = 0; nPFcands = 0;
-        
+    
     //Loop over all fat jets
     for(int i = 0; i < fatJetSize; ++i){
+        if(nFatJets >= std::size(Pt[AK8])) break;
+
         //JER smearing
         smearFac = 1., corrFac = 1.;
 
-        const float fatPt = isNANO ? fatJetPt->At(i) : fatJets->at(i).pt();
-        const float fatEta = isNANO ? fatJetEta->At(i) : fatJets->at(i).eta();
-        const float fatPhi = isNANO ? fatJetPhi->At(i) : fatJets->at(i).phi();
-        const float fatMass = isNANO ? fatJetMass->At(i) : fatJets->at(i).mass();
+        const float fatPt = isNANO ? fatJetPt->At(i) : fatJets.at(i).pt();
+        const float fatEta = isNANO ? fatJetEta->At(i) : fatJets.at(i).eta();
+        const float fatPhi = isNANO ? fatJetPhi->At(i) : fatJets.at(i).phi();
+        const float fatMass = isNANO ? fatJetMass->At(i) : fatJets.at(i).mass();
     
-        corrFac = isNANO ? CorrectEnergy(fatPt, fatEta, *jetRho->Get(), fatJetArea->At(i), AK8) : CorrectEnergy(fatPt, fatEta, *rho, fatJets->at(i).jetArea(), AK8);
+        corrFac = isNANO ? CorrectEnergy(fatPt, fatEta, *jetRho->Get(), fatJetArea->At(i), AK8) : CorrectEnergy(fatPt, fatEta, rho, fatJets.at(i).jetArea(), AK8);
 
         //Get jet uncertainty
-        if(jecUnc[AK8] !=  NULL){
+        if(jecUnc[AK8] !=  nullptr){
             jecUnc[AK8]->setJetPt(corrFac*fatPt);
             jecUnc[AK8]->setJetEta(fatEta);
             const float& unc = jecUnc[AK8]->getUncertainty(isUp);
@@ -519,31 +527,32 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
 
         //Smear pt if not data
         if(!isData){
-            smearFac = isNANO ? SmearEnergy(corrFac*fatPt, fatEta, fatPhi, *jetRho->Get(), 0.8, AK8) : SmearEnergy(corrFac*fatPt, fatEta, fatPhi, *rho, 0.8, AK8, *genfatJets);
+            smearFac = isNANO ? SmearEnergy(corrFac*fatPt, fatEta, fatPhi, *jetRho->Get(), 0.8, AK8) : SmearEnergy(corrFac*fatPt, fatEta, fatPhi, rho, 0.8, AK8, genFatJets);
         }
 
+ 
         if(smearFac*corrFac*fatPt > 170. and smearFac*corrFac*fatMass > 40. and abs(fatEta) < etaCut){
             if(!isNANO){
-                hScore = fatJets->at(i).bDiscriminator("pfDeepBoostedJetTags:probHbb");
+                hScore = fatJets.at(i).bDiscriminator("pfDeepBoostedJetTags:probHbb");
                 topScore = 0.;
                 WScore = 0.;
                 DYScore = 0.;   
                 QCDScore = 0.;
 
                 for(const std::string& name : {"pfDeepBoostedJetTags:probTbcq", "pfDeepBoostedJetTags:probTbqq", "pfDeepBoostedJetTags:probTbc", "pfDeepBoostedJetTags:probTbq"}){
-                    topScore += fatJets->at(i).bDiscriminator(name);
+                    topScore += fatJets.at(i).bDiscriminator(name);
                 }
 
                 for(const std::string& name : {"pfDeepBoostedJetTags:probWcq", "pfDeepBoostedJetTags:probWqq"}){
-                    WScore += fatJets->at(i).bDiscriminator(name);
+                    WScore += fatJets.at(i).bDiscriminator(name);
                 }
 
                 for(const std::string& name : {"pfDeepBoostedJetTags:probQCDbb", "pfDeepBoostedJetTags:probQCDcc", "pfDeepBoostedJetTags:probQCDb", "pfDeepBoostedJetTags:probQCDc", "pfDeepBoostedJetTags:probQCDothers"}){
-                    QCDScore += fatJets->at(i).bDiscriminator(name);
+                    QCDScore += fatJets.at(i).bDiscriminator(name);
                 }
 
                 for(const std::string& name : {"pfDeepBoostedJetTags:probZbb", "pfDeepBoostedJetTags:probZcc", "pfDeepBoostedJetTags:probZqq"}){
-                    DYScore += fatJets->at(i).bDiscriminator(name);
+                    DYScore += fatJets.at(i).bDiscriminator(name);
                 }
 
                 DeepAK8Top[AK8][nFatJets] = topScore;
@@ -551,8 +560,21 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                 DeepAK8W[AK8][nFatJets] = WScore;
                 DeepAK8QCD[AK8][nFatJets] = QCDScore;
                 DeepAK8Higgs[AK8][nFatJets] = hScore;
+
+                int idx = 0, maxIdx = -1; float maxScore = 0;
+
+                for(const float sc : {QCDScore, WScore, topScore, DYScore, hScore}){
+                    if(sc > maxScore){
+                        maxScore = sc;
+                        maxIdx = idx;
+                    }
+        
+                    ++idx;
+                }
+
+                DeepAK8Class[AK8][nFatJets] = maxIdx;
             }
-    
+
             //Fatjet four momentum components
             Pt[AK8][nFatJets] = smearFac*corrFac*fatPt;
             Eta[AK8][nFatJets] = fatEta;  
@@ -562,24 +584,27 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
             if(!isData) corrJER[AK8][nFatJets] = smearFac;
 
             //Nsubjettiness
-            Njettiness1[AK8][nFatJets] = isNANO ? fatJetTau1->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau1");
-            Njettiness2[AK8][nFatJets] = isNANO ? fatJetTau2->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau2");
-            Njettiness3[AK8][nFatJets] = isNANO ? fatJetTau3->At(i) : fatJets->at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau3");
+            Njettiness1[AK8][nFatJets] = isNANO ? fatJetTau1->At(i) : fatJets.at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau1");
+            Njettiness2[AK8][nFatJets] = isNANO ? fatJetTau2->At(i) : fatJets.at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau2");
+            Njettiness3[AK8][nFatJets] = isNANO ? fatJetTau3->At(i) : fatJets.at(i).userFloat("ak8PFJetsCHSValueMap:NjettinessAK8CHSTau3");
 
             if(!isData){
                 if(isNANO) SetGenParticles(nFatJets, i, Pt[AK8][nFatJets], Eta[AK8][nFatJets], Phi[AK8][nFatJets], {24, 25, 23, 6}, AK8);
                 else{
-                    event->getByToken(genParticleToken, genParts);
-                    SetGenParticles(nFatJets, i, Pt[AK8][nFatJets], Eta[AK8][nFatJets], Phi[AK8][nFatJets], {24, 25, 23, 6}, AK8, *genParts);
+                    genParts = Token::GetTokenValue(event, tokens->genPartToken);
+                    SetGenParticles(nFatJets, i, Pt[AK8][nFatJets], Eta[AK8][nFatJets], Phi[AK8][nFatJets], {24, 25, 23, 6}, AK8, genParts);
                 }
             }
 
+                    
+            /*    
             //Fill in particle flow candidates
             if(!isNANO){
-                for(unsigned int j = 0; j < fatJets->at(i).numberOfDaughters(); j++){
+                for(unsigned int j = 0; j < fatJets.at(i).numberOfDaughters(); j++){
                     if(nPFcands == 300) break;
-                    const reco::Candidate* cand = fatJets->at(i).daughter(j);
-                    
+                    const reco::Candidate* cand = fatJets.at(i).daughter(j);
+                    std::cout << cand << std::endl;
+
                     if(cand->numberOfDaughters() == 0){
                         //Jet particle four momentum components
                         Pt[PF][nPFcands] = cand->pt();
@@ -599,6 +624,7 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                         ++nPFcands;
                     }
 
+  
                     else{
                         for(unsigned int k = 0; k < cand->numberOfDaughters(); k++){
                             if(nPFcands == 300) break;
@@ -624,7 +650,7 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
                     }
                 }
             
-                for(const reco::VertexCompositePtrCandidate& vtx: *secVtx){
+                for(const reco::VertexCompositePtrCandidate& vtx: secVtx){
                     if(BaseAnalyzer::DeltaR(vtx.p4().Eta(), vtx.p4().Phi(), Eta[AK8][nFatJets], Phi[AK8][nFatJets]) < 0.8){
                         //SV four momentum components
                         Pt[VTX][nVtx] = vtx.p4().Pt();
@@ -646,6 +672,8 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
    
             }
 
+            */
+
             ++nFatJets;
         }
     }
@@ -655,13 +683,13 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
         //JER smearing
         smearFac = 1., corrFac = 1.;
 
-        const float pt = isNANO ? jetPt->At(i) : jets->at(i).pt();
-        const float eta = isNANO ? jetEta->At(i) : jets->at(i).eta();
-        const float phi = isNANO ? jetPhi->At(i) : jets->at(i).phi();
-        const float mass = isNANO ? jetMass->At(i) : jets->at(i).mass();
+        const float pt = isNANO ? jetPt->At(i) : jets.at(i).pt();
+        const float eta = isNANO ? jetEta->At(i) : jets.at(i).eta();
+        const float phi = isNANO ? jetPhi->At(i) : jets.at(i).phi();
+        const float mass = isNANO ? jetMass->At(i) : jets.at(i).mass();
 
         //Define here already jet, because of smearing of 4-vec
-        corrFac = isNANO ? CorrectEnergy(pt, eta,  *jetRho->Get(), jetArea->At(i), AK4) : CorrectEnergy(pt, eta, *rho, jets->at(i).jetArea(), AK4);
+        corrFac = isNANO ? CorrectEnergy(pt, eta,  *jetRho->Get(), jetArea->At(i), AK4) : CorrectEnergy(pt, eta, rho, jets.at(i).jetArea(), AK4);
 
         //Get jet uncertainty
         if(jecUnc[AK4] !=  nullptr){
@@ -673,8 +701,12 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
 
         //Smear pt if not data
         if(!isData){
-            smearFac = isNANO ? SmearEnergy(corrFac*pt, eta, phi, *jetRho->Get(), jetArea->At(i), AK4) : SmearEnergy(corrFac*pt, eta, phi, *rho, 0.4, AK4, *genJets);
+            smearFac = isNANO ? SmearEnergy(corrFac*pt, eta, phi, *jetRho->Get(), jetArea->At(i), AK4) : SmearEnergy(corrFac*pt, eta, phi, rho, 0.4, AK4, genJets);
         }
+
+        //Correct met
+        metPx += pt*std::cos(phi) - smearFac*corrFac*pt*std::cos(phi);
+        metPy += pt*std::sin(phi) - smearFac*corrFac*pt*std::sin(phi);
    
         if(smearFac*corrFac*pt > ptCut and abs(eta) < etaCut){
             FatIdx = -1.;
@@ -690,12 +722,14 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
             int JetIdx;
 
             if(type == SUBAK4){
+                if(nSubJets >= std::size(Pt[SUBAK4])) break;
                 FatJetIdx[SUBAK4][nSubJets] = FatIdx;
                 JetIdx = nSubJets;
                 ++nSubJets;
             }
 
             else{
+                if(nJets >= std::size(Pt[AK4])) break;
                 JetIdx = nJets;
                 ++nJets;
             }
@@ -708,10 +742,6 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
             corrJEC[type][JetIdx] = corrFac;
             if(!isData) corrJER[type][JetIdx] = smearFac;
 
-            //Correct met
-            metPx += pt*std::cos(phi) - Pt[type][JetIdx]*std::cos(Phi[type][JetIdx]);
-            metPy += pt*std::sin(phi) - Pt[type][JetIdx]*std::sin(Phi[type][JetIdx]);
-
             //Check for btag
             CSVBValue = 0, DeepBValue = 0;
 
@@ -721,53 +751,63 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
 
             else{
                 for(std::string disc: {"pfDeepFlavourJetTags:probb", "pfDeepFlavourJetTags:probbb","pfDeepFlavourJetTags:problepb"}){
-                    DeepBValue +=  jets->at(i).bDiscriminator(disc);
+                    DeepBValue +=  jets.at(i).bDiscriminator(disc);
                 }
 
                 for(std::string disc: {"pfDeepCSVJetTags:probb", "pfDeepCSVJetTags:probbb"}){
-                    CSVBValue +=  jets->at(i).bDiscriminator(disc);
+                    CSVBValue +=  jets.at(i).bDiscriminator(disc);
                 }
             }
 
             CSVScore[type][JetIdx] = CSVBValue;
             DeepScore[type][JetIdx] = DeepBValue;
 
+            if(DeepBValue > DeepTight) bTagDeepID[type][JetIdx] = 3;
+            else if(DeepBValue > DeepMedium) bTagDeepID[type][JetIdx] = 2;
+            else if(DeepBValue > DeepLoose) bTagDeepID[type][JetIdx] = 1;
+            else bTagDeepID[type][JetIdx] = 0;
+
+            if(CSVBValue > CSVTight) bTagCSVID[type][JetIdx] = 3;
+            else if(CSVBValue > CSVMedium) bTagCSVID[type][JetIdx] = 2;
+            else if(CSVBValue > CSVLoose) bTagCSVID[type][JetIdx] = 1;
+            else bTagCSVID[type][JetIdx] = 0;
+
             //True Flavour of Jet
             if(!isData){
-                TrueFlavour[type][JetIdx] = isNANO ? jetFlavour->At(i) : jets->at(i).partonFlavour();
+                TrueFlavour[type][JetIdx] = isNANO ? jetFlavour->At(i) : jets.at(i).partonFlavour();
                 int flavour = abs(TrueFlavour[type][JetIdx]);
 
                 if(flavour == 5){
                     bTotal->Fill(pt, eta);
                 
-                    if(DeepBValue > DeepLoose[era]) bTagEffBLoose[0]->Fill(pt, eta);
-                    if(DeepBValue > DeepMedium[era]) bTagEffBMedium[0]->Fill(pt, eta);
-                    if(DeepBValue > DeepTight[era]) bTagEffBTight[0]->Fill(pt, eta);
-                    if(CSVBValue > CSVLoose[era]) bTagEffBLoose[1]->Fill(pt, eta);
-                    if(CSVBValue > CSVMedium[era]) bTagEffBMedium[1]->Fill(pt, eta);
-                    if(CSVBValue > CSVTight[era]) bTagEffBTight[1]->Fill(pt, eta);
+                    if(DeepBValue > DeepLoose) bTagEffBLoose[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepMedium) bTagEffBMedium[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepTight) bTagEffBTight[0]->Fill(pt, eta);
+                    if(CSVBValue > CSVLoose) bTagEffBLoose[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVMedium) bTagEffBMedium[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVTight) bTagEffBTight[1]->Fill(pt, eta);
                 }
 
                 else if(flavour == 4){
                     cTotal->Fill(pt, eta);
                     
-                    if(DeepBValue > DeepLoose[era]) bTagEffCLoose[0]->Fill(pt, eta);
-                    if(DeepBValue > DeepMedium[era]) bTagEffCMedium[0]->Fill(pt, eta);
-                    if(DeepBValue > DeepTight[era]) bTagEffCTight[0]->Fill(pt, eta);
-                    if(CSVBValue > CSVLoose[era]) bTagEffCLoose[1]->Fill(pt, eta);
-                    if(CSVBValue > CSVMedium[era]) bTagEffCMedium[1]->Fill(pt, eta);
-                    if(CSVBValue > CSVTight[era]) bTagEffCTight[1]->Fill(pt, eta);
+                    if(DeepBValue > DeepLoose) bTagEffCLoose[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepMedium) bTagEffCMedium[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepTight) bTagEffCTight[0]->Fill(pt, eta);
+                    if(CSVBValue > CSVLoose) bTagEffCLoose[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVMedium) bTagEffCMedium[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVTight) bTagEffCTight[1]->Fill(pt, eta);
                 }
 
                 else{
                     lightTotal->Fill(pt, eta);
                     
-                    if(DeepBValue > DeepLoose[era]) bTagEffLightLoose[0]->Fill(pt, eta);
-                    if(DeepBValue > DeepMedium[era]) bTagEffLightMedium[0]->Fill(pt, eta);
-                    if(DeepBValue > DeepTight[era]) bTagEffLightTight[0]->Fill(pt, eta);
-                    if(CSVBValue > CSVLoose[era]) bTagEffLightLoose[1]->Fill(pt, eta);
-                    if(CSVBValue > CSVMedium[era]) bTagEffLightMedium[1]->Fill(pt, eta);
-                    if(CSVBValue > CSVTight[era]) bTagEffLightTight[1]->Fill(pt, eta);
+                    if(DeepBValue > DeepLoose) bTagEffLightLoose[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepMedium) bTagEffLightMedium[0]->Fill(pt, eta);
+                    if(DeepBValue > DeepTight) bTagEffLightTight[0]->Fill(pt, eta);
+                    if(CSVBValue > CSVLoose) bTagEffLightLoose[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVMedium) bTagEffLightMedium[1]->Fill(pt, eta);
+                    if(CSVBValue > CSVTight) bTagEffLightTight[1]->Fill(pt, eta);
                 }
   
                 //btag SF
@@ -797,15 +837,24 @@ void JetAnalyzer::Analyze(std::vector<CutFlow> &cutflows, const edm::Event* even
 
                 if(isNANO) SetGenParticles(JetIdx, i, Pt[type][JetIdx], Eta[type][JetIdx], Phi[type][JetIdx], {5}, AK4);
                 else{
-                    event->getByToken(genParticleToken, genParts);
-                    SetGenParticles(JetIdx, i, Pt[type][JetIdx], Eta[type][JetIdx], Phi[type][JetIdx], {5}, AK4, *genParts);
+                    genParts = Token::GetTokenValue(event, tokens->genPartToken);
+                    SetGenParticles(JetIdx, i, Pt[type][JetIdx], Eta[type][JetIdx], Phi[type][JetIdx], {5}, AK4, genParts);
                 }
             }
         } 
     }
 
+    float deltaMetPxUp = MET.at(0).shiftedPx(pat::MET::METUncertainty::UnclusteredEnUp) - MET.at(0).corPx();
+    float deltaMetPxDown = MET.at(0).shiftedPx(pat::MET::METUncertainty::UnclusteredEnDown) - MET.at(0).corPx();
+    float deltaMetPyUp = MET.at(0).shiftedPy(pat::MET::METUncertainty::UnclusteredEnUp) - MET.at(0).corPy();
+    float deltaMetPyDown = MET.at(0).shiftedPy(pat::MET::METUncertainty::UnclusteredEnDown) - MET.at(0).corPy();
+
     metPT = std::sqrt(std::pow(metPx, 2) + std::pow(metPy, 2));
+    metPTUp = std::sqrt(std::pow(metPx + deltaMetPxUp, 2) + std::pow(metPy + deltaMetPyUp, 2));
+    metPTDown = std::sqrt(std::pow(metPx + deltaMetPxDown, 2) + std::pow(metPy + deltaMetPyDown, 2));
     metPHI = std::atan2(metPy, metPx);
+    metPHIUp = std::atan2(metPy + deltaMetPyUp, metPx + deltaMetPxUp);
+    metPHIDown = std::atan2(metPy + deltaMetPyDown, metPx + deltaMetPxDown);
 
     //Resort because of change PT order due to JEC
     std::vector<std::tuple<std::string, JetType, short>> jetInfo = {{"Jet", AK4, nJets}, {"SubJet", SUBAK4, nSubJets}, {"FatJet", AK8, nFatJets}};

@@ -9,12 +9,12 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include <FWCore/Framework/interface/Frameworkfwd.h>
-#include <FWCore/Framework/interface/one/EDAnalyzer.h>
 #include <FWCore/Framework/interface/Event.h>
-#include <FWCore/Framework/interface/MakerMacros.h>
 #include <FWCore/ParameterSet/interface/ParameterSet.h>
-#include <FWCore/Utilities/interface/InputTag.h>
+#include <FWCore/Framework/interface/MakerMacros.h>
+#include <FWCore/Framework/interface/one/EDAnalyzer.h>
+
+#include <ChargedSkimming/Skimming/interface/tokens.h>
 
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
 #include <ChargedSkimming/Skimming/interface/jetanalyzer.h>
@@ -30,12 +30,16 @@
 #include <TTree.h>
 #include <TH1F.h>
 
-class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
+namespace pt = boost::property_tree;
+
+class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
     public:
         explicit MiniSkimmer(const edm::ParameterSet&);
         ~MiniSkimmer();
 
     private:
+        friend class Token;
+
         //Measure execution time
         std::chrono::steady_clock::time_point start, end;
 
@@ -49,28 +53,12 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
         //Vector with wished analyzers for each systematic
         std::vector<std::vector<std::shared_ptr<BaseAnalyzer>>> analyzers;
 
-        //EDM tokens
-        jToken jetToken, fatjetToken; 
-        genjToken genjetToken, genfatjetToken; 
-        mToken metToken; 
-        eToken eleToken; 
-        muToken muonToken;
-        isoToken isoTrackToken;
-        trigToken triggerToken; 
-        puToken pileupToken;
-        genToken geninfoToken;
-        genPartToken genParticleToken;
-        edm::EDGetTokenT<double> rhoToken;
-        secvtxToken secVertexToken;
-        edm::EDGetTokenT<double> prefireToken, prefireTokenUp, prefireTokenDown;
-        wgtToken pdfToken, scaleToken;
-        lheToken lheTok;
-
         //Channel
+        std::shared_ptr<Token> tokens;
         std::vector<std::string> channels;
         float xSec;
         std::string outFile;
-        int era;
+        std::string era;
         bool isData;     
 
         //Number of analyzed events

@@ -2,29 +2,24 @@
 #define ELECTRONANALYZER_H
 
 #include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
+#include <ChargedSkimming/Skimming/interface/tokens.h>
 
 #include <DataFormats/PatCandidates/interface/Electron.h>
-
-typedef edm::EDGetTokenT<std::vector<pat::Electron>> eToken;
 
 class ElectronAnalyzer: public BaseAnalyzer {
     private:
         //Check if data
         bool isData;
 
-        //Hist with scale factors
-        TH2F* looseSFhist;
-        TH2F* mediumSFhist;
-        TH2F* tightSFhist;
-        TH2F* recoSFhist;
+        //Input
+        std::string era;
+        std::shared_ptr<Token> tokens;
 
         //Kinematic cut criteria
-        int era;
         float ptCut, etaCut;
 
-        //EDM Token for MINIAOD analysis
-        eToken eleToken;
-        genPartToken genParticleToken;
+        //Hist with scale factors
+        std::shared_ptr<TH2F> looseSFhist, mediumSFhist, tightSFhist, recoSFhist;
 
         //Name of the energy correction (dependent on systematic study)
         std::string energyCorrection;
@@ -44,10 +39,10 @@ class ElectronAnalyzer: public BaseAnalyzer {
         std::unique_ptr<TTreeReaderArray<int>> eleCharge, eleID;
 
     public:
-        ElectronAnalyzer(const int& era, const float& ptCut, const float& etaCut, eToken& eleToken, genPartToken& genParticleToken, const std::string& systematic="");
-        ElectronAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader& reader);
+        ElectronAnalyzer(const std::string& era, TTreeReader& reader);
+        ElectronAnalyzer(const std::string& era, const std::shared_ptr<Token>& tokens, std::string& systematic);
 
-        void BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst=false);
+        void BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf);
         void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };

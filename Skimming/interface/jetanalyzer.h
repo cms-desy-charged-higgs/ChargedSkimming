@@ -20,17 +20,16 @@
 
 #include <TH2F.h>
 
-typedef edm::EDGetTokenT<std::vector<pat::Jet>> jToken;
-typedef edm::EDGetTokenT<std::vector<reco::GenJet>> genjToken;
-typedef edm::EDGetTokenT<std::vector<pat::MET>> mToken;
-typedef edm::EDGetTokenT<std::vector<reco::VertexCompositePtrCandidate>> secvtxToken;
-
 class JetAnalyzer: public BaseAnalyzer{
     enum JetType {SUBAK4, AK4, AK8, PF, VTX};
 
     private:
         //Bool for checking if data file
         bool isData;
+
+        //Cut values
+        float ptCut, etaCut;
+        float CSVLoose, CSVMedium, CSVTight, DeepLoose, DeepMedium, DeepTight;
 
         //Map for SF files
         std::vector<std::string> JECMC, JECDATA;
@@ -42,10 +41,6 @@ class JetAnalyzer: public BaseAnalyzer{
         TH2F* bTotal;
         TH2F* cTotal; 
         TH2F* lightTotal;
-
-        //Cut values for btag disc.
-        std::map<int, float> CSVLoose, CSVMedium, CSVTight;
-        std::map<int, float> DeepLoose, DeepMedium, DeepTight;
 
         //Classes for reading jet energy SF 
         JME::JetParameters jetParameter;
@@ -59,16 +54,8 @@ class JetAnalyzer: public BaseAnalyzer{
         bool isJERsyst = false;
 
         //Input for selecting jets
-        int era;
-        float ptCut, etaCut;
-
-        //EDM Token for MINIAOD analysis
-        std::vector<jToken> jetTokens;
-        std::vector<genjToken> genjetTokens;
-        mToken metToken;
-        edm::EDGetTokenT<double> rhoToken;
-        genPartToken genParticleToken;
-        secvtxToken vertexToken;
+        std::string era;
+        std::shared_ptr<Token> tokens;
 
         //TTreeReader Values for NANO AOD analysis
         std::unique_ptr<TTreeReaderArray<float>> fatJetPt, fatJetEta, fatJetPhi, fatJetMass, fatJetArea, fatJetCSV;
@@ -83,7 +70,7 @@ class JetAnalyzer: public BaseAnalyzer{
         std::unique_ptr<TTreeReaderValue<float>> metPhi, metPt, jetRho;
 
         //Parameter for HT
-        float metPT, metPHI;
+        float metPT, metPHI, metPTUp, metPTDown, metPHIUp, metPHIDown;
         int runNumber;
 
         //Vector with output varirables of the output tree
@@ -92,7 +79,7 @@ class JetAnalyzer: public BaseAnalyzer{
 
         std::map<JetType, float[300]> Pt, Eta, Phi, Mass, Vx, Vy, Vz, DeepAK8Higgs, DeepAK8Top, DeepAK8W, DeepAK8DY, DeepAK8QCD, Njettiness1, Njettiness2, Njettiness3, looseCSVbTagSF, looseCSVbTagSFUp, looseCSVbTagSFDown, mediumCSVbTagSF, mediumCSVbTagSFUp, mediumCSVbTagSFDown, tightCSVbTagSF, tightCSVbTagSFUp, tightCSVbTagSFDown, looseDeepbTagSF, looseDeepbTagSFUp, looseDeepbTagSFDown, mediumDeepbTagSF, mediumDeepbTagSFUp, mediumDeepbTagSFDown, tightDeepbTagSF, tightDeepbTagSFUp, tightDeepbTagSFDown, DeepScore, CSVScore, corrJEC, corrJER;
 
-        std::map<JetType, short[300]> TrueFlavour, Charge, FatJetIdx, partID, mothID, grandID;
+        std::map<JetType, short[300]> TrueFlavour, Charge, FatJetIdx, partID, mothID, grandID, bTagCSVID, bTagDeepID, DeepAK8Class;
 
         short nJets, nSubJets, nFatJets, nVtx, nPFcands;
 
@@ -112,10 +99,10 @@ class JetAnalyzer: public BaseAnalyzer{
         void SetGenParticles(const int& currentSize, const int& i, const float& pt, const float& eta, const float& phi, const std::vector<int>& pdgID, const JetType &type, const std::vector<reco::GenParticle>& genParticle = {});
 
     public:
-        JetAnalyzer(const int& era, const float& ptCut, const float& etaCut, TTreeReader& reader);
-        JetAnalyzer(const int& era, const float& ptCut, const float& etaCut, std::vector<jToken>& jetTokens, std::vector<genjToken>& genjetTokens, mToken &metToken, edm::EDGetTokenT<double>& rhoToken, genPartToken& genParticleToken, secvtxToken& vertexToken, const std::string& systematic = "");
+        JetAnalyzer(const std::string& era, TTreeReader& reader);
+        JetAnalyzer(const std::string& era, const std::shared_ptr<Token>& tokens, const std::string& systematic = "");
 
-        void BeginJob(std::vector<TTree*>& trees, bool& isData, const bool& isSyst=false);
+        void BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf);
         void Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event);
         void EndJob(TFile* file);
 };

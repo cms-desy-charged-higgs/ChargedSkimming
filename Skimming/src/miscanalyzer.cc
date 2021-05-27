@@ -1,17 +1,17 @@
 #include <ChargedSkimming/Skimming/interface/miscanalyzer.h>
 
-MiscAnalyzer::MiscAnalyzer(const int& era, const float& etaCut, isoToken& isoTrackToken, lheToken& lheTok):
+MiscAnalyzer::MiscAnalyzer(const std::string& era, const std::shared_ptr<Token>& tokens):
     BaseAnalyzer(), 
     era(era),
-    etaCut(etaCut),
-    isoTrackToken(isoTrackToken),
-    lheTok(lheTok)
+    tokens(tokens)
     {}
 
-void MiscAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool& isSyst){
+void MiscAnalyzer::BeginJob(std::vector<TTree*>& trees, pt::ptree& skim, pt::ptree& sf){
     //Set data bool
-    this->isData = isData;
-    this->isSyst = isSyst;
+    this->isData = skim.get<bool>("isData");
+    this->isSyst = skim.get<bool>("isSyst");
+
+    etaCut = skim.get<float>("Analyzer.IsoTrack.eta." + era);
 
     //Variable name mapping to branch name
     floatVar = {
@@ -46,8 +46,8 @@ void MiscAnalyzer::BeginJob(std::vector<TTree*>& trees, bool &isData, const bool
 }
 
 int MiscAnalyzer::GetNParton(const edm::Event* event){
-    edm::Handle<LHEEventProduct> lheEventProduct;  
-    event->getByToken(lheTok, lheEventProduct);
+    edm::Handle<LHEEventProduct> lheEventProduct;
+    event->getByToken(tokens->lheToken, lheEventProduct);
     const lhef::HEPEUP& lheEvent = lheEventProduct->hepeup();
     
     size_t nOutgoing = 0;
@@ -66,42 +66,45 @@ int MiscAnalyzer::GetNParton(const edm::Event* event){
 
 void MiscAnalyzer::Analyze(std::vector<CutFlow>& cutflows, const edm::Event* event){
     //Get Event info is using MINIAOD
-    edm::Handle<std::vector<pat::IsolatedTrack>> isoTracks;
+    std::vector<pat::IsolatedTrack> isoTracks;
 
     if(!isNANO){
-        event->getByToken(isoTrackToken, isoTracks);
+        isoTracks = Token::GetTokenValue(event, tokens->isoTrackToken);
     }
 
-    const short& isoTrackSize = isNANO ? 0 : isoTracks->size();
+    const short& isoTrackSize = isNANO ? 0 : isoTracks.size();
     nTracks = 0, nParton = 0;
 
     //Loop over all electrons
-    for(int i = 0; i < isoTrackSize; i++){
-        const float& pt = isNANO ? 0 : isoTracks->at(i).pt();
-        const float& eta = isNANO ? 0 : isoTracks->at(i).eta();
-        const float& phi = isNANO ? 0 : isoTracks->at(i).phi();
+    for(int i = 0; i < isoTrackSize; ++i){
+        if(nTracks >= std::size(Pt)) break;
 
-        if(abs(eta) < etaCut and pt > 20 and abs(isoTracks->at(i).dz()) < 0.1 and isoTracks->at(i).fromPV() > 1){
-            float iso = (isoTracks->at(i).pfIsolationDR03().chargedHadronIso() + std::max({isoTracks->at(i).pfIsolationDR03().neutralHadronIso() + isoTracks->at(i).pfIsolationDR03().photonIso() - isoTracks->at(i).pfIsolationDR03().puChargedHadronIso()/2., 0.}))/pt;
+        const float& pt = isNANO ? 0 : isoTracks.at(i).pt();
+        const float& eta = isNANO ? 0 : isoTracks.at(i).eta();
+        const float& phi = isNANO ? 0 : isoTracks.at(i).phi();
+
+        if(abs(eta) < etaCut and pt > 20 and abs(isoTracks.at(i).dz()) < 0.1 and isoTracks.at(i).fromPV() > 1){
+            float iso = (isoTracks.at(i).pfIsolationDR03().chargedHadronIso() + std::max({isoTracks.at(i).pfIsolationDR03().neutralHadronIso() + isoTracks.at(i).pfIsolationDR03().photonIso() - isoTracks.at(i).pfIsolationDR03().puChargedHadronIso()/2., 0.}))/pt;
 
             Pt[nTracks] = pt;
             Eta[nTracks] = eta;
             Phi[nTracks] = phi;
+
             Isolation[nTracks] = iso;
-            Dxy[nTracks] = isoTracks->at(i).dxy();
-            Dz[nTracks] = isoTracks->at(i).dz();
+            Dxy[nTracks] = isoTracks.at(i).dxy();
+            Dz[nTracks] = isoTracks.at(i).dz();
 
             //Charge
-            Charge[nTracks] = isNANO ? 0 : isoTracks->at(i).charge();
-            PDG[nTracks] = isNANO ? 0 : isoTracks->at(i).pdgId();
-            FromPV[nTracks] = isNANO ? 0 : isoTracks->at(i).fromPV();
+            Charge[nTracks] = isNANO ? 0 : isoTracks.at(i).charge();
+            PDG[nTracks] = isNANO ? 0 : isoTracks.at(i).pdgId();
+            FromPV[nTracks] = isNANO ? 0 : isoTracks.at(i).fromPV();
 
             ++nTracks;
         }
     }
 
     //Get Number of true partons
-    if(!isData and event){
+    if(!isData and event and !Token::GetTokenValue(event, tokens->scaleToken).empty()){
         nParton = GetNParton(event);
     }
 }
