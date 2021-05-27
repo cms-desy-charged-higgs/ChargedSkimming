@@ -23,7 +23,7 @@ int main(int argc, char* argv[]){
     std::vector<std::string> channels = SplitString(std::string(argv[3]), " ");
     float xSec = std::stof(std::string(argv[4]));
     std::string outName = std::string(argv[5]);
-    int era = std::stoi(argv[6]);   
+    std::string era = argv[6];   
 
     NanoSkimmer skimmer(fileName, outName, channels, xSec, era, isData);
     skimmer.EventLoop();
