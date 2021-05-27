@@ -226,7 +226,7 @@ def main():
     args = parser()
 
     ##Txt with dataset names
-    processes = ["sig"]
+    processes = ["bkg", "data", "sig"]
     systematics = ["", "energyScale", "energySigma", "JECTotal", "JER"]
 
     ##Create with each dataset a crab config
@@ -236,12 +236,16 @@ def main():
         crabConfigs[era] = {}
 
         for process in processes:
-            filePath = "{}/src/ChargedSkimming/Skimming/data/filelists/{}/filelist_{}_MINI.yaml".format(os.environ["CMSSW_BASE"], era, process)
+            filePath = "{}/src/ChargedSkimming/Skimming/data/filelists/{}/UL/filelist_{}_MINI.yaml".format(os.environ["CMSSW_BASE"], era, process)
 
             with open(filePath) as f:
                 datasets = yaml.load(f, Loader=yaml.Loader)
 
                 for dataset in datasets:
+                    if "Not found" in dataset:
+                        print("Care that '{}' has no dataset and will not be used!".format(dataset.split(":")[1]))
+                        continue
+
                     if "SIM" in dataset or "HPlus" in dataset:
                         name = dataset.split("/")[1]
 
