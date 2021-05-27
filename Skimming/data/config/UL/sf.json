@@ -1,0 +1,165 @@
+{
+    "Jet": {
+        "JEC": {
+            "MC": {
+                "2016": [
+                    "/JEC/2016/ReReco/ReReco/Summer16_07Aug2017_V11_MC_L1FastJet_&PFchs.txt",
+                    "/JEC/2016/ReReco/ReReco/Summer16_07Aug2017_V11_MC_L2Relative_&PFchs.txt",
+                    "/JEC/2016/ReReco/ReReco/Summer16_07Aug2017_V11_MC_L3Absolute_&PFchs.txt"
+                ],
+
+                "2017": [
+                    "/JEC/2017/UL/Summer19UL17_V5_MC_L1FastJet_&PFchs.txt",
+                    "/JEC/2017/UL/Summer19UL17_V5_MC_L2Relative_&PFchs.txt",
+                    "/JEC/2017/UL/Summer19UL17_V5_MC_L3Absolute_&PFchs.txt"
+                ],
+
+                "2018": [
+                    "/JEC/2018/UL/Summer19UL18_V5_MC_L1FastJet_&PFchs.txt",
+                    "/JEC/2018/UL/Summer19UL18_V5_MC_L2Relative_&PFchs.txt",
+                    "/JEC/2018/UL/Summer19UL18_V5_MC_L3Absolute_&PFchs.txt"
+                ]
+            },
+        
+            "DATA": {
+                "2016": [
+                    "/JEC/2016/ReReco/Summer16_07Aug2017@_V11_DATA_L1FastJet_&PFchs.txt",
+                    "/JEC/2016/ReReco/Summer16_07Aug2017@_V11_DATA_L2Relative_&PFchs.txt",
+                    "/JEC/2016/ReReco/Summer16_07Aug2017@_V11_DATA_L3Absolute_&PFchs.txt",
+                    "/JEC/2016/ReReco/Summer16_07Aug2017@_V11_DATA_L2L3Residual_&PFchs.txt"
+                ],
+
+                "2017": [
+                    "/JEC/2017/UL/Summer19UL17_Run@_V5_DATA_L1FastJet_&PFchs.txt",
+                    "/JEC/2017/UL/Summer19UL17_Run@_V5_DATA_L2Relative_&PFchs.txt",
+                    "/JEC/2017/UL/Summer19UL17_Run@_V5_DATA_L3Absolute_&PFchs.txt",
+                    "/JEC/2017/UL/Summer19UL17_Run@_V5_DATA_L2L3Residual_&PFchs.txt"
+                ],
+
+                "2018": [
+                    "/JEC/2018/UL/Summer19UL18_Run@_V5_DATA_L1FastJet_&PFchs.txt",
+                    "/JEC/2018/UL/Summer19UL18_Run@_V5_DATA_L2Relative_&PFchs.txt",
+                    "/JEC/2018/UL/Summer19UL18_Run@_V5_DATA_L3Absolute_&PFchs.txt",
+                    "/JEC/2018/UL/Summer19UL18_Run@_V5_DATA_L2L3Residual_&PFchs.txt"
+                ]
+            }
+        },
+
+        "JECUNC": {
+            "2016": "/JEC/2016/ReReco/Summer16_07Aug2017_V11_MC_UncertaintySources_&PFchs.txt",
+            "2017": "/JEC/2017/UL/Summer19UL17_V5_MC_UncertaintySources_&PFchs.txt",
+            "2018": "/JEC/2018/UL/Summer19UL18_V5_MC_UncertaintySources_&PFchs.txt"
+        },
+
+        "JME": {
+            "2016": "/JME/2016/ReReco/Summer16_25nsV1b_MC_SF_&PFchs.txt",   
+            "2017": "/JME/2017/UL/Summer19UL17_JRV2_MC_SF_&PFchs.txt",   
+            "2018": "/JME/2018/UL/Summer19UL18_JRV2_MC_SF_&PFchs.txt"     
+        },
+
+        "JMEPtReso": {
+            "2016": "/JME/2016/ReReco/Summer16_25nsV1b_MC_PtResolution_&PFchs.txt",    
+            "2017": "/JME/2017/UL/Summer19UL17_JRV2_MC_PtResolution_&PFchs.txt",    
+            "2018": "/JME/2018/UL/Summer19UL18_JRV2_MC_PtResolution_&PFchs.txt"     
+        },
+
+        "BTag": {
+            "DeepJet": {
+                "2016": "/btagSF/2016/ReReco/DeepJet_2016LegacySF_V1.csv",
+                "2017": "/btagSF/2017/UL/DeepJet_106XUL17SF_WPonly.csv",
+                "2018": "/btagSF/2018/UL/DeepJet_106XUL18SF_WPonly.csv"
+            },
+
+            "CSV": {
+                "2016": "/btagSF/2016/ReReco/DeepCSV_2016LegacySF_V1.csv",
+                "2017": "/btagSF/2017/UL/DeepCSV_106XUL17SF_WPonly.csv",
+                "2018": "/btagSF/2018/UL/DeepCSV_106XUL18SF_WPonly.csv"
+            }
+        }
+    },
+
+    "Electron": {
+        "ID": {
+            "Loose": {
+                "2016Pre": "/eleSF/2016/UL/egammaEffi.txt_Ele_Loose_preVFP_EGM2D.root", 
+                "2016Post": "/eleSF/2016/UL/egammaEffi.txt_Ele_Loose_postVFP_EGM2D.root", 
+                "2017": "/eleSF/2017/UL/egammaEffi.txt_EGM2D_Loose_UL17.root", 
+                "2018": "/eleSF/2018/UL/egammaEffi.txt_Ele_Loose_EGM2D.root"
+            },
+
+            "Medium": {
+                "2016Pre": "/eleSF/2016/UL/egammaEffi.txt_Ele_Medium_preVFP_EGM2D.root", 
+                "2016Post": "/eleSF/2016/UL/egammaEffi.txt_Ele_Medium_postVFP_EGM2D.root", 
+                "2017": "/eleSF/2017/UL/egammaEffi.txt_EGM2D_Medium_UL17.root", 
+                "2018": "/eleSF/2018/UL/egammaEffi.txt_Ele_Medium_EGM2D.root"
+            },
+
+            "Tight": {
+                "2016Pre": "/eleSF/2016/UL/egammaEffi.txt_Ele_Tight_preVFP_EGM2D.root", 
+                "2016Post": "/eleSF/2016/UL/egammaEffi.txt_Ele_Tight_postVFP_EGM2D.root", 
+                "2017": "/eleSF/2017/UL/egammaEffi.txt_EGM2D_Tight_UL17.root", 
+                "2018": "/eleSF/2018/UL/egammaEffi.txt_Ele_Tight_EGM2D.root"
+            } 
+        },
+
+        "Reco": {
+            "2016Pre": "/eleSF/2016/UL/egammaEffi_ptAbove20.txt_EGM2D_UL2016preVFP.root", 
+            "2016Pre": "/eleSF/2016/UL/egammaEffi_ptAbove20.txt_EGM2D_UL2016postVFP.root", 
+            "2017": "/eleSF/2017/UL/egammaEffi_ptAbove20.txt_EGM2D_UL2017.root",    
+            "2018": "/eleSF/2018/UL/egammaEffi_ptAbove20.txt_EGM2D_UL2018.root"
+        }
+    },
+
+    "Muon": {
+        "ID": {
+            "File": {
+                "2016Pre": "/muonSF/2016/UL/Efficiencies_muon_generalTracks_Z_Run2016_UL_HIPM_ID.root",
+                "2016Post": "/muonSF/2016/UL/Efficiencies_muon_generalTracks_Z_Run2016_UL_ID.root",
+                "2017": "/muonSF/2017/UL/Efficiencies_muon_generalTracks_Z_Run2017_UL_ID.root",
+                "2018": "/muonSF/2018/UL/Efficiencies_muon_generalTracks_Z_Run2018_UL_ID.root"   
+            },
+
+            "Histogram": {  
+                "Loose": {
+                    "2016": "NUM_LooseID_DEN_TrackerMuons_abseta_pt",
+                    "2017": "NUM_LooseID_DEN_TrackerMuons_abseta_pt",
+                    "2018": "NUM_LooseID_DEN_TrackerMuons_abseta_pt" 
+                }, 
+
+                "Medium": {
+                    "2016": "NUM_MediumID_DEN_TrackerMuons_abseta_pt",
+                    "2017": "NUM_MediumID_DEN_TrackerMuons_abseta_pt",
+                    "2018": "NUM_MediumID_DEN_TrackerMuons_abseta_pt" 
+                },
+
+                "Tight": {
+                    "2016": "NUM_TightID_DEN_TrackerMuons_abseta_pt",
+                    "2017": "NUM_TightID_DEN_TrackerMuons_abseta_pt",
+                    "2018": "NUM_TightID_DEN_TrackerMuons_abseta_pt" 
+                }
+            }
+        }, 
+
+        "Isolation": {
+            "2016Pre": "/muonSF/2016/UL/Efficiencies_muon_generalTracks_Z_Run2016_UL_HIPM_ISO.root",
+            "2016Post": "/muonSF/2016/UL/Efficiencies_muon_generalTracks_Z_Run2016_UL_ISO.root",
+            "2017": "/muonSF/2017/UL/Efficiencies_muon_generalTracks_Z_Run2017_UL_ISO.root",
+            "2018": "/muonSF/2018/UL/Efficiencies_muon_generalTracks_Z_Run2018_UL_ISO.root"
+        },
+
+        "Trigger": {
+            "File": {
+                "2016Pre": "/muonSF/2016/UL/Efficiencies_muon_generalTracks_Z_Run2016_UL_HIPM_SingleMuonTriggers.root",
+                "2016Post": "/muonSF/2016/UL/Efficiencies_muon_generalTracks_Z_Run2016_UL_SingleMuonTriggers.root",
+                "2017": "/muonSF/2017/UL/Efficiencies_muon_generalTracks_Z_Run2017_UL_SingleMuonTriggers.root",
+                "2018": "/muonSF/2018/UL/Efficiencies_muon_generalTracks_Z_Run2018_UL_SingleMuonTriggers.root"
+            }, 
+
+            "Histogram": {
+                "2016": "NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight_abseta_pt",
+                "2017": "NUM_IsoMu27_DEN_CutBasedIdTight_and_PFIsoTight_abseta_pt",
+                "2018": "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight_abseta_pt"
+            }
+        }
+    }
+}

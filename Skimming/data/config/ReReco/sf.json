@@ -3,77 +3,77 @@
         "JEC": {
             "MC": {
                 "2016": [
-                    "/JEC/2016/Summer16_07Aug2017_V11_MC_L1FastJet_&PFchs.txt",
-                    "/JEC/2016/Summer16_07Aug2017_V11_MC_L2Relative_&PFchs.txt",
-                    "/JEC/2016/Summer16_07Aug2017_V11_MC_L3Absolute_&PFchs.txt"
+                    "/JEC/2016/ReReco/ReReco/Summer16_07Aug2017_V11_MC_L1FastJet_&PFchs.txt",
+                    "/JEC/2016/ReReco/ReReco/Summer16_07Aug2017_V11_MC_L2Relative_&PFchs.txt",
+                    "/JEC/2016/ReReco/ReReco/Summer16_07Aug2017_V11_MC_L3Absolute_&PFchs.txt"
                 ],
 
                 "2017": [
-                    "/JEC/2017/Fall17_17Nov2017_V32_MC_L1FastJet_&PFchs.txt",
-                    "/JEC/2017/Fall17_17Nov2017_V32_MC_L2Relative_&PFchs.txt",
-                    "/JEC/2017/Fall17_17Nov2017_V32_MC_L3Absolute_&PFchs.txt"
+                    "/JEC/2017/ReReco/Fall17_17Nov2017_V32_MC_L1FastJet_&PFchs.txt",
+                    "/JEC/2017/ReReco/Fall17_17Nov2017_V32_MC_L2Relative_&PFchs.txt",
+                    "/JEC/2017/ReReco/Fall17_17Nov2017_V32_MC_L3Absolute_&PFchs.txt"
                 ],
 
                 "2018": [
-                    "/JEC/2018/Autumn18_V19_MC_L1FastJet_&PFchs.txt",
-                    "/JEC/2018/Autumn18_V19_MC_L2Relative_&PFchs.txt",
-                    "/JEC/2018/Autumn18_V19_MC_L3Absolute_&PFchs.txt"
+                    "/JEC/2018/ReReco/Autumn18_V19_MC_L1FastJet_&PFchs.txt",
+                    "/JEC/2018/ReReco/Autumn18_V19_MC_L2Relative_&PFchs.txt",
+                    "/JEC/2018/ReReco/Autumn18_V19_MC_L3Absolute_&PFchs.txt"
                 ]
             },
         
             "DATA": {
                 "2016": [
-                    "/JEC/2016/Summer16_07Aug2017@_V11_DATA_L1FastJet_&PFchs.txt",
-                    "/JEC/2016/Summer16_07Aug2017@_V11_DATA_L2Relative_&PFchs.txt",
-                    "/JEC/2016/Summer16_07Aug2017@_V11_DATA_L3Absolute_&PFchs.txt",
-                    "/JEC/2016/Summer16_07Aug2017@_V11_DATA_L2L3Residual_&PFchs.txt"
+                    "/JEC/2016/ReReco/Summer16_07Aug2017@_V11_DATA_L1FastJet_&PFchs.txt",
+                    "/JEC/2016/ReReco/Summer16_07Aug2017@_V11_DATA_L2Relative_&PFchs.txt",
+                    "/JEC/2016/ReReco/Summer16_07Aug2017@_V11_DATA_L3Absolute_&PFchs.txt",
+                    "/JEC/2016/ReReco/Summer16_07Aug2017@_V11_DATA_L2L3Residual_&PFchs.txt"
                 ],
 
                 "2017": [
-                    "/JEC/2017/Fall17_17Nov2017@_V32_DATA_L1FastJet_&PFchs.txt",
-                    "/JEC/2017/Fall17_17Nov2017@_V32_DATA_L2Relative_&PFchs.txt",
-                    "/JEC/2017/Fall17_17Nov2017@_V32_DATA_L3Absolute_&PFchs.txt",
-                    "/JEC/2017/Fall17_17Nov2017@_V32_DATA_L2L3Residual_&PFchs.txt"
+                    "/JEC/2017/ReReco/Fall17_17Nov2017@_V32_DATA_L1FastJet_&PFchs.txt",
+                    "/JEC/2017/ReReco/Fall17_17Nov2017@_V32_DATA_L2Relative_&PFchs.txt",
+                    "/JEC/2017/ReReco/Fall17_17Nov2017@_V32_DATA_L3Absolute_&PFchs.txt",
+                    "/JEC/2017/ReReco/Fall17_17Nov2017@_V32_DATA_L2L3Residual_&PFchs.txt"
                 ],
 
                 "2018": [
-                    "/JEC/2018/Autumn18_Run@_V19_DATA_L1FastJet_&PFchs.txt",
-                    "/JEC/2018/Autumn18_Run@_V19_DATA_L2Relative_&PFchs.txt",
-                    "/JEC/2018/Autumn18_Run@_V19_DATA_L3Absolute_&PFchs.txt",
-                    "/JEC/2018/Autumn18_Run@_V19_DATA_L2L3Residual_&PFchs.txt"
+                    "/JEC/2018/ReReco/Autumn18_Run@_V19_DATA_L1FastJet_&PFchs.txt",
+                    "/JEC/2018/ReReco/Autumn18_Run@_V19_DATA_L2Relative_&PFchs.txt",
+                    "/JEC/2018/ReReco/Autumn18_Run@_V19_DATA_L3Absolute_&PFchs.txt",
+                    "/JEC/2018/ReReco/Autumn18_Run@_V19_DATA_L2L3Residual_&PFchs.txt"
                 ]
             }
         },
 
         "JECUNC": {
-            "2016": "/JEC/2016/Summer16_07Aug2017_V11_MC_UncertaintySources_&PFchs.txt",
-            "2017": "/JEC/2017/Fall17_17Nov2017_V32_MC_UncertaintySources_&PFchs.txt",
-            "2018": "/JEC/2018/Autumn18_V19_MC_UncertaintySources_&PFchs.txt"
+            "2016": "/JEC/2016/ReReco/Summer16_07Aug2017_V11_MC_UncertaintySources_&PFchs.txt",
+            "2017": "/JEC/2017/ReReco/Fall17_17Nov2017_V32_MC_UncertaintySources_&PFchs.txt",
+            "2018": "/JEC/2018/ReReco/Autumn18_V19_MC_UncertaintySources_&PFchs.txt"
         },
 
         "JME": {
-            "2016": "/JME/2016/Summer16_25nsV1b_MC_SF_&PFchs.txt",   
-            "2017": "/JME/2017/Fall17_V3_MC_SF_&PFchs.txt",   
-            "2018": "/JME/2018/Autumn18_V7b_MC_SF_&PFchs.txt"     
+            "2016": "/JME/2016/ReReco/Summer16_25nsV1b_MC_SF_&PFchs.txt",   
+            "2017": "/JME/2017/ReReco/Fall17_V3_MC_SF_&PFchs.txt",   
+            "2018": "/JME/2018/ReReco/Autumn18_V7b_MC_SF_&PFchs.txt"     
         },
 
         "JMEPtReso": {
-            "2016": "/JME/2016/Summer16_25nsV1b_MC_PtResolution_&PFchs.txt",    
-            "2017": "/JME/2017/Fall17_V3_MC_PtResolution_&PFchs.txt",    
-            "2018": "/JME/2018/Autumn18_V7b_MC_PtResolution_&PFchs.txt"     
+            "2016": "/JME/2016/ReReco/Summer16_25nsV1b_MC_PtResolution_&PFchs.txt",    
+            "2017": "/JME/2017/ReReco/Fall17_V3_MC_PtResolution_&PFchs.txt",    
+            "2018": "/JME/2018/ReReco/Autumn18_V7b_MC_PtResolution_&PFchs.txt"     
         },
 
         "BTag": {
             "DeepJet": {
-                "2016": "/btagSF/2016/DeepJet_2016LegacySF_V1.csv",
-                "2017": "/btagSF/2017/DeepFlavour_94XSF_V4_B_F.csv",
-                "2018": "/btagSF/2018/DeepJet_102XSF_V2.csv"
+                "2016": "/btagSF/2016/ReReco/DeepJet_2016LegacySF_V1.csv",
+                "2017": "/btagSF/2017/ReReco/DeepFlavour_94XSF_V4_B_F.csv",
+                "2018": "/btagSF/2018/ReReco/DeepJet_102XSF_V2.csv"
             },
 
             "CSV": {
-                "2016": "/btagSF/2016/DeepCSV_2016LegacySF_V1.csv",
-                "2017": "/btagSF/2017/DeepCSV_94XSF_V5_B_F.csv",
-                "2018": "/btagSF/2018/DeepCSV_102XSF_V2.csv"
+                "2016": "/btagSF/2016/ReReco/DeepCSV_2016LegacySF_V1.csv",
+                "2017": "/btagSF/2017/ReReco/DeepCSV_94XSF_V5_B_F.csv",
+                "2018": "/btagSF/2018/ReReco/DeepCSV_102XSF_V2.csv"
             }
         }
     },
@@ -81,37 +81,37 @@
     "Electron": {
         "ID": {
             "Loose": {
-                "2016": "/eleSF/2016/2016LegacyReReco_ElectronLoose_Fall17V2.root", 
-                "2017": "/eleSF/2017/2017_ElectronLoose.root", 
-                "2018": "/eleSF/2018/2018_ElectronLoose.root"
+                "2016": "/eleSF/2016/ReReco/2016LegacyReReco_ElectronLoose_Fall17V2.root", 
+                "2017": "/eleSF/2017/ReReco/2017_ElectronLoose.root", 
+                "2018": "/eleSF/2018/ReReco/2018_ElectronLoose.root"
             },
 
             "Medium": {
-                "2016": "/eleSF/2016/2016LegacyReReco_ElectronMedium_Fall17V2.root", 
-                "2017": "/eleSF/2017/2017_ElectronMedium.root", 
-                "2018": "/eleSF/2018/2018_ElectronMedium.root"
+                "2016": "/eleSF/2016/ReReco/2016LegacyReReco_ElectronMedium_Fall17V2.root", 
+                "2017": "/eleSF/2017/ReReco/2017_ElectronMedium.root", 
+                "2018": "/eleSF/2018/ReReco/2018_ElectronMedium.root"
             },
 
             "Tight": {
-                "2016": "/eleSF/2016/2016LegacyReReco_ElectronTight_Fall17V2.root", 
-                "2017": "/eleSF/2017/2017_ElectronTight.root", 
-                "2018": "/eleSF/2018/2018_ElectronTight.root"
+                "2016": "/eleSF/2016/ReReco/2016LegacyReReco_ElectronTight_Fall17V2.root", 
+                "2017": "/eleSF/2017/ReReco/2017_ElectronTight.root", 
+                "2018": "/eleSF/2018/ReReco/2018_ElectronTight.root"
             } 
         },
 
         "Reco": {
-            "2016": "eleSF/2016/EGM2D_BtoH_GT20GeV_RecoSF_Legacy2016.root", 
-            "2017": "eleSF/2017/egammaEffi.txt_EGM2D_runBCDEF_passingRECO.root",    
-            "2018": "eleSF/2018/egammaEffi.txt_EGM2D_updatedAll.root"
+            "2016": "eleSF/2016/ReReco/EGM2D_BtoH_GT20GeV_RecoSF_Legacy2016.root", 
+            "2017": "eleSF/2017/ReReco/egammaEffi.txt_EGM2D_runBCDEF_passingRECO.root",    
+            "2018": "eleSF/2018/ReReco/egammaEffi.txt_EGM2D_updatedAll.root"
         }
     },
 
     "Muon": {
         "ID": {
             "File": {
-                "2016": "/muonSF/2016/RunBCDEFGH_SF_ID.root",
-                "2017": "/muonSF/2017/RunBCDEF_SF_ID.root",
-                "2018": "/muonSF/2018/RunABCD_SF_ID.root"   
+                "2016": "/muonSF/2016/ReReco/RunBCDEFGH_SF_ID.root",
+                "2017": "/muonSF/2017/ReReco/RunBCDEF_SF_ID.root",
+                "2018": "/muonSF/2018/ReReco/RunABCD_SF_ID.root"   
             },
 
             "Histogram": {  
@@ -136,16 +136,16 @@
         }, 
 
         "Isolation": {
-            "2016": "/muonSF/2016/RunBCDEFGH_SF_ISO.root",
-            "2017": "/muonSF/2017/RunBCDEF_SF_ISO.root",
-            "2018": "/muonSF/2018/RunABCD_SF_ISO.root"
+            "2016": "/muonSF/2016/ReReco/RunBCDEFGH_SF_ISO.root",
+            "2017": "/muonSF/2017/ReReco/RunBCDEF_SF_ISO.root",
+            "2018": "/muonSF/2018/ReReco/RunABCD_SF_ISO.root"
         },
 
         "Trigger": {
             "File": {
-                "2016": "/muonSF/2016/EfficienciesAndSF_RunBtoH.root",
-                "2017": "/muonSF/2017/EfficienciesAndSF_RunBtoF_Nov17Nov2017.root",
-                "2018": "/muonSF/2018/EfficienciesAndSF_2018Data_AfterMuonHLTUpdate.root"
+                "2016": "/muonSF/2016/ReReco/EfficienciesAndSF_RunBtoH.root",
+                "2017": "/muonSF/2017/ReReco/EfficienciesAndSF_RunBtoF_Nov17Nov2017.root",
+                "2018": "/muonSF/2018/ReReco/EfficienciesAndSF_2018Data_AfterMuonHLTUpdate.root"
             }, 
 
             "Histogram": {
