@@ -23,7 +23,7 @@ class NanoSkimmer{
         std::string outFile;
         std::vector<std::string> channels;
         float xSec;
-        int era;
+        std::string era;
         bool isData;    
 
         int nEvents = 0; 
@@ -47,7 +47,7 @@ class NanoSkimmer{
 
     public:
         NanoSkimmer();
-        NanoSkimmer(const std::string &inFile, const std::string &outFile, const std::vector<std::string>& channels, const float& xSec, const int& era, const bool &isData);
+        NanoSkimmer(const std::string &inFile, const std::string &outFile, const std::vector<std::string>& channels, const float& xSec, const std::string& era, const bool &isData);
         void EventLoop();
         void WriteOutput(); 
 };

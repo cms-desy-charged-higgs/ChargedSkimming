@@ -10,7 +10,7 @@
 
 NanoSkimmer::NanoSkimmer(){}
 
-NanoSkimmer::NanoSkimmer(const std::string &inFile, const std::string &outFile, const std::vector<std::string>& channels, const float& xSec, const int& era, const bool &isData):
+NanoSkimmer::NanoSkimmer(const std::string &inFile, const std::string &outFile, const std::vector<std::string>& channels, const float& xSec, const std::string& era, const bool &isData):
     inFile(inFile),
     outFile(outFile),
     channels(channels),
@@ -42,10 +42,11 @@ void NanoSkimmer::ProgressBar(const int &progress){
 
 void NanoSkimmer::Configure(TTreeReader& reader){
     //Read in json config
-    boost::property_tree::ptree parser; 
-    boost::property_tree::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/skim.json", parser);
+    pt::ptree sf, skim; 
+    pt::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/skim.json", skim);
+    pt::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/sf.json", sf);
 
-    for(std::pair<std::string, boost::property_tree::ptree> syst : parser.get_child("Systematics")){
+    for(std::pair<std::string, boost::property_tree::ptree> syst : skim.get_child("Systematics")){
         std::string systematic = syst.first;
 
         //Dont do systematics for data
@@ -97,46 +98,31 @@ void NanoSkimmer::Configure(TTreeReader& reader){
                 cutflow.hist->SetName(("cutflow_" + channel).c_str());
                 cutflow.hist->GetYaxis()->SetName("Events");
     
-                cutflow.nMinMu = parser.get<int>("Channel." + channel + ".Selection.nMinMuon");
-                cutflow.nMinEle = parser.get<int>("Channel." + channel + ".Selection.nMinElectron");
-                cutflow.nMinJet = parser.get<int>("Channel." + channel + ".Selection.nMinJet");
-                cutflow.nMinFatjet =parser.get<int>("Channel." + channel + ".Selection.nMinFatJet");
+                cutflow.nMinMu = skim.get<int>("Channel." + channel + ".Selection.nMinMuon");
+                cutflow.nMinEle = skim.get<int>("Channel." + channel + ".Selection.nMinElectron");
+                cutflow.nMinJet = skim.get<int>("Channel." + channel + ".Selection.nMinJet");
+                cutflow.nMinFatjet = skim.get<int>("Channel." + channel + ".Selection.nMinFatJet");
                 
                 cutflow.weight = 1;    
 
                 flowPerSyst.push_back(cutflow);
             }
 
-            //Get information for analyzers
-            float jetPt = parser.get<float>("Analyzer.Jet.pt." + std::to_string(era));
-            float jetEta = parser.get<float>("Analyzer.Jet.pt." + std::to_string(era));
-            float elePt = parser.get<float>("Analyzer.Electron.pt." + std::to_string(era));
-            float eleEta = parser.get<float>("Analyzer.Electron.eta." + std::to_string(era));
-            float muonPt = parser.get<float>("Analyzer.Muon.pt." + std::to_string(era));
-            float muonEta = parser.get<float>("Analyzer.Muon.eta." + std::to_string(era));
-
-            std::map<std::string, std::vector<std::string>> triggers;
-
-            for(const std::string &channel: channels){
-                triggers[channel] = Util::GetVector<std::string>(parser, "Channel." + channel + ".Trigger." + std::to_string(era));
-            }
-
-            std::vector<std::string> genParts = Util::GetVector<std::string>(parser, "Analyzer.Gen");
-
             //Set Analyzer
             analyzerPerSyst = {
-                  std::make_shared<WeightAnalyzer>(era, xSec, reader),
-                  std::make_shared<TriggerAnalyzer>(triggers, reader),
-                  std::make_shared<MetFilterAnalyzer>(era, reader),
-                  std::make_shared<JetAnalyzer>(era, jetPt, jetEta, reader),
-                  std::make_shared<MuonAnalyzer>(era, muonPt, muonEta, reader),
-                  std::make_shared<ElectronAnalyzer>(era, elePt, eleEta, reader),
-                  std::make_shared<GenPartAnalyzer>(reader, genParts),
+                std::make_shared<WeightAnalyzer>(era, xSec, reader),
+                std::make_shared<TriggerAnalyzer>(era, channels, reader),
+                std::make_shared<MetFilterAnalyzer>(era, reader),
+                std::make_shared<JetAnalyzer>(era, reader),
+                std::make_shared<MuonAnalyzer>(era, reader),
+                std::make_shared<ElectronAnalyzer>(era, reader),
+            //    std::make_shared<MiscAnalyzer>(era, reader),
+                std::make_shared<GenPartAnalyzer>(reader),
             };
 
             //Begin jobs for all analyzers
             for(std::shared_ptr<BaseAnalyzer>& analyzer: analyzerPerSyst){
-                analyzer->BeginJob(treesPerSyst, isData, !isNomi);
+                analyzer->BeginJob(treesPerSyst, sf, skim);
             }
 
             outputTrees.push_back(treesPerSyst);
