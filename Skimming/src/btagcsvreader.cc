@@ -13,7 +13,9 @@ BTagCSVReader::BTagCSVReader(const std::string& fileName){
     //Loop over file
     while(std::getline(CSV, line)){
         //Split line and get respektive parameter
+
         std::vector<std::string> splittedLine = SplitString<std::string>(line, ",");
+        if(splittedLine.size() == 1) continue;
 
         std::string type = splittedLine.at(1), sysType = splittedLine.at(2); 
         int wp = std::stoi(splittedLine.at(0)), jetFlavour = std::stoi(splittedLine.at(3));
