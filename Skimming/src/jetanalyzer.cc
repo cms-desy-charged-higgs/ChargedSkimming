@@ -51,6 +51,10 @@ void JetAnalyzer::SetCorrector(const JetType& type, const int& runNumber){
         fileName.replace(fileName.find("&"), 1, type == AK4 ? "AK4": "AK8");
         fileName = filePath + fileName;
 
+        if(!std::experimental::filesystem::exists(fileName)){
+            throw std::runtime_error("File not exists" + fileName);
+        }
+
         corrVec.push_back(JetCorrectorParameters(fileName));
     }
 
