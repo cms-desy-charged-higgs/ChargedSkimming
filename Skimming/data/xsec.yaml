@@ -191,86 +191,102 @@ QCD_HT2000toInf:
     xSec: 20.23
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_200_70:
+HPlusAndH_ToWHH_ToL4B_200_70:
     xSec: 0.02946
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_300_70:
+HPlusAndH_ToWHH_ToL4B_300_70:
     xSec: 0.008688
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_400_70:
+HPlusAndH_ToWHH_ToL4B_400_70:
     xSec: 0.003489
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_500_70:
+HPlusAndH_ToWHH_ToL4B_500_70:
     xSec: 0.001577
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_600_70:
+HPlusAndH_ToWHH_ToL4B_600_70:
     xSec: 0.0007854
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_200_80:
+HPlusAndH_ToWHH_ToL4B_200_80:
     xSec: 0.0257
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_300_80:
+HPlusAndH_ToWHH_ToL4B_300_80:
     xSec: 0.008092
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_400_80:
+HPlusAndH_ToWHH_ToL4B_400_80:
     xSec: 0.003297
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_500_80:
+HPlusAndH_ToWHH_ToL4B_500_80:
     xSec: 0.001527
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_600_80:
+HPlusAndH_ToWHH_ToL4B_600_80:
     xSec: 0.0007679
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_200_90:
+HPlusAndH_ToWHH_ToL4B_200_90:
     xSec: 0.02135
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_300_90:
+HPlusAndH_ToWHH_ToL4B_300_90:
     xSec: 0.007362
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_400_90:
+HPlusAndH_ToWHH_ToL4B_400_90:
     xSec: 0.003134
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_500_90:
+HPlusAndH_ToWHH_ToL4B_500_90:
     xSec: 0.001462
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_600_90:
+HPlusAndH_ToWHH_ToL4B_600_90:
     xSec: 0.0007297
     isUsed: true
-
-HPlusAndH_toWHH_ToL4B_200_100:
+    
+HPlusAndH_ToWHH_ToL4B_200_100:
     xSec: 0.01643
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_200_110:
+HPlusAndH_ToWHH_ToL4B_300_100:
+    xSec:   0.00674
+    isUsed: true
+
+HPlusAndH_ToWHH_ToL4B_400_100:
+    xSec:   0.002929
+    isUsed: true
+
+HPlusAndH_ToWHH_ToL4B_500_100:
+    xSec:   0.001387
+    isUsed: true
+     
+HPlusAndH_ToWHH_ToL4B_600_100:
+    xSec:   0.0006998
+    isUsed: true
+     
+HPlusAndH_ToWHH_ToL4B_200_110:
     xSec: 0.009206
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_300_110:
+HPlusAndH_ToWHH_ToL4B_300_110:
     xSec: 0.006073
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_400_110:
+HPlusAndH_ToWHH_ToL4B_400_110:
     xSec: 0.002725
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_500_110:
+HPlusAndH_ToWHH_ToL4B_500_110:
     xSec: 0.001301
     isUsed: true
 
-HPlusAndH_toWHH_ToL4B_600_110:
+HPlusAndH_ToWHH_ToL4B_600_110:
     xSec: 0.0006685
     isUsed: true
