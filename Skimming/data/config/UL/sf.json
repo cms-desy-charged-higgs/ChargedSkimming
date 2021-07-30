@@ -66,13 +66,13 @@
         "BTag": {
             "DeepJet": {
                 "2016": "/btagSF/2016/ReReco/DeepJet_2016LegacySF_V1.csv",
-                "2017": "/btagSF/2017/UL/DeepJet_106XUL17SF_WPonly.csv",
+                "2017": "/btagSF/2017/UL/DeepJet_106XUL17SF_WPonly_V2.csv",
                 "2018": "/btagSF/2018/UL/DeepJet_106XUL18SF_WPonly.csv"
             },
 
             "CSV": {
                 "2016": "/btagSF/2016/ReReco/DeepCSV_2016LegacySF_V1.csv",
-                "2017": "/btagSF/2017/UL/DeepCSV_106XUL17SF_WPonly.csv",
+                "2017": "/btagSF/2017/UL/DeepCSV_106XUL17SF_WPonly_V2.csv",
                 "2018": "/btagSF/2018/UL/DeepCSV_106XUL18SF_WPonly.csv"
             }
         }
