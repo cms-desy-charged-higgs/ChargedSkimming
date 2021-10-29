@@ -1,0 +1,12 @@
+##Created with createDataList.py with following wildcards: ['Run2017*-UL2017_MiniAODv2_NanoAODv9-v*', 'Run2017*-UL2017_MiniAODv1_NanoAODv2-v*']
+
+- /SingleElectron/Run2017B-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD
+- /SingleElectron/Run2017C-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD
+- /SingleElectron/Run2017D-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD
+- /SingleElectron/Run2017E-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD
+- /SingleElectron/Run2017F-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD
+- /SingleMuon/Run2017B-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD
+- /SingleMuon/Run2017C-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD
+- /SingleMuon/Run2017D-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD
+- /SingleMuon/Run2017E-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD
+- /SingleMuon/Run2017F-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD

@@ -1,0 +1,65 @@
+2016Pre:
+    data: 
+        wildcards:
+            - Run2016*_UL2016_MiniAODv2_NanoAODv9-v*
+            - Run2016*_UL2016_MiniAODv1_NanoAODv2-v*
+
+        eras:
+            - B-ver1
+            - B-ver2
+            - C
+            - D
+            - E
+            - F-HIPM
+
+    MC:
+        - RunIISummer20UL16NanoAODAPVv9-106X*
+        - RunIISummer20UL16NanoAODAPVv2-*
+        
+2016Post:
+    data:
+        wildcards:
+            - Run2016*_UL2016_MiniAODv2_NanoAODv9-v*
+            - Run2016*_UL2016_MiniAODv1_NanoAODv2-v*
+
+        eras:
+            - F
+            - G
+            - H
+
+    MC:
+        - RunIISummer20UL16NanoAODv9-106X*
+        - RunIISummer20UL16NanoAODv2-*
+
+2017:
+    data:
+        wildcards:
+            - Run2017*-UL2017_MiniAODv2_NanoAODv9-v*
+            - Run2017*-UL2017_MiniAODv1_NanoAODv2-v*
+
+        eras:
+            - B
+            - C
+            - D
+            - E
+            - F 
+
+    MC:
+        - RunIISummer20UL17NanoAOD*v9-106X*
+        - RunIISummer20UL17NanoAODv2-*
+
+2018:
+    data:
+        wildcards:
+            - Run2018*-UL2018_MiniAODv2_NanoAODv9-*
+            - Run2018*-UL2018_MiniAODv1_NanoAODv2-*
+
+        eras:
+            - A
+            - B
+            - C
+            - D
+
+    MC:
+        - RunIISummer20UL18NanoAOD*v9-106X*
+        - RunIISummer20UL18NanoAODv2-*
