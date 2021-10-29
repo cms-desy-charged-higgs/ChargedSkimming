@@ -14,8 +14,8 @@
 #include <CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h>
 
 #include <ChargedSkimming/Analyzer/interface/baseanalyzer.h>
-#include <ChargedSkimming/Skimming/interface/util2.h>
 #include <ChargedSkimming/Skimming/interface/btagcsvreader.h>
+#include <ChargedSkimming/Skimming/interface/util.h>
 
 template <typename T>
 class JetAnalyzer : public BaseAnalyzer<T> {
@@ -93,14 +93,14 @@ class JetAnalyzer : public BaseAnalyzer<T> {
 
                 if(isAK4){
                     input.GetGenJet(i);
-                    dR = Util2::DeltaR(eta, phi, input.genJetEta, input.genJetPhi);
+                    dR = Util::DeltaR(eta, phi, input.genJetEta, input.genJetPhi);
                     genJetPt = input.genJetPt;
                     dPT = std::abs(pt - genJetPt);
                 }
 
                 else{
                     input.GetGenFatJet(i);
-                    dR = Util2::DeltaR(eta, phi, input.genFatJetEta, input.genFatJetPhi);
+                    dR = Util::DeltaR(eta, phi, input.genFatJetEta, input.genFatJetPhi);
                     genJetPt = input.genFatJetPt;
                     dPT = std::abs(pt - genJetPt);
                 }
@@ -156,7 +156,7 @@ class JetAnalyzer : public BaseAnalyzer<T> {
                 //Class for JEC
                 std::vector<JetCorrectorParameters> corrVec;
 
-                for(std::string jecFile: Util2::GetVector<std::string>(sf, (!isData ? "Jet.JEC.MC." : "Jet.JEC.DATA.") + era)){
+                for(std::string jecFile: Util::GetVector<std::string>(sf, (!isData ? "Jet.JEC.MC." : "Jet.JEC.DATA.") + era)){
                     if(run != "MC") jecFile.replace(jecFile.find("@"), 1, run);
                     jecFile.replace(jecFile.find("&"), 1, type);
                     jecFile = this->filePath + jecFile;
@@ -279,7 +279,7 @@ class JetAnalyzer : public BaseAnalyzer<T> {
                     out.fatJetIdx[out.nSubJets] = -1;
 
                     for(int j = 0; j < out.nFatJets; ++j){
-                        if(Util2::DeltaR(out.fatJetEta[j], out.fatJetPhi[j], input.jetEta, input.jetPhi) < 1.2){
+                        if(Util::DeltaR(out.fatJetEta[j], out.fatJetPhi[j], input.jetEta, input.jetPhi) < 1.2){
                             out.fatJetIdx[out.nSubJets] = j;
                             break;
                         }

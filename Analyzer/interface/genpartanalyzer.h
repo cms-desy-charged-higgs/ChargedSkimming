@@ -42,7 +42,7 @@ class GenPartAnalyzer : public BaseAnalyzer<T> {
             for(int i = 0; i < input.genSize; ++i){
                 input.GetGenPart(i);
 
-                dR = Util2::DeltaR(eta, phi, input.genEta, input.genPhi);
+                dR = Util::DeltaR(eta, phi, input.genEta, input.genPhi);
                 dPT = std::abs(pt - input.genPt)/pt;
 
                 if(dR > dRthr or dPT > dPTthr) continue;

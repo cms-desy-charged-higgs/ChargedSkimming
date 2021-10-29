@@ -15,7 +15,6 @@
 
 #include <ChargedSkimming/Core/interface/output.h>
 #include <ChargedSkimming/Core/interface/cuts.h>
-#include <ChargedSkimming/Skimming/interface/util2.h>
 
 #include <ChargedSkimming/Analyzer/interface/baseanalyzer.h>
 #include <ChargedSkimming/Analyzer/interface/triggeranalyzer.h>
@@ -73,7 +72,7 @@ class Skimmer{
                 outTrees.back()->SetAutoFlush(10000);
 
                 //Read out trigger needed and register in cut class
-                for(const std::string& name : Util2::GetVector<std::string>(skim, "Channel." + channel + ".Trigger." + era)){
+                for(const std::string& name : Util::GetVector<std::string>(skim, "Channel." + channel + ".Trigger." + era)){
                     if(std::find(triggerNames.begin(), triggerNames.end(), name) == triggerNames.end()) triggerNames.push_back(name);
                 }
 
@@ -83,7 +82,7 @@ class Skimmer{
                 //Register cut requirements
                 std::string path = "Channel." + channel + ".Selection";
 
-                for(const std::string part : Util2::GetKeys(skim, path)){
+                for(const std::string part : Util::GetKeys(skim, path)){
                     cuts.back().AddCut(part, output, skim.get<std::string>(path + "." + part + ".operator"), skim.get<short>(path + "." + part + ".threshold"));
                 }
             }
@@ -91,7 +90,7 @@ class Skimmer{
             //Register trigger to input class (Only thing which is needed to register for input class)
             if(systematic == "Nominal"){
                 input.SetTrigger(triggerNames, false);
-                input.SetTrigger(Util2::GetVector<std::string>(skim, "Analyzer.METFilter." + era), true);
+                input.SetTrigger(Util::GetVector<std::string>(skim, "Analyzer.METFilter." + era), true);
             }
 
             //Add trigger/METFilter to cuts
@@ -99,7 +98,7 @@ class Skimmer{
                 std::vector<int> triggerIdx;
 
                 for(std::size_t j = 0; j < triggerNames.size(); ++j){
-                    for(const std::string& name : Util2::GetVector<std::string>(skim, "Channel." + channels[i] + ".Trigger." + era)){
+                    for(const std::string& name : Util::GetVector<std::string>(skim, "Channel." + channels[i] + ".Trigger." + era)){
                         if(name == triggerNames[j]) triggerIdx.push_back(j);
                     }
                 }

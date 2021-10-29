@@ -1,3 +1,5 @@
+<flags CXXFLAGS="-fPIC -w -lstdc++fs -fcompare-debug-second -g -std=c++17 -O2"/>
+
 <bin name="NanoSkim" file="nanoskim.cc" />
 
 <use name="root"/>
@@ -5,6 +7,7 @@
 <use name="rootcore"/>
 <use name="rootphysics"/>
 <use name="rootgraphics"/>
+<lib name="stdc++fs" />
 
 <use name="ChargedSkimming/Core"/>
 <use name="ChargedSkimming/Analyzer"/>
