@@ -6,6 +6,8 @@
 <use name="rootphysics"/>
 <use name="rootgraphics"/>
 
+<use name="ChargedSkimming/Core"/>
+<use name="ChargedSkimming/Analyzer"/>
 <use name="ChargedSkimming/Skimming"/>
 
 <use name="CondFormats/BTauObjects"/>
