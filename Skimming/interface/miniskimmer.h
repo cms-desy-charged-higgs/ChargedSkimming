@@ -16,16 +16,6 @@
 
 #include <ChargedSkimming/Skimming/interface/tokens.h>
 
-#include <ChargedSkimming/Skimming/interface/baseanalyzer.h>
-#include <ChargedSkimming/Skimming/interface/jetanalyzer.h>
-#include <ChargedSkimming/Skimming/interface/electronanalyzer.h>
-#include <ChargedSkimming/Skimming/interface/muonanalyzer.h>
-#include <ChargedSkimming/Skimming/interface/triggeranalyzer.h>
-#include <ChargedSkimming/Skimming/interface/metfilteranalyzer.h>
-#include <ChargedSkimming/Skimming/interface/weightanalyzer.h>
-#include <ChargedSkimming/Skimming/interface/genpartanalyzer.h>
-#include <ChargedSkimming/Skimming/interface/miscanalyzer.h>
-
 #include <TFile.h>
 #include <TTree.h>
 #include <TH1F.h>
@@ -48,10 +38,8 @@ class MiniSkimmer : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 
         //Trees for each systematic analysis
         std::vector<std::vector<TTree*>> outputTrees;
-        std::vector<std::vector<CutFlow>> cutflows; 
 
         //Vector with wished analyzers for each systematic
-        std::vector<std::vector<std::shared_ptr<BaseAnalyzer>>> analyzers;
 
         //Channel
         std::shared_ptr<Token> tokens;

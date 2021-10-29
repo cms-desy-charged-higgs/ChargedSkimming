@@ -60,7 +60,7 @@ void MiniSkimmer::beginJob(){
     pt::read_json(std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/config/UL/sf.json", sf);
 
     //Set analyzer modules for each final state
-    for(std::pair<std::string, boost::property_tree::ptree> syst : skim.get_child("Systematics")){
+    /*for(std::pair<std::string, boost::property_tree::ptree> syst : skim.get_child("Systematics")){
         std::string systematic = syst.first;
 
         //Dont do systematics for data
@@ -147,13 +147,13 @@ void MiniSkimmer::beginJob(){
             analyzers.push_back(analyzerPerSyst);
             outputFiles.push_back(outFile);
         }
-    }
+    }*/
 }
 
 void MiniSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
     ++nEvents;
 
-    for(unsigned int i = 0; i < analyzers.size(); ++i){
+   /* for(unsigned int i = 0; i < analyzers.size(); ++i){
         //Call each analyzer
         for(unsigned int j = 0; j < analyzers[i].size(); ++j){
             analyzers[i][j]->Analyze(cutflows[i], &iEvent);
@@ -167,11 +167,11 @@ void MiniSkimmer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
             cutflows[i][j].passed = true;
         }
-    }
+    }*/
 }
 
 void MiniSkimmer::endJob(){    
-    for(unsigned int i = 0; i < analyzers.size(); i++){
+    /*for(unsigned int i = 0; i < analyzers.size(); i++){
         outputFiles[i]->cd();
 
         std::cout << "Overview for closed output file: " << outputFiles[i]->GetName() << std::endl;
@@ -191,7 +191,7 @@ void MiniSkimmer::endJob(){
         }
 
         outputFiles[i]->Close();
-    }
+    }*/
 }
 
 //define this as a plug-in
