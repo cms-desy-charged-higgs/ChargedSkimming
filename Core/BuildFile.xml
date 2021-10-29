@@ -1,0 +1,14 @@
+<use name="root"/>
+<use name="boost"/>
+<use name="rootmath"/>
+<use name="rootrio"/>
+<use name="rootcore"/>
+<use name="rootphysics"/>
+<use name="rootgraphics"/>
+<lib name="stdc++fs"/>
+
+<flags CXXFLAGS="-fPIC -w -lstdc++fs -fcompare-debug-second -g -std=c++17 -O2"/>
+
+<export>
+    <lib name="1"/>
+</export>
