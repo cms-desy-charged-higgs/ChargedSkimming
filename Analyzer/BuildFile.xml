@@ -1,0 +1,28 @@
+<use name="root"/>
+<use name="boost"/>
+<use name="rootrio"/>
+<use name="rootcore"/>
+<use name="rootphysics"/>
+<use name="rootgraphics"/>
+<lib name="stdc++fs" />
+
+<use name="CondFormats/BTauObjects"/>
+<use name="CondTools/BTau"/>
+<use name="JetMETCorrections/Modules"/>
+<use name="CondFormats/JetMETObjects"/>
+
+<use name="DataFormats/PatCandidates"/>
+<use name="DataFormats/JetReco"/>
+<use name="DataFormats/Common"/>
+<use name="DataFormats/HepMCCandidate"/>
+<use name="DataFormats/Candidate"/>
+<use name="DataFormats/VertexReco"/>
+
+<use name="SimDataFormats/PileupSummaryInfo"/>
+<use name="SimDataFormats/GeneratorProducts"/>
+
+<flags CXXFLAGS="-fPIC -w -lstdc++fs -fcompare-debug-second -g -std=c++17 -O2"/>
+
+<export>
+    <lib name="1"/>
+</export>
