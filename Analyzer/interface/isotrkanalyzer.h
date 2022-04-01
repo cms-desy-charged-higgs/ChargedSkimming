@@ -36,7 +36,7 @@ class IsotrkAnalyzer : public BaseAnalyzer<T> {
                     out.isotrkEta[out.isotrkSize] = input.isotrkEta;
                     out.isotrkPhi[out.isotrkSize] = input.isotrkPhi;
 
-                    out.isotrkIso[out.isotrkSize] = input.isotrkIso;
+                    out.isotrkIso03[out.isotrkSize] = input.isotrkIso03;
                     out.isotrkMiniIso[out.isotrkSize] = input.isotrkMiniIso;
                     out.isotrkDxy[out.isotrkSize] = input.isotrkDxy;
                     out.isotrkDz[out.isotrkSize] = input.isotrkDz;
