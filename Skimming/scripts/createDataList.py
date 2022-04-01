@@ -1,22 +1,20 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import yaml
 import os
-
-from dbs.apis.dbsClient import DbsApi
+import subprocess
 
 def getDataSets(listOfProcess, wildcards):
-    url="https://cmsweb.cern.ch/dbs/prod/{}/DBSReader".format("global")
-    api=DbsApi(url=url)
-
     listOfDasesets = []
 
     for proc in listOfProcess:
         dataSet = ""
 
-        for card in wildcards:
+        print("Process: {}".format(proc))
+
+        for card in wildcards:        
             searchString = "/{}*/{}/NANOAOD*".format(proc, card)
-            dataSets = [d["dataset"] for d in api.listDatasets(dataset = searchString)]
+            dataSets = subprocess.check_output("dasgoclient --query='dataset={}'".format(searchString), shell = True).decode('ascii').split("\n")[:-1]
             dataSets.sort(key = lambda s: len(s))
 
             if len(dataSets) != 0:
