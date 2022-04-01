@@ -18,6 +18,7 @@ template <typename T>
 class BaseAnalyzer {
     protected:
         std::string filePath = std::string(std::getenv("CMSSW_BASE")) + "/src/ChargedSkimming/Skimming/data/";
+        std::string CMSSWPath = std::string(std::getenv("CMSSW_BASE")) + "/src/";
 
     public:
         virtual ~BaseAnalyzer() = default;
