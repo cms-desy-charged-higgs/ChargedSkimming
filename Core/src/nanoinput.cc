@@ -1,13 +1,16 @@
 #include <ChargedSkimming/Core/interface/nanoinput.h>
 
 NanoInput::NanoInput(const std::string& fileName, const std::string& treeName){
-    inputFile = std::make_shared<TFile>(fileName.c_str(), "READ");
+    inputFile = std::shared_ptr<TFile>(TFile::Open(fileName.c_str(), "READ"));
     inputTree.reset(static_cast<TTree*>(inputFile->Get(treeName.c_str())));
 
     //Weight related
     pdfWeightL = inputTree->GetLeaf("LHEPdfWeight");
     scaleWeightL = inputTree->GetLeaf("LHEScaleWeight");
     nTrueIntL = inputTree->GetLeaf("Pileup_nTrueInt");
+    preFireL = inputTree->GetLeaf("L1PreFiringWeight_Nom");
+    preFireUpL = inputTree->GetLeaf("L1PreFiringWeight_Up");
+    preFireDownL = inputTree->GetLeaf("L1PreFiringWeight_Dn");
 
     //Electron related stuff
     elePtL = inputTree->GetLeaf("Electron_pt");
@@ -19,7 +22,7 @@ NanoInput::NanoInput(const std::string& fileName, const std::string& treeName){
     eleMassL = inputTree->GetLeaf("Electron_mass");
     eleEtaL = inputTree->GetLeaf("Electron_eta");
     elePhiL = inputTree->GetLeaf("Electron_phi");
-    eleIsoL = inputTree->GetLeaf("Electron_pfRelIso03_all");
+    eleIso03L = inputTree->GetLeaf("Electron_pfRelIso03_all");
     eleDxyL = inputTree->GetLeaf("Electron_dxy");
     eleDzL = inputTree->GetLeaf("Electron_dz");
     eleRelJetIsoL = inputTree->GetLeaf("Electron_jetRelIso");
@@ -35,7 +38,8 @@ NanoInput::NanoInput(const std::string& fileName, const std::string& treeName){
     muPtL = inputTree->GetLeaf("Muon_pt");
     muEtaL = inputTree->GetLeaf("Muon_eta");
     muPhiL = inputTree->GetLeaf("Muon_phi");
-    muIsoL = inputTree->GetLeaf("Muon_pfRelIso03_all");
+    muIso03L = inputTree->GetLeaf("Muon_pfRelIso03_all");
+    muIso04L = inputTree->GetLeaf("Muon_pfRelIso04_all");
     muMiniIsoL = inputTree->GetLeaf("Muon_miniPFRelIso_all");
     muChargeL = inputTree->GetLeaf("Muon_charge");
     muCutIDLooseL = inputTree->GetLeaf("Muon_looseId");
@@ -45,6 +49,7 @@ NanoInput::NanoInput(const std::string& fileName, const std::string& treeName){
     muDxyL = inputTree->GetLeaf("Muon_dxy");
     muDzL = inputTree->GetLeaf("Muon_dz");
     muRelJetIsoL = inputTree->GetLeaf("Muon_jetRelIso");
+    muNTrackerLayersL = inputTree->GetLeaf("Muon_nTrackerLayers");
 
     //Jet related stuff
     rhoL = inputTree->GetLeaf("fixedGridRhoFastjetAll");
@@ -63,6 +68,8 @@ NanoInput::NanoInput(const std::string& fileName, const std::string& treeName){
     jetDeepJetL = inputTree->GetLeaf("Jet_btagDeepFlavB");
     jetPartFlavL = inputTree->GetLeaf("Jet_partonFlavour");
     jetRawFacL = inputTree->GetLeaf("Jet_rawFactor");
+    jetIDL = inputTree->GetLeaf("Jet_jetId");
+    jetPUIDL = inputTree->GetLeaf("Jet_puId");
 
     genJetPtL = inputTree->GetLeaf("GenJet_pt");
     genJetEtaL = inputTree->GetLeaf("GenJet_eta");
@@ -94,7 +101,8 @@ NanoInput::NanoInput(const std::string& fileName, const std::string& treeName){
     isotrkDxyL = inputTree->GetLeaf("IsoTrack_dxy"); 
     isotrkDzL = inputTree->GetLeaf("IsoTrack_dz"); 
     isotrkPDGL = inputTree->GetLeaf("IsoTrack_pdgId"); 
-    isotrkIsoL = inputTree->GetLeaf("IsoTrack_pfRelIso03_all");
+    isotrkIso03L = inputTree->GetLeaf("IsoTrack_pfRelIso03_all");
+    isotrkIso04L = inputTree->GetLeaf("IsoTrack_pfRelIso04_all");
     isotrkMiniIsoL = inputTree->GetLeaf("IsoTrack_miniPFRelIso_all");
 
     //Misc related
@@ -117,6 +125,12 @@ void NanoInput::SetWeight(){
     }
 
     nTrueIntL->GetBranch()->GetEntry(entry);
+    
+    if(preFireL != nullptr){
+        preFireL->GetBranch()->GetEntry(entry);
+        preFireUpL->GetBranch()->GetEntry(entry);
+        preFireDownL->GetBranch()->GetEntry(entry);
+    }
 }
 
 void NanoInput::GetWeightEntry(){
@@ -134,6 +148,18 @@ void NanoInput::GetWeightEntry(){
         std::fill_n(pdfWeight, 102, 1);
         std::fill_n(scaleWeight, 8, 1);
     }
+    
+    if(preFireL != nullptr){
+        preFire = preFireL->GetValue();
+        preFireUp = preFireUpL->GetValue();
+        preFireDown = preFireDownL->GetValue();
+    }
+    
+    else{
+        preFire = 1.;
+        preFireUp = 1.;
+        preFireDown = 1.;
+    }
 
     nTrueInt = nTrueIntL->GetValue();
 }
@@ -148,7 +174,13 @@ void NanoInput::SetTrigger(const std::vector<std::string>& names, const bool& is
 
     else{
         for(const std::string& name : names){
-            METFilterL.push_back(inputTree->GetLeaf(name.c_str()));
+            TLeaf* filter = inputTree->GetLeaf(name.c_str());
+            if(filter == nullptr){
+                std::cout << "MET filter not found: '" + name + "', continue without it!" << std::endl;
+                continue;
+            }
+        
+            METFilterL.push_back(filter);
             METFilter.push_back(true);
         }
     }
@@ -181,7 +213,7 @@ void NanoInput::ReadEleEntry(){
     eleMassL->GetBranch()->GetEntry(entry);
     elePhiL->GetBranch()->GetEntry(entry);
     eleEtaL->GetBranch()->GetEntry(entry);
-    eleIsoL->GetBranch()->GetEntry(entry);
+    eleIso03L->GetBranch()->GetEntry(entry);
     eleMiniIsoL->GetBranch()->GetEntry(entry);
     eleChargeL->GetBranch()->GetEntry(entry);
     eleDxyL->GetBranch()->GetEntry(entry);
@@ -209,7 +241,7 @@ void NanoInput::GetElectron(const std::size_t& idx){
     elePt = elePtL->GetValue(idx);
     elePhi = elePhiL->GetValue(idx);
     eleEta = eleEtaL->GetValue(idx);
-    eleIso = eleIsoL->GetValue(idx);
+    eleIso03 = eleIso03L->GetValue(idx);
     eleMiniIso = eleMiniIsoL->GetValue(idx);
     eleDxy = eleDxyL->GetValue(idx);
     eleDz = eleDzL->GetValue(idx);
@@ -239,10 +271,13 @@ void NanoInput::GetElectron(const std::size_t& idx){
 void NanoInput::ReadMuEntry(){
     if(muPtL->GetBranch()->GetReadEntry() == entry) return;
 
+    muRandomNumber = gRandom->Rndm();
+
     muPtL->GetBranch()->GetEntry(entry);
     muEtaL->GetBranch()->GetEntry(entry);
     muPhiL->GetBranch()->GetEntry(entry);
-    muIsoL->GetBranch()->GetEntry(entry);
+    muIso03L->GetBranch()->GetEntry(entry);
+    muIso04L->GetBranch()->GetEntry(entry);
     muMiniIsoL->GetBranch()->GetEntry(entry);
     muChargeL->GetBranch()->GetEntry(entry);
     muDxyL->GetBranch()->GetEntry(entry);
@@ -252,6 +287,7 @@ void NanoInput::ReadMuEntry(){
     muCutIDMediumL->GetBranch()->GetEntry(entry);
     muCutIDTightL->GetBranch()->GetEntry(entry);
     muMVAIDL->GetBranch()->GetEntry(entry);
+    muNTrackerLayersL->GetBranch()->GetEntry(entry);
 
     muSize = muPtL->GetLen();
 }
@@ -260,15 +296,21 @@ void NanoInput::GetMuon(const std::size_t& idx){
     muPt = muPtL->GetValue(idx);
     muPhi = muPhiL->GetValue(idx);
     muEta = muEtaL->GetValue(idx);
-    muIso = muIsoL->GetValue(idx);
+    muIso03 = muIso03L->GetValue(idx);
+    muIso04 = muIso04L->GetValue(idx);
     muMiniIso = muMiniIsoL->GetValue(idx);
     muDxy = muDxyL->GetValue(idx);
     muDz = muDzL->GetValue(idx);
     muRelJetIso = muRelJetIsoL->GetValue(idx);
+    muNTrackerLayers = muNTrackerLayersL->GetValue(idx);
 
     muCharge = muChargeL->GetValue(idx);
-    muCutID = muCutIDLooseL->GetValue(idx) + muCutIDMediumL->GetValue(idx) + muCutIDTightL->GetValue(idx);
     muMVAID = muMVAIDL->GetValue(idx);
+
+    if(muCutIDTightL->GetValue(idx)) muCutID = 3;
+    else if(muCutIDMediumL->GetValue(idx)) muCutID = 2;
+    else if(muCutIDLooseL->GetValue(idx)) muCutID = 1;
+    else muCutID = 0;
 }
 
 void NanoInput::ReadJetEntry(const bool& isData){
@@ -295,6 +337,8 @@ void NanoInput::ReadJetEntry(const bool& isData){
     jetDeepJetL->GetBranch()->GetEntry(entry);
     jetDeepCSVL->GetBranch()->GetEntry(entry);
     jetRawFacL->GetBranch()->GetEntry(entry);
+    jetIDL->GetBranch()->GetEntry(entry);
+    jetPUIDL->GetBranch()->GetEntry(entry);
 
     fatJetPtL->GetBranch()->GetEntry(entry);
     fatJetEtaL->GetBranch()->GetEntry(entry);
@@ -340,6 +384,9 @@ void NanoInput::GetJet(const std::size_t& idx){
     jetDeepJet = jetDeepJetL->GetValue(idx);
     jetDeepCSV = jetDeepCSVL->GetValue(idx);
     jetArea = jetAreaL->GetValue(idx);
+    jetID = jetIDL->GetValue(idx);
+    jetPUID = jetPUIDL->GetValue(idx);
+    
     if(jetPartFlavL != nullptr) jetPartFlav = jetPartFlavL->GetValue(idx);
 }
 
@@ -391,7 +438,7 @@ void NanoInput::ReadIsotrkEntry(){
     isotrkPtL->GetBranch()->GetEntry(entry);
     isotrkEtaL->GetBranch()->GetEntry(entry);
     isotrkPhiL->GetBranch()->GetEntry(entry);
-    isotrkIsoL->GetBranch()->GetEntry(entry);
+    isotrkIso03L->GetBranch()->GetEntry(entry);
     isotrkDxyL->GetBranch()->GetEntry(entry);
     isotrkDzL->GetBranch()->GetEntry(entry);
     isotrkPDGL->GetBranch()->GetEntry(entry);
@@ -404,7 +451,7 @@ void NanoInput::GetIsotrk(const std::size_t& idx){
     isotrkPt = isotrkPtL->GetValue(idx);
     isotrkEta = isotrkEtaL->GetValue(idx);
     isotrkPhi = isotrkPhiL->GetValue(idx);
-    isotrkIso = isotrkIsoL->GetValue(idx);
+    isotrkIso03 = isotrkIso03L->GetValue(idx);
     isotrkMiniIso = isotrkMiniIsoL->GetValue(idx);
     isotrkDxy = isotrkDxyL->GetValue(idx);
     isotrkDz = isotrkDzL->GetValue(idx);
@@ -423,6 +470,8 @@ void NanoInput::GetMisc(){
 
 void NanoInput::ReadGenEntry(){
     if(genPDGL->GetBranch()->GetReadEntry() == entry) return;
+
+    alreadyMatchedIdx.clear();
 
     genPDGL->GetBranch()->GetEntry(entry);
     genMotherIdxL->GetBranch()->GetEntry(entry);

@@ -37,7 +37,8 @@ class NanoInput : public Input {
         TLeaf* eleMassL;
         TLeaf* eleEtaL;
         TLeaf* elePhiL;
-        TLeaf* eleIsoL;
+        TLeaf* eleIso03L;
+        TLeaf* eleIso04L;
         TLeaf* eleMiniIsoL;
         TLeaf* eleChargeL;
         TLeaf* eleCutIDL;
@@ -57,7 +58,8 @@ class NanoInput : public Input {
         TLeaf* muPhiL;
         TLeaf* muChargeL;
         TLeaf* muMiniIsoL;
-        TLeaf* muIsoL;
+        TLeaf* muIso03L;
+        TLeaf* muIso04L;
         TLeaf* muCutIDLooseL;
         TLeaf* muCutIDMediumL;
         TLeaf* muCutIDTightL;
@@ -65,6 +67,7 @@ class NanoInput : public Input {
         TLeaf* muDxyL;
         TLeaf* muDzL;
         TLeaf* muRelJetIsoL;
+        TLeaf* muNTrackerLayersL;
 
         //Jet related
         TLeaf* rhoL;
@@ -83,6 +86,8 @@ class NanoInput : public Input {
         TLeaf* jetDeepCSVL;
         TLeaf* jetPartFlavL;
         TLeaf* jetRawFacL;
+        TLeaf* jetIDL;
+        TLeaf* jetPUIDL;
 
         TLeaf* genJetPtL;
         TLeaf* genJetEtaL;
@@ -114,12 +119,16 @@ class NanoInput : public Input {
         TLeaf* isotrkDxyL;
         TLeaf* isotrkDzL;
         TLeaf* isotrkPDGL;
-        TLeaf* isotrkIsoL;
+        TLeaf* isotrkIso03L;
+        TLeaf* isotrkIso04L;
         TLeaf* isotrkMiniIsoL;
 
         //Misc related
         TLeaf* evNrL;
         TLeaf* nPartonL;
+        TLeaf* preFireL;
+        TLeaf* preFireUpL;
+        TLeaf* preFireDownL;
 
         //Gen part related
         TLeaf* genPDGL;
