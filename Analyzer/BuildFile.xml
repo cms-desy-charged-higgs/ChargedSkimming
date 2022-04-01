@@ -1,10 +1,13 @@
 <use name="root"/>
 <use name="boost"/>
+<use name="correctionlib"/>
 <use name="rootrio"/>
 <use name="rootcore"/>
 <use name="rootphysics"/>
 <use name="rootgraphics"/>
 <lib name="stdc++fs" />
+
+<use name="ChargedSkimming/Skimming"/>
 
 <use name="CondFormats/BTauObjects"/>
 <use name="CondTools/BTau"/>

@@ -8,23 +8,17 @@
 #include <ChargedSkimming/Analyzer/interface/baseanalyzer.h>
 #include <ChargedSkimming/Skimming/interface/btagcsvreader.h>
 
+#include <correction.h>
+
 template <typename T>
 class SFAnalyzer : public BaseAnalyzer<T> {
     private:
         //Era information
-        std::string era;
+        std::string era, eleEraAlias, muEraAlias;
+        std::string muTriggName;
         std::string run;
 
-        bool isSyst, isData;
-
-        //Hist with electron scale factors
-        std::shared_ptr<TH2F> eleLooseSFhist, eleMediumSFhist, eleTightSFhist, eleMediumMVASFhist, eleTightMVASFhist, eleRecoSFhist;
-
-        //Hist with electron scale factorsMuon
-        std::shared_ptr<TH2F> muLooseSFhist, muMediumSFhist, muTightSFhist, muTriggerSFhist, muLooseIsoSFhist, muTightIsoSFhist;
-
-        //Classes for reading btag SF
-        BTagCSVReader DeepCSVReader, DeepJetReader;
+        bool isData;
 
         //Hist of MC btag efficiency
         std::shared_ptr<TH2F> bTagEffBLooseDeepJet, bTagEffBMediumDeepJet, bTagEffBTightDeepJet, 
@@ -34,6 +28,9 @@ class SFAnalyzer : public BaseAnalyzer<T> {
                               bTagEffCLooseDeepCSV, bTagEffCMediumDeepCSV, bTagEffCTightDeepCSV, 
                               bTagEffLightLooseDeepCSV, bTagEffLightMediumDeepCSV, bTagEffLightTightDeepCSV,
                               bTotal, cTotal, lightTotal;
+                              
+        std::unique_ptr<correction::CorrectionSet> eleSF, muonSF, bTagSF;
+        std::vector<std::string> bTagSyst, bTagSystLight;
 
     public:
         SFAnalyzer(){}
@@ -44,45 +41,18 @@ class SFAnalyzer : public BaseAnalyzer<T> {
             //Read information needed
             run = skim.get<std::string>("run");
             era = skim.get<std::string>("era");
-            isSyst = skim.get<bool>("isSyst");
             isData = run != "MC";
 
-            //Electron SF hists
-            std::shared_ptr<TFile> eleRecoSFfile = std::make_shared<TFile>((this->filePath + sf.get<std::string>("Electron.Reco." + era)).c_str());
-            eleRecoSFhist.reset((TH2F*)eleRecoSFfile->Get("EGamma_SF2D")); 
+            eleSF = correction::CorrectionSet::from_file(this->CMSSWPath + sf.get<std::string>("Electron." + era + ".file"));
+            muonSF = correction::CorrectionSet::from_file(this->CMSSWPath + sf.get<std::string>("Muon.SF." + era + ".file"));
+            bTagSF = correction::CorrectionSet::from_file(this->CMSSWPath + sf.get<std::string>("Jet.BTag." + era));
 
-            std::shared_ptr<TFile> eleLooseSFfile = std::make_shared<TFile>((this->filePath + sf.get<std::string>("Electron.ID.Loose." + era)).c_str());
-            eleLooseSFhist.reset((TH2F*)eleLooseSFfile->Get("EGamma_SF2D"));
+            eleEraAlias = sf.get<std::string>("Electron." + era + ".eraAlias");
+            muEraAlias = sf.get<std::string>("Muon.SF." + era + ".eraAlias");
+            muTriggName = sf.get<std::string>("Muon.SF." + era + ".triggerName");
 
-            std::shared_ptr<TFile> eleMediumSFfile = std::make_shared<TFile>((this->filePath + sf.get<std::string>("Electron.ID.Medium." + era)).c_str());
-            eleMediumSFhist.reset((TH2F*)eleMediumSFfile->Get("EGamma_SF2D"));
-
-            std::shared_ptr<TFile> eleTightSFfile = std::make_shared<TFile>((this->filePath + sf.get<std::string>("Electron.ID.Tight." + era)).c_str());
-            eleTightSFhist.reset((TH2F*)eleTightSFfile->Get("EGamma_SF2D"));
-
-            std::shared_ptr<TFile> eleMediumMVASFfile = std::make_shared<TFile>((this->filePath + sf.get<std::string>("Electron.ID.MVAMedium." + era)).c_str());
-            eleMediumMVASFhist.reset((TH2F*)eleMediumMVASFfile->Get("EGamma_SF2D"));
-
-            std::shared_ptr<TFile> eleTightMVASFfile = std::make_shared<TFile>((this->filePath + sf.get<std::string>("Electron.ID.MVATight." + era)).c_str());
-            eleTightMVASFhist.reset((TH2F*)eleTightMVASFfile->Get("EGamma_SF2D"));
-
-            //Muon SF hists
-            std::shared_ptr<TFile> muTriggerSFfile = std::make_shared<TFile>((this->filePath + sf.get<std::string>("Muon.Trigger.File." + era)).c_str());
-            muTriggerSFhist.reset((TH2F*)muTriggerSFfile->Get(sf.get<std::string>("Muon.Trigger.Histogram." + era).c_str()));
-
-            std::shared_ptr<TFile> muIsoSFfile = std::make_shared<TFile>((this->filePath + sf.get<std::string>("Muon.Isolation." + era)).c_str());
-
-            muLooseIsoSFhist.reset((TH2F*)muIsoSFfile->Get("NUM_LooseRelIso_DEN_TightIDandIPCut_abseta_pt"));
-            muTightIsoSFhist.reset((TH2F*)muIsoSFfile->Get("NUM_TightRelIso_DEN_TightIDandIPCut_abseta_pt"));
-
-            std::shared_ptr<TFile> muIDSFfile = std::make_shared<TFile>((this->filePath  + sf.get<std::string>("Muon.ID.File." + era)).c_str());
-            muLooseSFhist.reset((TH2F*)muIDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Loose." + era).c_str()));
-            muMediumSFhist.reset((TH2F*)muIDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Medium." + era).c_str()));
-            muTightSFhist.reset((TH2F*)muIDSFfile->Get(sf.get<std::string>("Muon.ID.Histogram.Tight." + era).c_str()));
-
-            //Set configuration for bTagSF reader  
-            DeepCSVReader = BTagCSVReader(this->filePath + sf.get<std::string>("Jet.BTag.CSV." + era));
-            DeepJetReader = BTagCSVReader(this->filePath + sf.get<std::string>("Jet.BTag.DeepJet." + era));
+            bTagSyst = Util::GetVector<std::string>(skim, "Analyzer.Jet.BTagSyst");
+            bTagSystLight = Util::GetVector<std::string>(skim, "Analyzer.Jet.BTagSystLight");
 
             //Set histograms
             float ptCut = skim.get<float>("Analyzer.Jet.pt." + era);
@@ -91,9 +61,7 @@ class SFAnalyzer : public BaseAnalyzer<T> {
             std::vector<double> etaBins = {-etaCut, -1.4, 1.4, etaCut};
             std::vector<double> ptBins;
 
-            for(std::size_t i = 0; i <= 20; ++i){
-                ptBins.push_back(ptCut + i*10.);
-            } 
+            ptBins = {ptCut, 50, 70, 90, 200};
 
             bTotal = std::make_shared<TH2F>("nTrueB", "TotalB", ptBins.size() - 1, ptBins.data(), etaBins.size() - 1, etaBins.data());
             cTotal = std::make_shared<TH2F>("nTrueC", "TotalC", ptBins.size() - 1, ptBins.data(), etaBins.size() - 1, etaBins.data());
@@ -126,78 +94,66 @@ class SFAnalyzer : public BaseAnalyzer<T> {
 
         void Analyze(T& input, Output& out){
             if(isData) return;
+            
+            float elePt, muEta, muPt;
 
             //Loop over selected electrons
             for(int i = 0; i < out.nElectrons; ++i){
-                const int recoBin = eleRecoSFhist->FindBin(out.eleEta[i], out.elePt[i]);
-                const int looseBin = eleLooseSFhist->FindBin(out.eleEta[i], out.elePt[i]);
-                const int mediumBin = eleMediumSFhist->FindBin(out.eleEta[i], out.elePt[i]);
-                const int tightBin = eleTightSFhist->FindBin(out.eleEta[i], out.elePt[i]);
-                const int mediumMVABin = eleMediumMVASFhist->FindBin(out.eleEta[i], out.elePt[i]);
-                const int tightMVABin = eleTightMVASFhist->FindBin(out.eleEta[i], out.elePt[i]);
+                elePt = out.elePt[i] >= 30 ? out.elePt[i] : 30;
+            
+                out.eleRecoSF[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sf", "RecoAbove20", out.eleEta[i], elePt});
+                out.eleLooseSF[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sf", "Loose", out.eleEta[i], elePt});
+                out.eleMediumSF[i] =  eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sf", "Medium", out.eleEta[i], elePt});
+                out.eleTightSF[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sf", "Tight", out.eleEta[i], elePt});
+                out.eleMediumMVASF[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sf", "wp90iso", out.eleEta[i], elePt});
+                out.eleTightMVASF[i] =  eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sf", "wp80iso", out.eleEta[i], elePt});
 
-                out.eleRecoSF[i] = eleRecoSFhist->GetBinContent(recoBin);
-                out.eleLooseSF[i] = eleLooseSFhist->GetBinContent(looseBin);
-                out.eleMediumSF[i] =  eleMediumSFhist->GetBinContent(mediumBin);
-                out.eleTightSF[i] = eleTightSFhist->GetBinContent(tightBin);
-                out.eleMediumMVASF[i] =  eleMediumMVASFhist->GetBinContent(mediumMVABin);
-                out.eleTightMVASF[i] =  eleTightMVASFhist->GetBinContent(tightMVABin);
+                out.eleRecoSFUp[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sfup", "RecoAbove20", out.eleEta[i], elePt});
+                out.eleRecoSFDown[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sfdown", "RecoAbove20", out.eleEta[i], elePt});
 
+                out.eleLooseSFUp[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sfup", "Loose", out.eleEta[i], elePt});
+                out.eleLooseSFDown[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sfdown", "Loose", out.eleEta[i], elePt});
 
-                if(!isSyst){
-                    out.eleRecoSFUp[i] = eleRecoSFhist->GetBinContent(recoBin) + eleRecoSFhist->GetBinErrorUp(recoBin);
-                    out.eleRecoSFDown[i] = eleRecoSFhist->GetBinContent(recoBin) - eleRecoSFhist->GetBinErrorLow(recoBin);
+                out.eleMediumSFUp[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sfup", "Medium", out.eleEta[i], elePt});
+                out.eleMediumSFDown[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sfdown", "Medium", out.eleEta[i], elePt});
 
-                    out.eleLooseSFUp[i] = eleLooseSFhist->GetBinContent(looseBin) + eleLooseSFhist->GetBinErrorUp(looseBin);
-                    out.eleLooseSFDown[i] = eleLooseSFhist->GetBinContent(looseBin) - eleLooseSFhist->GetBinErrorLow(looseBin);
+                out.eleTightSFUp[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sfup", "Tight", out.eleEta[i], elePt});
+                out.eleTightSFDown[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sfdown", "Tight", out.eleEta[i], elePt});
 
-                    out.eleMediumSFUp[i] = eleMediumSFhist->GetBinContent(mediumBin) + eleMediumSFhist->GetBinErrorUp(mediumBin);
-                    out.eleMediumSFDown[i] = eleMediumSFhist->GetBinContent(mediumBin) - eleMediumSFhist->GetBinErrorLow(mediumBin);
+                out.eleMediumMVASFUp[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sfup", "wp90iso", out.eleEta[i], elePt});
+                out.eleMediumMVASFDown[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sfdown", "wp90iso", out.eleEta[i], elePt});
 
-                    out.eleTightSFUp[i] = eleTightSFhist->GetBinContent(tightBin) + eleTightSFhist->GetBinErrorUp(tightBin);
-                    out.eleTightSFDown[i] = eleTightSFhist->GetBinContent(tightBin) - eleTightSFhist->GetBinErrorLow(tightBin);
-
-                    out.eleMediumMVASFUp[i] = eleMediumMVASFhist->GetBinContent(mediumMVABin) + eleMediumMVASFhist->GetBinErrorUp(mediumMVABin);
-                    out.eleMediumMVASFDown[i] = eleMediumMVASFhist->GetBinContent(mediumMVABin) - eleMediumMVASFhist->GetBinErrorLow(mediumMVABin);
-
-                    out.eleTightMVASFUp[i] = eleTightMVASFhist->GetBinContent(tightMVABin) + eleTightMVASFhist->GetBinErrorUp(tightMVABin);
-                    out.eleTightMVASFDown[i] = eleTightMVASFhist->GetBinContent(tightMVABin) - eleTightMVASFhist->GetBinErrorLow(tightMVABin);
-                }
+                out.eleTightMVASFUp[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sfup", "wp80iso", out.eleEta[i], elePt});
+                out.eleTightMVASFDown[i] = eleSF->at("UL-Electron-ID-SF")->evaluate({eleEraAlias, "sfup", "wp80iso", out.eleEta[i], elePt});
             }
 
             //Loop over selected muons
             for(int i = 0; i < out.nMuons; ++i){
+                muPt = out.muPt[i] >= 30 ? out.muPt[i] : 30;
+                muEta = std::abs(out.muEta[i]);
+            
                 //Scale factors
-                const int looseIsoBin = muLooseIsoSFhist->FindBin(abs(out.muEta[i]), out.muPt[i]);
-                const int tightIsoBin = muTightIsoSFhist->FindBin(abs(out.muEta[i]), out.muPt[i]);
-                const int looseIDBin = muLooseSFhist->FindBin(abs(out.muEta[i]), out.muPt[i]);
-                const int mediumIDBin = muMediumSFhist->FindBin(abs(out.muEta[i]), out.muPt[i]);
-                const int tightIDBin = muTightSFhist->FindBin(abs(out.muEta[i]), out.muPt[i]);
-                const int triggerBin = muTriggerSFhist->FindBin(abs(out.muEta[i]), out.muPt[i]);
+                out.muLooseIsoSF[i] = muonSF->at("NUM_LooseRelIso_DEN_LooseID")->evaluate({muEraAlias, muEta, muPt, "sf"});
+                out.muTightIsoSF[i] = muonSF->at("NUM_TightRelIso_DEN_TightIDandIPCut")->evaluate({muEraAlias, muEta, muPt, "sf"});
+                out.muLooseSF[i] = muonSF->at("NUM_LooseID_DEN_TrackerMuons")->evaluate({muEraAlias, muEta, muPt, "sf"});
+                out.muMediumSF[i] = muonSF->at("NUM_MediumID_DEN_TrackerMuons")->evaluate({muEraAlias, muEta, muPt, "sf"});
+                out.muTightSF[i] = muonSF->at("NUM_TightID_DEN_TrackerMuons")->evaluate({muEraAlias, muEta, muPt, "sf"});
+                out.muTriggerSF[i] = muonSF->at(muTriggName)->evaluate({muEraAlias, muEta, muPt, "sf"});
 
-                out.muLooseIsoSF[i] = muLooseIsoSFhist->GetBinContent(looseIsoBin);
-                out.muTightIsoSF[i] = muTightIsoSFhist->GetBinContent(tightIsoBin);
-                out.muLooseSF[i] = muLooseSFhist->GetBinContent(looseIDBin);
-                out.muMediumSF[i] = muMediumSFhist->GetBinContent(mediumIDBin);
-                out.muTightSF[i] = muTightSFhist->GetBinContent(triggerBin);
-                out.muTriggerSF[i] = muTriggerSFhist->GetBinContent(triggerBin);
+                out.muLooseIsoSFUp[i] = muonSF->at("NUM_LooseRelIso_DEN_LooseID")->evaluate({muEraAlias, muEta, muPt, "systup"});
+                out.muLooseIsoSFDown[i] = muonSF->at("NUM_LooseRelIso_DEN_LooseID")->evaluate({muEraAlias, muEta, muPt, "systdown"});
+                out.muTightIsoSFUp[i] = muonSF->at("NUM_TightRelIso_DEN_TightIDandIPCut")->evaluate({muEraAlias, muEta, muPt, "systup"});
+                out.muTightIsoSFDown[i] = muonSF->at("NUM_TightRelIso_DEN_TightIDandIPCut")->evaluate({muEraAlias, muEta, muPt, "systdown"});
 
-                if(!isSyst){
-                    out.muLooseIsoSFUp[i] = muLooseIsoSFhist->GetBinContent(looseIsoBin) + muLooseIsoSFhist->GetBinErrorUp(looseIsoBin);
-                    out.muLooseIsoSFDown[i] = muLooseIsoSFhist->GetBinContent(looseIsoBin) - muLooseIsoSFhist->GetBinContent(looseIsoBin);
-                    out.muTightIsoSFUp[i] = muTightIsoSFhist->GetBinContent(tightIsoBin) + muTightIsoSFhist->GetBinErrorUp(tightIsoBin);
-                    out.muTightIsoSFDown[i] = muTightIsoSFhist->GetBinContent(tightIsoBin) - muTightIsoSFhist->GetBinErrorLow(tightIsoBin);
+                out.muLooseSFUp[i] = muonSF->at("NUM_LooseID_DEN_TrackerMuons")->evaluate({muEraAlias, muEta, muPt, "systup"});
+                out.muLooseSFDown[i] = muonSF->at("NUM_LooseID_DEN_TrackerMuons")->evaluate({muEraAlias, muEta, muPt, "systdown"});
+                out.muMediumSFUp[i] = muonSF->at("NUM_MediumID_DEN_TrackerMuons")->evaluate({muEraAlias, muEta, muPt, "systup"});
+                out.muMediumSFDown[i] = muonSF->at("NUM_MediumID_DEN_TrackerMuons")->evaluate({muEraAlias, muEta, muPt, "systdown"});
+                out.muTightSFUp[i] = muonSF->at("NUM_TightID_DEN_TrackerMuons")->evaluate({muEraAlias, muEta, muPt, "systup"});
+                out.muTightSFDown[i] = muonSF->at("NUM_TightID_DEN_TrackerMuons")->evaluate({muEraAlias, muEta, muPt, "systdown"});
 
-                    out.muLooseSFUp[i] = muLooseSFhist->GetBinContent(looseIDBin) + muLooseSFhist->GetBinErrorUp(looseIDBin);
-                    out.muLooseSFDown[i] = muLooseSFhist->GetBinContent(looseIDBin) - muLooseSFhist->GetBinErrorLow(looseIDBin);
-                    out.muMediumSFUp[i] = muMediumSFhist->GetBinContent(mediumIDBin) + muMediumSFhist->GetBinErrorUp(mediumIDBin);
-                    out.muMediumSFDown[i] = muMediumSFhist->GetBinContent(mediumIDBin) - muMediumSFhist->GetBinErrorLow(mediumIDBin);
-                    out.muTightSFUp[i] = muTightSFhist->GetBinContent(tightIDBin) + muTightSFhist->GetBinErrorUp(tightIDBin);
-                    out.muTightSFDown[i] = muTightSFhist->GetBinContent(tightIDBin) - muTightSFhist->GetBinErrorLow(tightIDBin);
-
-                    out.muTriggerSFUp[i] = muTriggerSFhist->GetBinContent(triggerBin) + muTriggerSFhist->GetBinErrorUp(triggerBin);
-                    out.muTriggerSFDown[i] = muTriggerSFhist->GetBinContent(triggerBin) - muTriggerSFhist->GetBinErrorLow(triggerBin);
-                }
+                out.muTriggerSFUp[i] = muonSF->at(muTriggName)->evaluate({muEraAlias, muEta, muPt, "systup"});
+                out.muTriggerSFDown[i] = muonSF->at(muTriggName)->evaluate({muEraAlias, muEta, muPt, "systdown"});
             }
 
             //Btag efficiency and SF
@@ -305,28 +261,53 @@ class SFAnalyzer : public BaseAnalyzer<T> {
                 }
   
                 //btag SF
-                out.jetLooseDeepCSVSF[i] = DeepCSVReader.Get(out.jetPt[i], 0, std::abs(out.jetPartFlav[i]));
-                out.jetMediumDeepCSVSF[i] = DeepCSVReader.Get(out.jetPt[i], 1, std::abs(out.jetPartFlav[i]));
-                out.jetTightDeepCSVSF[i] = DeepCSVReader.Get(out.jetPt[i], 2, std::abs(out.jetPartFlav[i]));
+                int flav = std::abs(out.jetPartFlav[i]) == 4 or std::abs(out.jetPartFlav[i]) == 5 ? std::abs(out.jetPartFlav[i]) : 0;
+                std::string postFix = flav != 0 ? "_comb" : "_incl";        
+                
+                out.jetLooseDeepCSVSF[i] = bTagSF->at("deepCSV" + postFix)->evaluate({"central", "L", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                out.jetMediumDeepCSVSF[i] = bTagSF->at("deepCSV" + postFix)->evaluate({"central", "M", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                out.jetTightDeepCSVSF[i] = bTagSF->at("deepCSV" + postFix)->evaluate({"central", "T", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
 
-                out.jetLooseDeepJetSF[i] = DeepJetReader.Get(out.jetPt[i], 0, std::abs(out.jetPartFlav[i]));
-                out.jetMediumDeepJetSF[i] = DeepJetReader.Get(out.jetPt[i], 1, std::abs(out.jetPartFlav[i]));
-                out.jetTightDeepJetSF[i] = DeepJetReader.Get(out.jetPt[i], 2, std::abs(out.jetPartFlav[i]));
+                out.jetLooseDeepJetSF[i] = bTagSF->at("deepJet" + postFix)->evaluate({"central", "L", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                out.jetMediumDeepJetSF[i] = bTagSF->at("deepJet" + postFix)->evaluate({"central", "M", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                out.jetTightDeepJetSF[i] = bTagSF->at("deepJet" + postFix)->evaluate({"central", "T", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
 
-                if(!isSyst){
-                    out.jetLooseDeepCSVSFUp[i] = DeepCSVReader.GetUp(out.jetPt[i], 0, std::abs(out.jetPartFlav[i]));
-                    out.jetLooseDeepCSVSFDown[i] = DeepCSVReader.GetDown(out.jetPt[i], 0, std::abs(out.jetPartFlav[i]));
-                    out.jetMediumDeepCSVSFUp[i] = DeepCSVReader.GetUp(out.jetPt[i], 1, std::abs(out.jetPartFlav[i]));
-                    out.jetMediumDeepCSVSFDown[i] = DeepCSVReader.GetDown(out.jetPt[i], 1, std::abs(out.jetPartFlav[i]));
-                    out.jetTightDeepCSVSFUp[i] = DeepCSVReader.GetUp(out.jetPt[i], 2, std::abs(out.jetPartFlav[i]));
-                    out.jetTightDeepCSVSFDown[i] = DeepCSVReader.GetDown(out.jetPt[i], 2, std::abs(out.jetPartFlav[i]));
+                for(int bSyst = 0; bSyst < bTagSyst.size(); ++bSyst){
+                    std::string shiftUp = flav != 0 ? "up_" + bTagSyst[bSyst] : "central",
+                                shiftDown = flav != 0 ? "down_" + bTagSyst[bSyst] : "central";
 
-                    out.jetLooseDeepJetSFUp[i] = DeepJetReader.GetUp(out.jetPt[i], 0, std::abs(out.jetPartFlav[i]));
-                    out.jetLooseDeepJetSFDown[i] = DeepJetReader.GetDown(out.jetPt[i], 0, std::abs(out.jetPartFlav[i]));
-                    out.jetMediumDeepJetSFUp[i] = DeepJetReader.GetUp(out.jetPt[i], 1, std::abs(out.jetPartFlav[i]));
-                    out.jetMediumDeepJetSFDown[i] = DeepJetReader.GetDown(out.jetPt[i], 1, std::abs(out.jetPartFlav[i]));
-                    out.jetTightDeepJetSFUp[i] = DeepJetReader.GetUp(out.jetPt[i], 2, std::abs(out.jetPartFlav[i]));
-                    out.jetTightDeepJetSFDown[i] = DeepJetReader.GetDown(out.jetPt[i], 2, std::abs(out.jetPartFlav[i]));
+                    out.jetLooseDeepCSVSFUp[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftUp, "L", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetLooseDeepCSVSFDown[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftDown, "L", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetMediumDeepCSVSFUp[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftUp, "M", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetMediumDeepCSVSFDown[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftDown, "M", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetTightDeepCSVSFUp[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftUp, "T", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetTightDeepCSVSFDown[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftDown, "T", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+
+                    out.jetLooseDeepJetSFUp[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftUp, "L", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetLooseDeepJetSFDown[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftDown, "L", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetMediumDeepJetSFUp[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftUp, "M", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetMediumDeepJetSFDown[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftDown, "M", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetTightDeepJetSFUp[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftUp, "T", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetTightDeepJetSFDown[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftDown, "T", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                }
+
+                for(int bSyst = 0; bSyst < bTagSystLight.size(); ++bSyst){
+                    std::string shiftUp = flav == 0 ? "up_" + bTagSyst[bSyst] : "central",
+                                shiftDown = flav == 0 ? "down_" + bTagSyst[bSyst] : "central";
+
+                    out.jetLooseDeepCSVSFLightUp[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftUp, "L", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetLooseDeepCSVSFLightDown[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftDown, "L", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetMediumDeepCSVSFLightUp[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftUp, "M", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetMediumDeepCSVSFLightDown[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftDown, "M", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetTightDeepCSVSFLightUp[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftUp, "T", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetTightDeepCSVSFLightDown[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftDown, "T", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+
+                    out.jetLooseDeepJetSFLightUp[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftUp, "L", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetLooseDeepJetSFLightDown[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftDown, "L", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetMediumDeepJetSFLightUp[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftUp, "M", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetMediumDeepJetSFLightDown[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftDown, "M", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetTightDeepJetSFLightUp[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftUp, "T", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
+                    out.jetTightDeepJetSFLightDown[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftDown, "T", flav, std::abs(out.jetEta[i]), out.jetPt[i]});
                 }
             }
 
@@ -434,28 +415,53 @@ class SFAnalyzer : public BaseAnalyzer<T> {
                 }
   
                 //btag SF
-                out.subJetLooseDeepCSVSF[i] = DeepCSVReader.Get(out.subJetPt[i], 0, std::abs(out.subJetPartFlav[i]));
-                out.subJetMediumDeepCSVSF[i] = DeepCSVReader.Get(out.subJetPt[i], 1, std::abs(out.subJetPartFlav[i]));
-                out.subJetTightDeepCSVSF[i] = DeepCSVReader.Get(out.subJetPt[i], 2, std::abs(out.subJetPartFlav[i]));
+                int flav = std::abs(out.subJetPartFlav[i]) == 4 or std::abs(out.subJetPartFlav[i]) == 5 ? std::abs(out.subJetPartFlav[i]) : 0;
+                std::string postFix = flav != 0 ? "_comb" : "_incl";        
+                
+                out.subJetLooseDeepCSVSF[i] = bTagSF->at("deepCSV" + postFix)->evaluate({"central", "L", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                out.subJetMediumDeepCSVSF[i] = bTagSF->at("deepCSV" + postFix)->evaluate({"central", "M", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                out.subJetTightDeepCSVSF[i] = bTagSF->at("deepCSV" + postFix)->evaluate({"central", "T", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
 
-                out.subJetLooseDeepJetSF[i] = DeepJetReader.Get(out.subJetPt[i], 0, std::abs(out.subJetPartFlav[i]));
-                out.subJetMediumDeepJetSF[i] = DeepJetReader.Get(out.subJetPt[i], 1, std::abs(out.subJetPartFlav[i]));
-                out.subJetTightDeepJetSF[i] = DeepJetReader.Get(out.subJetPt[i], 2, std::abs(out.subJetPartFlav[i]));
+                out.subJetLooseDeepJetSF[i] = bTagSF->at("deepJet" + postFix)->evaluate({"central", "L", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                out.subJetMediumDeepJetSF[i] = bTagSF->at("deepJet" + postFix)->evaluate({"central", "M", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                out.subJetTightDeepJetSF[i] = bTagSF->at("deepJet" + postFix)->evaluate({"central", "T", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
 
-                if(!isSyst){
-                    out.subJetLooseDeepCSVSFUp[i] = DeepCSVReader.GetUp(out.subJetPt[i], 0, std::abs(out.subJetPartFlav[i]));
-                    out.subJetLooseDeepCSVSFDown[i] = DeepCSVReader.GetDown(out.subJetPt[i], 0, std::abs(out.subJetPartFlav[i]));
-                    out.subJetMediumDeepCSVSFUp[i] = DeepCSVReader.GetUp(out.subJetPt[i], 1, std::abs(out.subJetPartFlav[i]));
-                    out.subJetMediumDeepCSVSFDown[i] = DeepCSVReader.GetDown(out.subJetPt[i], 1, std::abs(out.subJetPartFlav[i]));
-                    out.subJetTightDeepCSVSFUp[i] = DeepCSVReader.GetUp(out.subJetPt[i], 2, std::abs(out.subJetPartFlav[i]));
-                    out.subJetTightDeepCSVSFDown[i] = DeepCSVReader.GetDown(out.subJetPt[i], 2, std::abs(out.subJetPartFlav[i]));
+                for(int bSyst = 0; bSyst < bTagSyst.size(); ++bSyst){
+                    std::string shiftUp = flav != 0 ? "up_" + bTagSyst[bSyst] : "central",
+                                shiftDown = flav != 0 ? "down_" + bTagSyst[bSyst] : "central";
 
-                    out.subJetLooseDeepJetSFUp[i] = DeepJetReader.GetUp(out.subJetPt[i], 0, std::abs(out.subJetPartFlav[i]));
-                    out.subJetLooseDeepJetSFDown[i] = DeepJetReader.GetDown(out.subJetPt[i], 0, std::abs(out.subJetPartFlav[i]));
-                    out.subJetMediumDeepJetSFUp[i] = DeepJetReader.GetUp(out.subJetPt[i], 1, std::abs(out.subJetPartFlav[i]));
-                    out.subJetMediumDeepJetSFDown[i] = DeepJetReader.GetDown(out.subJetPt[i], 1, std::abs(out.subJetPartFlav[i]));
-                    out.subJetTightDeepJetSFUp[i] = DeepJetReader.GetUp(out.subJetPt[i], 2, std::abs(out.subJetPartFlav[i]));
-                    out.subJetTightDeepJetSFDown[i] = DeepJetReader.GetDown(out.subJetPt[i], 2, std::abs(out.subJetPartFlav[i]));
+                    out.subJetLooseDeepCSVSFUp[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftUp, "L", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetLooseDeepCSVSFDown[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftDown, "L", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetMediumDeepCSVSFUp[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftUp, "M", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetMediumDeepCSVSFDown[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftDown, "M", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetTightDeepCSVSFUp[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftUp, "T", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetTightDeepCSVSFDown[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftDown, "T", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+
+                    out.subJetLooseDeepJetSFUp[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftUp, "L", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetLooseDeepJetSFDown[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftDown, "L", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetMediumDeepJetSFUp[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftUp, "M", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetMediumDeepJetSFDown[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftDown, "M", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetTightDeepJetSFUp[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftUp, "T", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetTightDeepJetSFDown[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftDown, "T", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                }
+
+                for(int bSyst = 0; bSyst < bTagSystLight.size(); ++bSyst){
+                    std::string shiftUp = flav == 0 ? "up_" + bTagSyst[bSyst] : "central",
+                                shiftDown = flav == 0 ? "down_" + bTagSyst[bSyst] : "central";
+
+                    out.subJetLooseDeepCSVSFLightUp[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftUp, "L", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetLooseDeepCSVSFLightDown[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftDown, "L", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetMediumDeepCSVSFLightUp[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftUp, "M", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetMediumDeepCSVSFLightDown[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftDown, "M", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetTightDeepCSVSFLightUp[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftUp, "T", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetTightDeepCSVSFLightDown[bSyst][i] = bTagSF->at("deepCSV" + postFix)->evaluate({shiftDown, "T", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+
+                    out.subJetLooseDeepJetSFLightUp[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftUp, "L", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetLooseDeepJetSFLightDown[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftDown, "L", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetMediumDeepJetSFLightUp[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftUp, "M", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetMediumDeepJetSFLightDown[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftDown, "M", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetTightDeepJetSFLightUp[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftUp, "T", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
+                    out.subJetTightDeepJetSFLightDown[bSyst][i] = bTagSF->at("deepJet" + postFix)->evaluate({shiftDown, "T", flav, std::abs(out.subJetEta[i]), out.subJetPt[i]});
                 }
             }
         }
