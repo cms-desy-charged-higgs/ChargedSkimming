@@ -16,11 +16,11 @@ namespace Util{
         return vec;
     };
 
-    std::vector<std::string> GetKeys(const pt::ptree& tree, const std::string path){
+    std::vector<std::string> GetKeys(const boost::property_tree::ptree& tree, const std::string path){
         std::vector<std::string> keys;
-        pt::ptree node = tree.get_child(path);
+        boost::property_tree::ptree node = tree.get_child(path);
 
-        for(const std::pair<const std::string, pt::ptree>& p : node){
+        for(const std::pair<const std::string, boost::property_tree::ptree>& p : node){
             keys.push_back(p.first);
         }
 
