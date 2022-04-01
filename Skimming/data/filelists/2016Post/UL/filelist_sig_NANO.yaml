@@ -1,4 +1,4 @@
-##Created with createDataList.py with following wildcards: ['RunIISummer20UL16NanoAODv9-106X*', 'RunIISummer20UL16NanoAODv2-*']
+##Created with createDataList.py with following wildcards: ['RunIISummer20UL16NanoAODv9-106X*', 'RunIISummer20UL16NanoAODv2-*', 'RunIISummer19UL16NanoAODv2-*']
 
 - /HPlusAndH_ToWHH_ToL4B_200_100_TuneCP5_PSWeights_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
 - /HPlusAndH_ToWHH_ToL4B_200_110_TuneCP5_PSWeights_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
@@ -16,6 +16,7 @@
 - /HPlusAndH_ToWHH_ToL4B_400_80_TuneCP5_PSWeights_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
 - /HPlusAndH_ToWHH_ToL4B_400_90_TuneCP5_PSWeights_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
 - /HPlusAndH_ToWHH_ToL4B_500_100_TuneCP5_PSWeights_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
+- /HPlusAndH_ToWHH_ToL4B_500_110_TuneCP5_PSWeights_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v2/NANOAODSIM
 - /HPlusAndH_ToWHH_ToL4B_500_70_TuneCP5_PSWeights_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
 - /HPlusAndH_ToWHH_ToL4B_500_80_TuneCP5_PSWeights_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM
 - /HPlusAndH_ToWHH_ToL4B_500_90_TuneCP5_PSWeights_13TeV-madgraph-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM

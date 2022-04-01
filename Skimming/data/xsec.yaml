@@ -4,31 +4,37 @@
 ###https://twiki.cern.ch/twiki/bin/view/LHCPhysics/SingleTopRefXsec#Single_top_t_channel_cross_secti
 
 TTTo2L2Nu:
-    xSec: 89.0482256
+    xSec: 88.29
+    xSecUnc: 4.45241128
     isUsed: true
 
 TTToSemiLeptonic:
-    xSec: 364.31088
+    xSec: 365.34
+    xSecUnc: 18.267
     isUsed: true
 
 TTToHadronic:
     xSec: 380.11432
-    isUsed: true
+    isUsed: false
 
 TTZToLLNuNu_M-10:
-    xSec: 0.2432
+    xSec: 0.2439
+    xSecUnc: 0.0002995
     isUsed: true
 
 TTZToQQ:
     xSec: 0.5104
+    xSecUnc: 0.000697
     isUsed: true
 
 TTWJetsToQQ:
-    xSec: 0.4316
+    xSec: 0.4377
+    xSecUnc: 0.001622
     isUsed: true
 
 TTWJetsToLNu:
-    xSec: 0.2198
+    xSec: 0.2161
+    xSecUnc: 0.0008017
     isUsed: true
 
 ZZTo4L:
@@ -64,15 +70,18 @@ WZTo1L1Nu2Q:
     isUsed: false
 
 WW:
-    xSec: 75.88
+    xSec: 75.95
+    xSecUnc: 0.1124
     isUsed: true
 
 WZ:
-    xSec: 27.6 
+    xSec: 27.6
+    xSecUnc: 0.0399
     isUsed: true
 
 ZZ:
-    xSec: 12.14 
+    xSec: 12.14
+    xSecUnc: 0.01966
     isUsed: true
 
 ZZZ:
@@ -93,26 +102,32 @@ WWW:
 
 ST_s-channel_4f_leptonDecays:
     xSec: 3.74
+    xSecUnc: 0.003533
     isUsed: true
 
 ST_tW_top_5f_NoFullyHadronicDecay:
-    xSec: 34.91
+    xSec: 32.45
+    xSecUnc: 0.02338
     isUsed: true
 
 ST_tW_antitop_5f_NoFullyHadronicDecay:
-    xSec: 34.97
+    xSec: 32.51
+    xSecUnc: 0.02346
     isUsed: true
 
 ST_t-channel_eleDecays:
     xSec: 24.78
+    xSecUnc: 0.04831
     isUsed: true
 
 ST_t-channel_muDecays:
     xSec: 24.73
+    xSecUnc: 0.05057
     isUsed: true
 
 ST_t-channel_tauDecays:
     xSec: 24.8
+    xSecUnc: 0.05057
     isUsed: true
 
 ST_t-channel_antitop_4f_InclusiveDecays:
@@ -124,11 +139,13 @@ ST_t-channel_top_4f_InclusiveDecays:
     isUsed: false
 
 DYJetsToLL_M-10to50:
-    xSec: 21658.0
+    xSec: 15890.0
+    xSecUnc: 24.94
     isUsed: true
 
 DYJetsToLL_M-50:
-    xSec: 6529.0
+    xSec: 6077.22
+    xSecUnc: 121.54
     isUsed: true
 
 DY1JetsToLL_M-50:
@@ -149,152 +166,290 @@ DY4JetsToLL_M-50:
 
 WJetsToLNu:
     xSec: 61526.7
+    xSecUnc: 129.7
     isUsed: true
 
 W1JetsToLNu:
-    xSec: 8873.0
-    isUsed: false
+    xSec: 8927.0
+    xSecUnc: 24.09 
+    isUsed: true
 
 W2JetsToLNu:
-    xSec: 2793.0
-    isUsed: false
+    xSec: 2809.0
+    xSecUnc: 8.201
+    isUsed: true
 
 W3JetsToLNu:
-    xSec: 992.5
-    isUsed: false
+    xSec: 826.3
+    xSecUnc: 2.511
+    isUsed: true
 
 W4JetsToLNu:
     xSec: 544.3
-    isUsed: false
+    xSecUnc: 1.656
+    isUsed: true
+    
+QCD_Pt-15to20_MuEnriched:
+    xSec: 2799000.0
+    xSecUnc: 8817.0
+    isUsed: true
+    
+QCD_Pt-20to30_MuEnriched:
+    xSec: 2526000.0
+    xSecUnc: 7955.0
+    isUsed: true
+    
+QCD_Pt-30to50_MuEnriched:
+    xSec: 1362000.0
+    xSecUnc: 4275.0
+    isUsed: true
+    
+QCD_Pt-50to80_MuEnriched:
+    xSec: 376600.0 
+    xSecUnc: 1178.0
+    isUsed: true
+    
+QCD_Pt-80to120_MuEnriched:
+    xSec: 88930.0
+    xSecUnc: 276.1
+    isUsed: true
+    
+QCD_Pt-120to170_MuEnriched:
+    xSec: 21230.0
+    xSecUnc: 65.63
+    isUsed: true
+
+QCD_Pt-170to300_MuEnriched:
+    xSec: 7055.0
+    xSecUnc: 21.62
+    isUsed: true
+
+QCD_Pt-300to470_MuEnriched:
+    xSec: 7619.3
+    xSecUnc: 1.889
+    isUsed: true
+
+QCD_Pt-470to600_MuEnriched:
+    xSec: 59.24
+    xSecUnc: 0.1789
+    isUsed: true
+
+QCD_Pt-600to800_MuEnriched:
+    xSec: 18.21
+    xSecUnc: 0.05469
+    isUsed: true
+    
+QCD_Pt-800to1000_MuEnriched:
+    xSec: 3.275
+    xSecUnc: 0.009809
+    isUsed: true
+    
+QCD_Pt-1000toInf_MuEnriched:
+    xSec: 1.078
+    xSecUnc: 0.003236
+    isUsed: true
+    
+QCD_Pt-15to20_EMEnriched:
+    xSec: 1327000.0
+    xSecUnc: 4186.0
+    isUsed: true
+    
+QCD_Pt-20to30_EMEnriched:
+    xSec: 4908000.0
+    xSecUnc: 15430.0
+    isUsed: true
+    
+QCD_Pt-30to50_EMEnriched:
+    xSec: 6396000.0
+    xSecUnc: 19750.0
+    isUsed: true
+    
+QCD_Pt-50to80_EMEnriched:
+    xSec: 1989000.0
+    xSecUnc: 5966.0
+    isUsed: true
+    
+QCD_Pt-80to120_EMEnriched:
+    xSec: 366500.0
+    xSecUnc: 1086.0
+    isUsed: true
+    
+QCD_Pt-120to170_EMEnriched:
+    xSec: 66490.0
+    xSecUnc: 196.4
+    isUsed: true
+
+QCD_Pt-170to300_EMEnriched:
+    xSec: 16480.0
+    xSecUnc: 48.79
+    isUsed: true
+
+QCD_Pt-300toInf_EMEnriched:
+    xSec: 1099.0
+    xSecUnc: 3.269
+    isUsed: true
 
 QCD_HT100to200:
     xSec: 23700000.0
+    xSecUnc: 1185000.0
     isUsed: false
 
 QCD_HT200to300:
     xSec: 1547000.0
+    xSecUnc: 77350.0
     isUsed: false
 
 QCD_HT300to500:
     xSec: 322600.0
+    xSecUnc: 16130.0
     isUsed: false
 
 QCD_HT500to700:
     xSec: 29980.0
+    xSecUnc: 1499.0
     isUsed: false
 
 QCD_HT700to1000:
     xSec: 6334.0
-    isUsed: false
+    xSecUnc: 316.70
+    isUsed: false 
 
 QCD_HT1000to1500:
     xSec: 1088.0
+    xSecUnc: 54.40
     isUsed: false
 
 QCD_HT1500to2000:
     xSec: 99.11
+    xSecUnc: 4.95
     isUsed: false
 
 QCD_HT2000toInf:
     xSec: 20.23
+    xSecUnc: 1.01
     isUsed: false
 
 HPlusAndH_ToWHH_ToL4B_200_70:
     xSec: 0.02946
+    xSecUnc: 0.0005892
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_300_70:
     xSec: 0.008688
+    xSecUnc: 0.00017376
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_400_70:
     xSec: 0.003489
+    xSecUnc: 6.978e-05
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_500_70:
     xSec: 0.001577
+    xSecUnc: 3.154e-05
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_600_70:
     xSec: 0.0007854
+    xSecUnc: 1.5708e-05
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_200_80:
     xSec: 0.0257
+    xSecUnc: 0.000514
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_300_80:
     xSec: 0.008092
+    xSecUnc: 0.00016184
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_400_80:
     xSec: 0.003297
+    xSecUnc: 6.594e-05
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_500_80:
     xSec: 0.001527
+    xSecUnc: 3.054e-05
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_600_80:
     xSec: 0.0007679
+    xSecUnc: 1.5358e-05
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_200_90:
     xSec: 0.02135
+    xSecUnc: 0.000427
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_300_90:
     xSec: 0.007362
+    xSecUnc: 0.00014724
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_400_90:
     xSec: 0.003134
+    xSecUnc: 6.268e-05
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_500_90:
     xSec: 0.001462
+    xSecUnc: 2.924e-05
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_600_90:
     xSec: 0.0007297
+    xSecUnc: 1.4594000000000001e-05
     isUsed: true
     
 HPlusAndH_ToWHH_ToL4B_200_100:
     xSec: 0.01643
+    xSecUnc: 0.0003286
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_300_100:
     xSec:   0.00674
+    xSecUnc: 0.0001348
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_400_100:
     xSec:   0.002929
+    xSecUnc: 5.8580000000000005e-05
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_500_100:
     xSec:   0.001387
+    xSecUnc: 2.7740000000000002e-05
     isUsed: true
      
 HPlusAndH_ToWHH_ToL4B_600_100:
     xSec:   0.0006998
+    xSecUnc: 1.3996e-05
     isUsed: true
      
 HPlusAndH_ToWHH_ToL4B_200_110:
     xSec: 0.009206
+    xSecUnc:  0.00018412000000000002
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_300_110:
     xSec: 0.006073
+    xSecUnc: 0.00012146
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_400_110:
     xSec: 0.002725
+    xSecUnc: 5.45e-05
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_500_110:
     xSec: 0.001301
+    xSecUnc: 2.602e-05
     isUsed: true
 
 HPlusAndH_ToWHH_ToL4B_600_110:
     xSec: 0.0006685
+    xSecUnc: 1.337e-05
     isUsed: true

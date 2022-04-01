@@ -5,6 +5,7 @@
 <use name="root"/>
 <use name="rootrio"/>
 <use name="rootcore"/>
+<use name="boost"/>
 <use name="rootphysics"/>
 <use name="rootgraphics"/>
 <lib name="stdc++fs" />

@@ -26,7 +26,6 @@
 #include <ChargedSkimming/Analyzer/interface/isotrkanalyzer.h>
 #include <ChargedSkimming/Analyzer/interface/miscanalyzer.h>
 #include <ChargedSkimming/Analyzer/interface/sfanalyzer.h>
-#include <ChargedSkimming/Analyzer/interface/genpartanalyzer.h>
 
 namespace pt = boost::property_tree;
 
@@ -43,11 +42,11 @@ class Skimmer{
 
         //Input information
         std::vector<std::string> channels;
-        std::string xSec, era, run, systematic, shift;
+        std::string xSec, xSecUnc, era, run, systematic, shift;
         int nEvents;
 
     public:
-        Skimmer(const std::vector<std::string>& channels, const std::string xSec, const std::string& era, const std::string& run, const std::string& systematic, const std::string& shift) : channels(channels), xSec(xSec), era(era), run(run), systematic(systematic), shift(shift){}
+        Skimmer(const std::vector<std::string>& channels, const std::string& xSec, const std::string& xSecUnc, const std::string& era, const std::string& run) : channels(channels), xSec(xSec), xSecUnc(xSecUnc), era(era), run(run) {}
 
         void Configure(T& input, Output& output, const std::string& outDir, const std::string& outFile){
             //Read in json config
@@ -88,10 +87,8 @@ class Skimmer{
             }
 
             //Register trigger to input class (Only thing which is needed to register for input class)
-            if(systematic == "Nominal"){
-                input.SetTrigger(triggerNames, false);
-                input.SetTrigger(Util::GetVector<std::string>(skim, "Analyzer.METFilter." + era), true);
-            }
+            input.SetTrigger(triggerNames, false);
+            input.SetTrigger(Util::GetVector<std::string>(skim, "Analyzer.METFilter." + era), true);
 
             //Add trigger/METFilter to cuts
             for(std::size_t i = 0; i < channels.size(); ++i){
@@ -110,35 +107,33 @@ class Skimmer{
 
             //Add. information for analyzer
             bool isData = run != "MC";
-            bool isSyst = systematic != "Nominal";
 
             skim.put<std::string>("xSec", xSec);
+            skim.put<std::string>("xSecUnc", xSecUnc);
             skim.put<std::string>("run", run);
             skim.put<std::string>("era", era);
-            skim.put<bool>("isSyst", isSyst);
             skim.put<bool>("isData", isData);
 
             //Register branches to output trees
             output.RegisterTrigger(triggerNames, outTrees);
-            output.Register("Weight", outTrees, isData, isSyst);
-            output.Register("Electron", outTrees, isData, isSyst);
-            output.Register("Muon", outTrees, isData, isSyst);
-            output.Register("Jet", outTrees, isData, isSyst);
-            output.Register("Isotrack", outTrees, isData, isSyst);
-            output.Register("Misc", outTrees, isData, isSyst);
+            output.Register("Weight", outTrees, skim, isData);
+            output.Register("Electron", outTrees, skim, isData);
+            output.Register("Muon", outTrees, skim, isData);
+            output.Register("Jet", outTrees, skim, isData);
+            output.Register("Isotrack", outTrees, skim, isData);
+            output.Register("Misc", outTrees, skim, isData);
 
             //List of analyzer
             analyzer = {
                 std::make_shared<TriggerAnalyzer<T>>(),
                 std::make_shared<METFilterAnalyzer<T>>(),
-                std::make_shared<JetAnalyzer<T>>(systematic, shift),
-                std::make_shared<ElectronAnalyzer<T>>(systematic, shift),
+                std::make_shared<JetAnalyzer<T>>(),
+                std::make_shared<ElectronAnalyzer<T>>(),
                 std::make_shared<MuonAnalyzer<T>>(),
                 std::make_shared<IsotrkAnalyzer<T>>(),
                 std::make_shared<WeightAnalyzer<T>>(),
                 std::make_shared<MiscAnalyzer<T>>(),
                 std::make_shared<SFAnalyzer<T>>(),
-                std::make_shared<GenPartAnalyzer<T>>(),
             };
 
             //Initialize analyzers

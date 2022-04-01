@@ -15,6 +15,7 @@
     MC:
         - RunIISummer20UL16NanoAODAPVv9-106X*
         - RunIISummer20UL16NanoAODAPVv2-*
+        - RunIISummer19UL16NanoAODAPVv2-*
         
 2016Post:
     data:
@@ -30,6 +31,7 @@
     MC:
         - RunIISummer20UL16NanoAODv9-106X*
         - RunIISummer20UL16NanoAODv2-*
+        - RunIISummer19UL16NanoAODv2-*
 
 2017:
     data:
@@ -47,6 +49,7 @@
     MC:
         - RunIISummer20UL17NanoAOD*v9-106X*
         - RunIISummer20UL17NanoAODv2-*
+        - RunIISummer19UL17NanoAODv2-*
 
 2018:
     data:
@@ -63,3 +66,4 @@
     MC:
         - RunIISummer20UL18NanoAOD*v9-106X*
         - RunIISummer20UL18NanoAODv2-*
+        - RunIISummer19UL18NanoAODv2-*

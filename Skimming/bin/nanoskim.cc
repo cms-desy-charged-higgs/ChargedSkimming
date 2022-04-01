@@ -4,14 +4,15 @@
 
 #include <vector>
 #include <string>
+#include <chrono>
 
 std::string ParseLine(int argc, char* argv[], const std::string& name){
     std::string result;
 
     for(int i = 0; i < argc; ++i){
-        std::string arg(argv[i]);
+        std::string arg = std::string(argv[i]);
 
-        if(arg.find(name) != std::string::npos){
+        if(arg.size() > 2 and name == arg.substr(2)){
             result = std::string(argv[i+1]);
         }
     }
@@ -34,42 +35,32 @@ std::vector<std::string> SplitString(const std::string& splitString, const std::
 int main(int argc, char* argv[]){
     //Extract informations of command line
     std::string fileName = ParseLine(argc, argv, "file-name");
-    std::string outDirTmp = ParseLine(argc, argv, "out-dir");
+    std::string outDir = ParseLine(argc, argv, "out-dir");
     std::string outFile = ParseLine(argc, argv, "out-file");
     std::string run = ParseLine(argc, argv, "run");
     std::string era = ParseLine(argc, argv, "era");
     std::string xSec = ParseLine(argc, argv, "xSec");
+    std::string xSecUnc = ParseLine(argc, argv, "xSecUnc");
     std::vector<std::string> channels = SplitString(ParseLine(argc, argv, "channels"), " ");
-    std::vector<std::string> systematics = SplitString(ParseLine(argc, argv, "systematics"), " ");   
+
+    std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
 
     NanoInput input(fileName, "Events");
     Output output;
-    std::vector<Skimmer<NanoInput>> skimmers;
 
-    for(const std::string& syst : systematics){
-        for(const std::string shift : {"Up", "Down"}){
-            if(syst == "Nominal" and shift == "Down") continue;
-            const std::string systName = syst == "Nominal" ? syst : syst + shift;
-
-            std::string outDir = outDirTmp;
-            outDir.replace(outDir.find("[SYS]"), 5, systName);
-
-            skimmers.push_back(Skimmer<NanoInput>(channels, xSec, era, run, syst, shift));
-            skimmers.back().Configure(input, output, outDir, outFile);
-        }
-    }
-
+    Skimmer<NanoInput> skimmer(channels, xSec, xSecUnc, era, run);
+    skimmer.Configure(input, output, outDir, outFile);
+  
     for(std::size_t entry = 0; entry < input.GetEntries(); ++entry){
         if(entry % 10000 == 0 and entry != 0){
-            std::cout << "Events analyzed: " << entry  << " of " << input.GetEntries() << " (" << float(entry)/input.GetEntries()*100 << " %)"<< std::endl;
+            std::cout << "Events analyzed: " << entry  << " of " << input.GetEntries() << " (" << float(entry)/input.GetEntries()*100 << " %) [" << std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start).count() << " seconds]" << std::endl;
         }
 
         input.SetEntry(entry);
-
-        for(Skimmer<NanoInput>& skimmer : skimmers) skimmer.Loop(input, output);
+        skimmer.Loop(input, output);
     }
    
-    for(Skimmer<NanoInput>& skimmer : skimmers) skimmer.WriteOutput();
+    skimmer.WriteOutput();
 }
 
 

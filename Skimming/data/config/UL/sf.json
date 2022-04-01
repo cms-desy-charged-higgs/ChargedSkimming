@@ -80,122 +80,67 @@
         },
 
         "BTag": {
-            "DeepJet": {
-                "2016Pre": "/btagSF/2016/ReReco/DeepJet_2016LegacySF_V1.csv",
-                "2016Post": "/btagSF/2016/ReReco/DeepJet_2016LegacySF_V1.csv",
-                "2017": "/btagSF/2017/UL/DeepJet_106XUL17SF_WPonly_V2.csv",
-                "2018": "/btagSF/2018/UL/DeepJet_106XUL18SF_WPonly.csv"
-            },
-
-            "CSV": {
-                "2016Pre": "/btagSF/2016/ReReco/DeepCSV_2016LegacySF_V1.csv",
-                "2016Post": "/btagSF/2016/ReReco/DeepCSV_2016LegacySF_V1.csv",
-                "2017": "/btagSF/2017/UL/DeepCSV_106XUL17SF_WPonly_V2.csv",
-                "2018": "/btagSF/2018/UL/DeepCSV_106XUL18SF_WPonly.csv"
-            }
+            "2016Pre": "/jsonpog-integration/POG/BTV/2016preVFP_UL/btagging.json",
+            "2016Post": "/jsonpog-integration/POG/BTV/2016postVFP_UL/btagging.json",
+            "2017": "/jsonpog-integration/POG/BTV/2017_UL/btagging.json",
+            "2018": "/jsonpog-integration/POG/BTV/2018_UL/btagging.json"
         }
     },
 
     "Electron": {
-        "ID": {
-            "Loose": {
-                "2016Pre": "/eleSF/2016/UL/egammaEffi.txt_Ele_Loose_preVFP_EGM2D.root", 
-                "2016Post": "/eleSF/2016/UL/egammaEffi.txt_Ele_Loose_postVFP_EGM2D.root", 
-                "2017": "/eleSF/2017/UL/egammaEffi.txt_EGM2D_Loose_UL17.root", 
-                "2018": "/eleSF/2018/UL/egammaEffi.txt_Ele_Loose_EGM2D.root"
-            },
-
-            "Medium": {
-                "2016Pre": "/eleSF/2016/UL/egammaEffi.txt_Ele_Medium_preVFP_EGM2D.root", 
-                "2016Post": "/eleSF/2016/UL/egammaEffi.txt_Ele_Medium_postVFP_EGM2D.root", 
-                "2017": "/eleSF/2017/UL/egammaEffi.txt_EGM2D_Medium_UL17.root", 
-                "2018": "/eleSF/2018/UL/egammaEffi.txt_Ele_Medium_EGM2D.root"
-            },
-
-            "Tight": {
-                "2016Pre": "/eleSF/2016/UL/egammaEffi.txt_Ele_Tight_preVFP_EGM2D.root", 
-                "2016Post": "/eleSF/2016/UL/egammaEffi.txt_Ele_Tight_postVFP_EGM2D.root", 
-                "2017": "/eleSF/2017/UL/egammaEffi.txt_EGM2D_Tight_UL17.root", 
-                "2018": "/eleSF/2018/UL/egammaEffi.txt_Ele_Tight_EGM2D.root"
-            },
-
-            "MVAMedium" : {
-                "2016Pre": "/eleSF/2016/UL/egammaEffi.txt_Ele_wp90noiso_preVFP_EGM2D.root", 
-                "2016Post": "/eleSF/2016/UL/egammaEffi.txt_Ele_wp90noiso_postVFP_EGM2D.root", 
-                "2017": "/eleSF/2017/UL/egammaEffi.txt_EGM2D_MVA90noIso_UL17.root", 
-                "2018": "/eleSF/2018/UL/egammaEffi.txt_Ele_wp90noiso_EGM2D.root"
-            },
-
-            "MVATight" : {
-                "2016Pre": "/eleSF/2016/UL/egammaEffi.txt_Ele_wp80noiso_preVFP_EGM2D.root", 
-                "2016Post": "/eleSF/2016/UL/egammaEffi.txt_Ele_wp80noiso_postVFP_EGM2D.root", 
-                "2017": "/eleSF/2017/UL/egammaEffi.txt_EGM2D_MVA80noIso_UL17.root", 
-                "2018": "/eleSF/2018/UL/egammaEffi.txt_Ele_wp80noiso_EGM2D.root"
-            }
+        "2016Pre": {
+            "file": "/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json",
+            "eraAlias": "2016preVFP"
         },
 
-        "Reco": {
-            "2016Pre": "/eleSF/2016/UL/egammaEffi_ptAbove20.txt_EGM2D_UL2016preVFP.root", 
-            "2016Post": "/eleSF/2016/UL/egammaEffi_ptAbove20.txt_EGM2D_UL2016postVFP.root", 
-            "2017": "/eleSF/2017/UL/egammaEffi_ptAbove20.txt_EGM2D_UL2017.root",    
-            "2018": "/eleSF/2018/UL/egammaEffi_ptAbove20.txt_EGM2D_UL2018.root"
+        "2016Post": {
+            "file": "/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json",
+            "eraAlias": "2016postVFP"
+        },
+
+        "2017": {
+            "file": "/jsonpog-integration/POG/EGM/2017_UL/electron.json",
+            "eraAlias": "2017"
+        },
+
+        "2018": {
+            "file": "/jsonpog-integration/POG/EGM/2018_UL/electron.json",
+            "eraAlias": "2018"
         }
     },
 
     "Muon": {
-        "ID": {
-            "File": {
-                "2016Pre": "/muonSF/2016/UL/Efficiencies_muon_generalTracks_Z_Run2016_UL_HIPM_ID.root",
-                "2016Post": "/muonSF/2016/UL/Efficiencies_muon_generalTracks_Z_Run2016_UL_ID.root",
-                "2017": "/muonSF/2017/UL/Efficiencies_muon_generalTracks_Z_Run2017_UL_ID.root",
-                "2018": "/muonSF/2018/UL/Efficiencies_muon_generalTracks_Z_Run2018_UL_ID.root"   
+        "SF": {
+            "2016Pre": {
+                "file": "/jsonpog-integration/POG/MUO/2016preVFP_UL/muon_Z.json",
+                "eraAlias": "2016preVFP_UL",
+                "triggerName": "NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight"
             },
 
-            "Histogram": {  
-                "Loose": {
-                    "2016Pre": "NUM_LooseID_DEN_TrackerMuons_abseta_pt",
-                    "2016Post": "NUM_LooseID_DEN_TrackerMuons_abseta_pt",
-                    "2017": "NUM_LooseID_DEN_TrackerMuons_abseta_pt",
-                    "2018": "NUM_LooseID_DEN_TrackerMuons_abseta_pt" 
-                }, 
+            "2016Post": {
+                "file": "/jsonpog-integration/POG/MUO/2016postVFP_UL/muon_Z.json",
+                "eraAlias": "2016postVFP_UL",
+                "triggerName": "NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight"
+            },
 
-                "Medium": {
-                    "2016Pre": "NUM_MediumID_DEN_TrackerMuons_abseta_pt",
-                    "2016Post": "NUM_MediumID_DEN_TrackerMuons_abseta_pt",
-                    "2017": "NUM_MediumID_DEN_TrackerMuons_abseta_pt",
-                    "2018": "NUM_MediumID_DEN_TrackerMuons_abseta_pt" 
-                },
+            "2017": {
+                "file": "/jsonpog-integration/POG/MUO/2017_UL/muon_Z.json",
+                "eraAlias": "2017_UL",
+                "triggerName": "NUM_IsoMu27_DEN_CutBasedIdTight_and_PFIsoTight"
+            },
 
-                "Tight": {
-                    "2016Pre": "NUM_TightID_DEN_TrackerMuons_abseta_pt",
-                    "2016Post": "NUM_TightID_DEN_TrackerMuons_abseta_pt",
-                    "2017": "NUM_TightID_DEN_TrackerMuons_abseta_pt",
-                    "2018": "NUM_TightID_DEN_TrackerMuons_abseta_pt" 
-                }
+            "2018": {
+                "file": "/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json",
+                "eraAlias": "2018_UL",
+                "triggerName": "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight"
             }
-        }, 
-
-        "Isolation": {
-            "2016Pre": "/muonSF/2016/UL/Efficiencies_muon_generalTracks_Z_Run2016_UL_HIPM_ISO.root",
-            "2016Post": "/muonSF/2016/UL/Efficiencies_muon_generalTracks_Z_Run2016_UL_ISO.root",
-            "2017": "/muonSF/2017/UL/Efficiencies_muon_generalTracks_Z_Run2017_UL_ISO.root",
-            "2018": "/muonSF/2018/UL/Efficiencies_muon_generalTracks_Z_Run2018_UL_ISO.root"
         },
 
-        "Trigger": {
-            "File": {
-                "2016Pre": "/muonSF/2016/UL/Efficiencies_muon_generalTracks_Z_Run2016_UL_HIPM_SingleMuonTriggers.root",
-                "2016Post": "/muonSF/2016/UL/Efficiencies_muon_generalTracks_Z_Run2016_UL_SingleMuonTriggers.root",
-                "2017": "/muonSF/2017/UL/Efficiencies_muon_generalTracks_Z_Run2017_UL_SingleMuonTriggers.root",
-                "2018": "/muonSF/2018/UL/Efficiencies_muon_generalTracks_Z_Run2018_UL_SingleMuonTriggers.root"
-            }, 
-
-            "Histogram": {
-                "2016Pre": "NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight_abseta_pt",
-                "2016Post": "NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight_abseta_pt",
-                "2017": "NUM_IsoMu27_DEN_CutBasedIdTight_and_PFIsoTight_abseta_pt",
-                "2018": "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight_abseta_pt"
-            }
+        "Scale": {
+            "2016Pre": "/RoccoR/RoccoR2016aUL.txt",
+            "2016Post": "/RoccoR/RoccoR2016bUL.txt",
+            "2017": "/RoccoR/RoccoR2017.txt",
+            "2018": "/RoccoR/RoccoR2018.txt"
         }
     }
 }

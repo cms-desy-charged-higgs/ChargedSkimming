@@ -293,6 +293,36 @@
 
     "Analyzer": {
         "Jet": {
+            "JECSyst": [
+                "Total",
+                "SubTotalPileUp",
+                "SubTotalRelative",
+                "SubTotalPt",
+                "SubTotalScale",
+                "FlavorQCD",
+                "TimePtEta"
+            ],
+
+            "BTagSyst": [
+                "uncorrelated",
+                "correlated",
+                "isr",
+                "fsr",
+                "hdamp",
+                "jes",
+                "jer",
+                "pileup",
+                "qcdscale", 
+                "statistic",
+                "topmass",
+                "type3"
+            ],
+
+            "BTagSystLight": [
+                "uncorrelated",
+                "correlated"
+            ],
+        
             "pt" : {
                 "2016Pre": 30,
                 "2016Post": 30,
@@ -310,15 +340,15 @@
             "btag": {
                 "DeepCSV": {
                     "2016Pre": {
-                        "loose": 0.2217,
-                        "medium": 0.6321,
-                        "tight": 0.8953
+                        "loose": 0.2027,
+                        "medium": 0.6001,
+                        "tight": 0.8819
                     },
 
                     "2016Post": {
-                        "loose": 0.2217,
-                        "medium": 0.6321,
-                        "tight": 0.8953
+                        "loose": 0.1918,
+                        "medium": 0.5847,
+                        "tight": 0.8767
                     },
 
                     "2017": {
@@ -336,15 +366,15 @@
 
                 "DeepJet": {
                     "2016Pre": {
-                        "loose": 0.0614,
-                        "medium": 0.3093,
-                        "tight": 0.7221
+                        "loose": 0.0508,
+                        "medium": 0.2598,
+                        "tight": 0.6502
                     },
 
                     "2016Post": {
-                        "loose": 0.0614,
-                        "medium": 0.3093,
-                        "tight": 0.7221
+                        "loose": 0.0480,
+                        "medium": 0.2489,
+                        "tight": 0.6377
                     },
 
                     "2017": {
@@ -411,7 +441,8 @@
                 "Flag_HBHENoiseIsoFilter",
                 "Flag_EcalDeadCellTriggerPrimitiveFilter",
                 "Flag_BadPFMuonFilter",
-                "Flag_eeBadScFilter"
+                "Flag_eeBadScFilter",
+                "Flag_BadPFMuonDzFilter"
             ],
 
             "2016Post": [
@@ -421,7 +452,8 @@
                 "Flag_HBHENoiseIsoFilter",
                 "Flag_EcalDeadCellTriggerPrimitiveFilter",
                 "Flag_BadPFMuonFilter",
-                "Flag_eeBadScFilter"
+                "Flag_eeBadScFilter",
+                "Flag_BadPFMuonDzFilter"
             ], 
 
             "2017": [
@@ -431,7 +463,9 @@
                 "Flag_HBHENoiseIsoFilter",
                 "Flag_EcalDeadCellTriggerPrimitiveFilter",
                 "Flag_BadPFMuonFilter",
-                "Flag_eeBadScFilter"
+                "Flag_eeBadScFilter",
+                "Flag_BadPFMuonDzFilter",
+                "Flag_ecalBadCalibFilter"
             ],
 
             "2018": [
@@ -441,7 +475,9 @@
                 "Flag_HBHENoiseIsoFilter",
                 "Flag_EcalDeadCellTriggerPrimitiveFilter",
                 "Flag_BadPFMuonFilter",
-                "Flag_eeBadScFilter"
+                "Flag_eeBadScFilter",
+                "Flag_BadPFMuonDzFilter",
+                "Flag_ecalBadCalibFilter"
             ]
         },
 
